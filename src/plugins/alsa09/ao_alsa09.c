@@ -401,8 +401,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 error:
 	fprintf(stderr, "ALSA %s error: %s\n",
 			internal->cmd, snd_strerror(err));
-	if (internal->pcm_handle)
+	if (internal->pcm_handle) {
 		snd_pcm_close(internal->pcm_handle);
+		internal->pcm_handle = NULL;
+	}
 	return 0;
 }
 
@@ -492,6 +494,7 @@ int ao_plugin_close(ao_device *device)
 			if (internal->pcm_handle) {
 				snd_pcm_drain(internal->pcm_handle);
 				snd_pcm_close(internal->pcm_handle);
+				internal->pcm_handle=NULL;
 			} else
 				fprintf(stderr,"ao_plugin_close called with uninitialized ao_device->internal->pcm_handle\n");
 		} else
