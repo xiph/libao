@@ -1,3 +1,6 @@
+0.8.7 - unreleased snapshot
+- No changes noted as of yet
+
 0.8.6 - January 11, 2005
 - Added Polypaudio driver(libao-polyp 0.4) 
   from Lennart Poettering <mzyvonbcbylc (at) 0pointer (dot) de>
