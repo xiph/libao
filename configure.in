@@ -41,14 +41,17 @@ if test -z "$GCC"; then
                 if test -z "$CC"; then
                         CC=cc
                 fi
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g -signed"
                 CFLAGS="-O2 -w -signed"
                 PROFILE="-p -g3 -O2 -signed" ;;
         sparc-sun-solaris*)
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-v -g"
                 CFLAGS="-xO4 -fast -w -fsimple -native -xcg92"
                 PROFILE="-v -xpg -g -xO4 -fast -native -fsimple -xcg92 -Dsuncc" ;;
         *)
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g"
                 CFLAGS="-O"
                 PROFILE="-g -p" ;;
@@ -57,19 +60,23 @@ else
 
         case $host in
         *-*-linux*)
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g -Wall -D_REENTRANT -D__NO_MATH_INLINES -fsigned-char"
                 CFLAGS="-O20 -ffast-math -D_REENTRANT -fsigned-char"
                 PROFILE="-pg -g -O20 -ffast-math -D_REENTRANT -fsigned-char";;
         sparc-sun-*)
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -mv8"
                 CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char -mv8"
                 PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char -mv8" ;;
         *-darwin*)
-                SILLY_CARBON_PATH="-I/System/Library/Frameworks/Carbon.framework/Versions/A/Headers"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char $SILLY_CARBON_PATH"
-                CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char $SILLY_CARBON_PATH"
-                PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char $SILLY_CARBON_PATH" ;;
+                LDFLAGS="-framework CoreAudio"
+                PLUGIN_LDFLAGS="-module -avoid-version"
+                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"
+                CFLAGS="-D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"
+                PROFILE="-g -pg -D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore" ;;
         *)
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
                 CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
                 PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
@@ -218,11 +225,21 @@ AM_CONDITIONAL(HAVE_SUN_AUDIO,test "${ac_cv_header_sys_audioio_h}" = yes)
 dnl Check for aRts
 
 AC_ARG_ENABLE(arts, [  --enable-arts           include aRts output plugin ],
-[ BUILD_ARTS="$enableval" ],[ BUILD_ARTS="yes" ])
+[ BUILD_ARTS="$enableval" ],[ BUILD_ARTS="maybe" ])
+
+dnl aRts support is whacked on OS X, so don't build it by default
+if test "$BUILD_ARTS" = "maybe"; then
+  case $host in
+         *-darwin*)
+                 BUILD_ARTS=no;;
+         *)
+                 BUILD_ARTS=yes;;
+  esac
+fi
+
 
 if test "$BUILD_ARTS" = "yes"; then
   AC_PATH_PROG(ARTSC_CONFIG, artsc-config)
-  AM_CONDITIONAL(HAVE_ARTS,test "x$ac_cv_path_ARTSC_CONFIG" != x)
 
   if test "x$ac_cv_path_ARTSC_CONFIG" != x
   then
@@ -230,6 +247,7 @@ if test "$BUILD_ARTS" = "yes"; then
 	ARTS_LIBS=`$ac_cv_path_ARTSC_CONFIG --libs`
   fi
 fi
+AM_CONDITIONAL(HAVE_ARTS,test "x$ac_cv_path_ARTSC_CONFIG" != x)
 
 AC_SUBST(ARTS_CFLAGS)
 AC_SUBST(ARTS_LIBS)
@@ -258,5 +276,7 @@ AM_CONDITIONAL(HAVE_MACOSX,test "x$have_macosx" = xyes)
 dnl Orphaned driver.  We'll probably dump it soon.
 AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/alsa09/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile debian/Makefile)
+dnl Plugins get special LDFLAGS
+AC_SUBST(PLUGIN_LDFLAGS)
 
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/alsa09/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile debian/Makefile)

@@ -5,13 +5,11 @@ AUTOMAKE_OPTIONS = foreign
 if HAVE_IRIX
 
 irixltlibs = libirix.la
-irixldflags = -export-dynamic -avoid-version
 irixsources = ao_irix.c
 
 else
 
 irixltlibs =
-irixldflags =
 irixsources =
 
 endif
@@ -21,7 +19,7 @@ INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(irixltlibs)
 
-libirix_la_LDFLAGS = $(irixldflags)
+libirix_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libirix_la_SOURCES = $(irixsources)
 
 EXTRA_DIST = ao_irix.c
