@@ -1,19 +1,20 @@
 Name:		libao
 Version:	0.8.5
-Release:	1
+Release:	3
 Summary:	Cross-Platform Audio Output Library
 
 Group:		System Environment/Libraries
 License:	GPL
 URL:		http://www.xiph.org/
 Vendor:		Xiph.org Foundation <team@xiph.org>
-Source:		http://www.xiph.org/ogg/vorbis/download/%{name}-%{version}.tar.gz
+Source:		http://www.xiph.org/ao/src/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 
 # glibc-devel is needed for oss plug-in build
 BuildRequires:  glibc-devel
-BuildRequires: 	esound-devel >= 0.2.8
-BuildRequires: 	arts-devel
+%{!?_without_esd:BuildRequires: esound-devel >= 0.2.8}
+%{!?_without_arts:BuildRequires: arts-devel}
+%{?_with_alsa:BuildRequires: alsa-lib-devel >= 0.9.0}
 # FIXME: perl is needed for the dirty configure flag trick, which should be
 # solved differently
 BuildRequires:  perl
@@ -25,6 +26,10 @@ ESD, aRts, ALSA, OSS, *BSD and Solaris.
 This package provides plug-ins for OSS, ESD, aRts, and ALSA (0.9).  You will
 need to install the supporting libraries for any plug-ins you want to use
 in order for them to work.
+
+Available rpmbuild rebuild options :
+--with : alsa
+--without : esd arts
 
 %package devel
 Summary: Cross Platform Audio Output Library Development
@@ -43,7 +48,12 @@ perl -p -i -e "s/-ffast-math//" configure
 
 %build
 
-%configure
+%configure \
+    --disable-nas \
+    --disable-alsa \
+    %{?_with_alsa:--enable-alsa09} %{!?_with_alsa:--disable-alsa09} \
+    %{?_without_esd:--disable-esd} \
+    %{?_without_arts:--disable-arts}
 
 make
 
@@ -68,20 +78,33 @@ fi
 %doc AUTHORS CHANGES COPYING README
 %{_libdir}/libao.so.*
 %{_libdir}/ao/*/liboss.so
-%{_libdir}/ao/*/libesd.so
-%{_libdir}/ao/*/libarts.so
+%{!?_without_esd:%{_libdir}/ao/*/libesd.so}
+%{!?_without_arts:%{_libdir}/ao/*/libarts.so}
+%{?_with_alsa:%{_libdir}/ao/*/libalsa09.so}
 %{_mandir}/man5/*
 
 %files devel
+%defattr(-,root,root)
 %doc doc/*
 %{_includedir}/ao
 %{_libdir}/libao.so
 %{_libdir}/libao.la
-%{_libdir}/ao/*/*.la
+%{_libdir}/ao/*/liboss.la
+%{!?_without_esd:%{_libdir}/ao/*/libesd.la}
+%{!?_without_arts:%{_libdir}/ao/*/libarts.la}
+%{?_with_alsa:%{_libdir}/ao/*/libalsa09.la}
 %{_datadir}/aclocal/ao.m4
 %{_libdir}/pkgconfig/ao.pc
 
 %changelog
+* Mon Mar 25 2004 Gary Peck <gbpeck@sbcglobal.net> 0.8.5-3
+- Set default user and permissions on the devel package
+
+* Mon Mar 22 2004 Gary Peck <gbpeck@sbcglobal.net> 0.8.5-2
+- Update source URL
+- Add support for "--with alsa", "--without esd" and "--without arts"
+- Make configure more explicit on what plugins to enable
+
 * Fri Mar 11 2004 Stan Seibert <volsung@xiph.org> 0.8.5-1
 - Version bump
 
