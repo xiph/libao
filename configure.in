@@ -1,0 +1,242 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(src/audio_out.c)
+
+AM_INIT_AUTOMAKE(libao,1.0.0)
+
+AC_CANONICAL_HOST
+
+dnl ====================================
+dnl Check for programs
+dnl ====================================
+
+AC_PROG_CC
+AM_PROG_LIBTOOL
+AC_PROG_CPP
+AC_PROG_RANLIB
+
+AC_SUBST(RANLIB)
+
+dnl ====================================
+dnl Set some general compile options
+dnl ====================================
+
+if test -z "$GCC"; then
+        case $host in
+        *-*-irix*)
+                if test -z "$CC"; then
+                        CC=cc
+                fi
+                DEBUG="-g -signed"
+                CFLAGS="-O2 -w -signed"
+                PROFILE="-p -g3 -O2 -signed" ;;
+        sparc-sun-solaris*)
+                DEBUG="-v -g"
+                CFLAGS="-xO4 -fast -w -fsimple -native -xcg92"
+                PROFILE="-v -xpg -g -xO4 -fast -native -fsimple -xcg92 -Dsuncc" ;;
+        *)
+                DEBUG="-g"
+                CFLAGS="-O"
+                PROFILE="-g -p" ;;
+        esac
+else
+
+        case $host in
+        *-*-linux*)
+                DEBUG="-g -Wall -D_REENTRANT -D__NO_MATH_INLINES -fsigned-char"
+                CFLAGS="-O20 -ffast-math -D_REENTRANT -fsigned-char"
+                PROFILE="-pg -g -O20 -ffast-math -D_REENTRANT -fsigned-char";;
+        sparc-sun-*)
+                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -mv8"
+                CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char -mv8"
+                PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char -mv8" ;;
+        *)
+                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
+                CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
+                PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
+        esac
+fi
+
+AC_SUBST(CC)
+AC_SUBST(DEBUG)
+AC_SUBST(PROFILE)
+
+dnl ==============================
+dnl Check for libraries
+dnl ==============================
+
+dnl --- if we're on irix, check for -laudio ---
+
+case $host in
+        *-*-irix*)
+                AC_CHECK_LIB(audio, ALwritesamps)
+        ;;
+esac
+
+dnl ==============================
+dnl Checks for header files
+dnl ==============================
+
+AC_HEADER_STDC
+
+dnl ==============================
+dnl Checks for types
+dnl ==============================
+
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+
+case 2 in
+        $ac_cv_sizeof_short) SIZE16="short";;
+        $ac_cv_sizeof_int) SIZE16="int";;
+esac
+
+case 4 in
+        $ac_cv_sizeof_short) SIZE32="short";;
+        $ac_cv_sizeof_int) SIZE32="int";;
+        $ac_cv_sizeof_long) SIZE32="long";;
+esac
+
+if test -z "$SIZE16"; then
+        AC_MSG_WARN(No 16 bit type found on this platform!)
+fi
+if test -z "$SIZE32"; then
+        AC_MSG_WARN(No 32 bit type found on this platform!)
+fi
+
+AC_SUBST(SIZE16)
+AC_SUBST(SIZE32)
+AC_SUBST(SIZE64)
+
+dnl =========================================
+dnl Figure out which ao_* files to compile
+dnl =========================================
+
+AC_ARG_ENABLE(oss,,,enable_oss=yes)
+AC_ARG_ENABLE(irix,,,enable_irix=yes)
+AC_ARG_ENABLE(solaris,,,enable_solaris=yes)
+AC_ARG_ENABLE(alsa,,,enable_alsa=yes)
+AC_ARG_ENABLE(esd,,,enable_esd=yes)
+AC_ARG_ENABLE(default-output,,,enable_default_output=def)
+
+dnl ======================================
+dnl Detect possible output devices 
+dnl ======================================
+
+dnl --- Initialize default variable values ---
+has_oss=no
+has_irix=no
+has_solaris=no
+has_esd=no
+has_alsa=no
+need_libossaudio=no
+
+AC_CHECK_LIB(ossaudio, main, has_libossaudio=yes, has_libossaudio=no)
+
+case $host in
+        *-*-linux*|*-openbsd*|*-freebsd*)
+		has_oss=yes;;
+	*-netbsd*)
+   	  	if test has_libossaudio = "yes"; then
+                   	has_oss=yes
+                      	need_libossaudio=yes
+              	fi;;
+        *-irix*)
+		has_irix=yes;;
+        *-solaris*)
+		has_solaris=yes;;
+esac
+
+AC_CHECK_LIB(esd, esd_play_stream, has_esd=yes)
+AC_CHECK_LIB(asound, snd_pcm_open, has_alsa=yes, has_alsa=no)
+
+dnl -- Set appropriate variables for each driver --
+
+AC_MSG_CHECKING("whether to compile OSS driver")
+if test $enable_oss = "yes" && test $has_oss = "yes"; then
+	AC_MSG_RESULT("yes")
+	LIBAO_FILES="$LIBAO_FILES ao_oss.c"
+	LIBAO_FLAGS="$LIBAO_FLAGS -DAO_COMPILE_OSS"
+      	if test need_libossaudio = yes; then
+              	LIBAO_LIBS="$LIBAO_LIBS -lossaudio"
+      	fi
+	ao_default=oss
+else
+	AC_MSG_RESULT("no")
+fi
+
+AC_MSG_CHECKING("whether to compile IRIX driver")
+if test $enable_irix = "yes" && test $has_irix = "yes"; then
+	AC_MSG_RESULT("yes")
+	LIBAO_FILES="$LIBAO_FILES ao_irix.c"
+	LIBAO_FLAGS="$LIBAO_FLAGS -DAO_COMPILE_IRIX"
+	ao_default=irix
+else
+	AC_MSG_RESULT("no")
+fi
+
+AC_MSG_CHECKING("whether to compile Solaris driver")
+if test $enable_solaris = "yes" && test $has_solaris = "yes"; then
+	LIBAO_FILES="$LIBAO_FILES ao_solaris.c"
+	LIBAO_FLAGS="$LIBAO_FLAGS -DAO_COMPILE_SOLARIS"
+	ao_default=solaris
+else
+	AC_MSG_RESULT("no")
+fi
+
+AC_MSG_CHECKING("whether to compile ESD driver")
+if test $enable_esd = "yes" && test $has_esd = "yes"; then
+	AC_MSG_RESULT("yes")
+	LIBAO_LIBS="$LIBAO_LIBS -lesd"
+	LIBAO_FLAGS="$LIBAO_FLAGS -DAO_COMPILE_ESD"
+	LIBAO_FILES="$LIBAO_FILES ao_esd.c"
+else
+	AC_MSG_RESULT("no")
+fi
+
+AC_MSG_CHECKING("whether to compile ALSA driver")
+if test $enable_alsa = "yes" && test $has_alsa = "yes"; then
+	AC_MSG_RESULT("yes")
+	LIBAO_FLAGS="$LIBAO_FLAGS -DAO_COMPILE_ALSA"
+	LIBAO_FILES="$LIBAO_FILES ao_alsa.c"
+	LIBAO_LIBS="$LIBAO_LIBS -lasound"
+else
+	AC_MSG_RESULT("no")
+fi
+
+dnl -- Set the default device
+
+if test $enable_default_output != "def"; then
+	ao_default=$enable_default_output
+fi
+
+case $ao_default in
+	null)
+		AO_DEFAULT_DEF=AO_NULL;;
+	oss)
+		AO_DEFAULT_DEF=AO_OSS;;
+	irix)
+		AO_DEFAULT_DEF=AO_IRIX;;
+	solaris)
+		AO_DEFAULT_DEF=AO_SOLARIS;;
+	esd)
+		AO_DEFAULT_DEF=AO_ESD;;
+	alsa)
+		AO_DEFAULT_DEF=AO_ALSA;;
+	wav)
+		AO_DEFAULT_DEF=AO_WAV;;
+	*)
+		dnl Make the default output device AO_NULL
+		ao_default=null
+		AO_DEFAULT_DEF=AO_NULL;;
+esac
+
+AC_MSG_RESULT("setting default output device... $ao_default")
+
+LIBAO_FLAGS="$LIBAO_FLAGS -DAO_DEFAULT=$AO_DEFAULT_DEF"
+
+AC_SUBST(LIBAO_FILES)
+AC_SUBST(LIBAO_FLAGS)
+AC_SUBST(LIBAO_LIBS)
+
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h include/ao/ao_libs.inc)

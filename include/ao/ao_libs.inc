@@ -1,0 +1,1 @@
+LIBAO_LIBS= -lesd
