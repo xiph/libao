@@ -43,7 +43,7 @@
 #include "ao/plugin.h"
 
 
-static char *ao_oss_options[] = {"dev"};
+static char *ao_oss_options[] = {"dsp"};
 static ao_info ao_oss_info =
 {
 	AO_TYPE_LIVE,
@@ -147,8 +147,8 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
 
 
-	if (!strcmp(key, "dev")) {
-		/* Free old string in case "dev" set twice in options */
+	if (!strcmp(key, "dsp")) {
+		/* Free old string in case "dsp" set twice in options */
 		free(internal->dev); 
 		internal->dev = strdup(value);
 	}
