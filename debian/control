@@ -2,7 +2,7 @@ Source: libao
 Section: libs
 Priority: optional
 Maintainer: Christopher L Cheney <ccheney@debian.org>
-Build-Depends: debhelper (>> 3.0.0), libarts-dev, libasound1-dev [!m68k], libesd0-dev
+Build-Depends: debhelper (>> 3.0.0), libarts-dev [!alpha !hppa !hurd-i386 !ia64 !mips !mipsel !s390 !sh], libasound1-dev [!hurd-i386 !ia64 !mipsel !s390 !sh], libesd0-dev [!s390]
 Standards-Version: 3.5.5.0
 
 Package: libao-dev
