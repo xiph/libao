@@ -29,21 +29,19 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-
-#define MAXBUF 5            // Max buffers in circular buffer queue
-#define DEFAULTBUFTIME 3    // default to three seconds total buffer time
-
-typedef struct ao_mmsound_internal 
-{
-	HWAVEOUT          m_hWaveOut;
-	WAVEHDR	          m_waveHeader[MAXBUF];
-	uint_32           buf_size;
-	void             *buffer[MAXBUF];
-  int               next_in;
-  int               next_out;
-  int               timeout_msec;
-  HANDLE            hSema;  // semaphore for foreground/background coordination
-  CRITICAL_SECTION  lock;   // concurrency control for atomic state updates
+typedef struct ao_mmsound_internal {
+	HWAVEOUT m_hWaveOut;
+	WAVEHDR	m_waveHeader[2];
+	uint_32 num_bytes[2];
+	void *buffer[2];
+	void *tempbuf;
+	uint_32 tb_num_bytes;
+	int currentb;
+	uint_32 buf_size;
+	int running;
+	HANDLE notdone;
+	HANDLE datanotdone;
+	CRITICAL_SECTION  lock;
 } ao_mmsound_internal;
 
 static char *ao_mmsound_options[] = {"buf_size"};
@@ -61,25 +59,49 @@ static ao_info ao_mmsound_info =
 	1
 };
 
+void fillnextbuffer(DWORD dwInstance)
+{
+	ao_mmsound_internal *internal = (ao_mmsound_internal *)dwInstance;
+
+	EnterCriticalSection(&internal->lock);
+
+	if (internal->m_waveHeader[internal->currentb].dwFlags&WHDR_PREPARED)
+		waveOutUnprepareHeader(internal->m_hWaveOut,&internal->m_waveHeader[internal->currentb],sizeof(WAVEHDR));
+
+	ReleaseSemaphore(internal->notdone, 1, NULL);
+	WaitForSingleObject(internal->datanotdone,INFINITE);
+	memcpy(internal->buffer[internal->currentb], internal->tempbuf, internal->tb_num_bytes);
+	internal->num_bytes[internal->currentb] = internal->tb_num_bytes;
+	
+	internal->m_waveHeader[internal->currentb].lpData = (char*)internal->buffer[internal->currentb];
+	internal->m_waveHeader[internal->currentb].dwBufferLength = (unsigned long)internal->num_bytes[internal->currentb];
+	waveOutPrepareHeader(internal->m_hWaveOut,&internal->m_waveHeader[internal->currentb],sizeof(WAVEHDR));
+
+	waveOutWrite(internal->m_hWaveOut,&internal->m_waveHeader[internal->currentb],sizeof(WAVEHDR));
+	internal->currentb++;
+	if(internal->currentb == 2)
+		internal->currentb = 0;
+	LeaveCriticalSection(&internal->lock);
+
+}
+
+void startbuffer(DWORD dwInstance)
+{
+	ao_mmsound_internal *internal = (ao_mmsound_internal *)dwInstance;
+
+	fillnextbuffer(internal);
+	fillnextbuffer(internal);
+	_endthread();
+}
+
 static	void CALLBACK waveOutProc(HWAVEOUT hwo,UINT uMsg,DWORD dwInstance,DWORD dwParam1,DWORD dwParam2)
 {
-  ao_mmsound_internal *internal = (ao_mmsound_internal *)dwInstance;
-
-//  printf("*********  %x   Next in: %d  Next out: %d\n", 
-//    uMsg, internal->next_in, internal->next_out);
+	ao_mmsound_internal *internal = (ao_mmsound_internal *)dwInstance;
 
 	if (uMsg == WOM_DONE)
 	{
-    EnterCriticalSection(&internal->lock);
-    internal->next_out++;
-
-    if (internal->next_out == internal->next_in)
-    {
-      internal->next_in = internal->next_out = 0;
-		  ReleaseSemaphore(internal->hSema, 1, NULL);
-    }
-
-    LeaveCriticalSection(&internal->lock);
+		if(internal->running)
+			fillnextbuffer(dwInstance);
 	}
 }
 
@@ -123,7 +145,6 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
  */
 int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
-  int i;
 	ao_mmsound_internal *internal = (ao_mmsound_internal *) device->internal;
 	
 	MMRESULT errCode;
@@ -148,23 +169,25 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	if(internal->buf_size == 0)
 	{
-		internal->buf_size = wfx.nAvgBytesPerSec * DEFAULTBUFTIME;
+		internal->buf_size = 352800;
 	}
 
-  internal->timeout_msec = (internal->buf_size / wfx.nAvgBytesPerSec) * 1000;
-
-  for (i=0; i<MAXBUF; i++)
-  {
-	  internal->buffer[i] = malloc(internal->buf_size);
-    memset(&internal->m_waveHeader[i],0,sizeof(WAVEHDR));
-  }
-
-  internal->next_in = internal->next_out = 0;
-
-	internal->hSema = CreateSemaphore(NULL, MAXBUF-1, MAXBUF, NULL);
-  InitializeCriticalSection(&internal->lock);
+	memset(&internal->m_waveHeader[0],0,sizeof(WAVEHDR));
+	memset(&internal->m_waveHeader[1],0,sizeof(WAVEHDR));
+	internal->buffer[0] = malloc(internal->buf_size);
+	internal->buffer[1] = malloc(internal->buf_size);
+	internal->tempbuf = malloc(internal->buf_size);
+	internal->currentb = 0;
+	internal->running = 1;
+	
+	internal->notdone = CreateSemaphore(NULL, 0, 1, NULL);
+	internal->datanotdone = CreateSemaphore(NULL, 0, 1, NULL);
 
 	device->driver_byte_format = AO_FMT_NATIVE;
+
+	InitializeCriticalSection(&internal->lock);
+
+	_beginthread(startbuffer, 0, internal);
 	
 	return 1;
 }
@@ -176,65 +199,33 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
 	ao_mmsound_internal *internal = (ao_mmsound_internal *) device->internal;
-
-  EnterCriticalSection(&internal->lock);
 	
 	if(num_bytes > internal->buf_size)
-  {
-    LeaveCriticalSection(&internal->lock);
 		return 0;
-  }
 
-//  printf("*** Next in: %d   Next out: %d\n", 
-//    internal->next_in, internal->next_out);
-	if (internal->m_waveHeader[internal->next_in].dwFlags&WHDR_PREPARED)
-		waveOutUnprepareHeader(internal->m_hWaveOut,
-                          &internal->m_waveHeader[internal->next_in],
-                           sizeof(WAVEHDR));
+	WaitForSingleObject(internal->notdone, INFINITE);
 	
-	// Prepare internal->buffer[n] to be inserted into WaveOut buffer.
-	memcpy(internal->buffer[internal->next_in], output_samples, num_bytes);
-
-	internal->m_waveHeader[internal->next_in].lpData = 
-    (char*)internal->buffer[internal->next_in];
-
-	internal->m_waveHeader[internal->next_in].dwBufferLength = 
-    (unsigned long)num_bytes;
-
-	waveOutPrepareHeader(internal->m_hWaveOut,
-                      &internal->m_waveHeader[internal->next_in], sizeof(WAVEHDR));
-
-	// Send internal->buffer[n] to the WaveOut device buffer.
-	waveOutWrite(internal->m_hWaveOut,
-              &internal->m_waveHeader[internal->next_in], sizeof(WAVEHDR));
-
-  internal->next_in++;
-  LeaveCriticalSection(&internal->lock);
-  WaitForSingleObject(internal->hSema, internal->timeout_msec);
+	memcpy(internal->tempbuf, output_samples, num_bytes);
+	internal->tb_num_bytes = num_bytes;
+	
+	ReleaseSemaphore(internal->datanotdone, 1, NULL);
 
 	return 1;
 }
 
 int ao_plugin_close(ao_device *device)
 {
-  int i;
 	ao_mmsound_internal *internal = (ao_mmsound_internal *) device->internal;
 
-
-  // Wait for last block to finish playing
-  while ( internal->next_in !=  internal->next_out )
-  {
-    WaitForSingleObject(internal->hSema, internal->timeout_msec);
-  }
-
-	CloseHandle(internal->hSema);
-  DeleteCriticalSection(&internal->lock);
-
-  for (i=0; i<MAXBUF; i++)
-	  free(internal->buffer[i]);
+	internal->running = 0;
+	while((!internal->m_waveHeader[0].dwFlags&WHDR_DONE) || (!internal->m_waveHeader[1].dwFlags&WHDR_DONE))
+	{}
 	
 	waveOutReset(internal->m_hWaveOut);
 	waveOutClose(internal->m_hWaveOut);
+	CloseHandle(internal->notdone);
+	free(internal->buffer[0]);
+	free(internal->buffer[1]);
 
 	return 1;
 }
