@@ -144,7 +144,7 @@ static ao_internal_t *ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, 
 		goto ERR;
 	}
 
-	// Grab options here
+	/* Grab options here */
 	ao_wav_parse_options(state, options);
 	state->byte_swap = (bits == 16) && (ao_is_big_endian());
 	if (state->byte_swap) {
@@ -178,7 +178,7 @@ static ao_internal_t *ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, 
 	}
 
 	if (last == NULL) {
-		// Empty list, install our signal handler only once
+		/* Empty list, install our signal handler only once */
 		old_sig = signal(SIGINT,signal_handler);		
 
 		last = states = malloc(sizeof(ao_wav_state_list_t));
