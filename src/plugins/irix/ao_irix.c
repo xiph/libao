@@ -36,12 +36,13 @@
 
 #include <ao/ao.h>
 
+#define AO_IRIX_BUFFER_SIZE 32768
 
 typedef struct ao_irix_internal {
-	static ALport alport = 0;
-	static ALconfig alconfig = 0;
-	static int bytesPerWord = 1;
-	static int nChannels = 2;
+	ALport alport;
+	ALconfig alconfig;
+	int bytesPerSample;
+	int channels;
 } ao_irix_internal;
 
 
@@ -51,28 +52,26 @@ static ao_info ao_irix_info =
 	"Irix audio output ",
 	"irix",
 	"Jim Miller <???@sgi.com>",
-	"WARNING: This driver is untested!"
+	"Outputs to the IRIX Audio Library.",
 	AO_FMT_NATIVE,
 	20,
 	NULL,
 	1
 };
 
-
-int ao_plugin_test()
+int ao_plugin_test(void)
 {
 	char *dev_path;
 	ALport port;
 
 
-	if ( !(port = alOpenPort("libao test", "w", 0)) )
+	if ((port = alOpenPort("libao test", "w", NULL)) == NULL)
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
 		alClosePort(port);
 		return 1; /* This plugin works in default mode */
 	}
 }
-
 
 ao_info *ao_plugin_driver_info(void)
 {
@@ -86,121 +85,123 @@ int ao_plugin_device_init(ao_device *device)
 
 	internal = (ao_irix_internal *) malloc(sizeof(ao_irix_internal));
 
-	if (internal == NULL)	
-		return 0; /* Could not initialize device memory */
+	if (internal == NULL)
+		/* Could not allocate memory for device-specific data. */
+		return 0;
 
 	internal->alconfig = alNewConfig();
-		
+	internal->alport = NULL;
+	internal->bytesPerSample = 2;
+	internal->channels = 2;
+
 	device->internal = internal;
 
-	return 1; /* Memory alloc successful */
+	/* Device-specific initialization was successful. */
+	return 1;
 }
-
 
 int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
 	return 1; /* No options */
 }
 
-
-/*
- * open the audio device for writing to
- */
+/* Open the audio device for writing. */
 int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
 	ao_irix_internal *internal = (ao_irix_internal *) device->internal;
-	ALpv params[2];
+	ALpv params;
 	int  dev = AL_DEFAULT_OUTPUT;
 	int  wsize = AL_SAMPLE_16;
 
-
-	internal->nChannels = channels;
-
-	if (alSetQueueSize(internal->alconfig, BUFFER_SIZE) < 0) {
-		fprintf(stderr, "alSetQueueSize failed: %s\n", 
-		alGetErrorString(oserror()));
-		return 0;
-	}
-
-	if (alSetChannels(internal->alconfig, channels) < 0) {
-		fprintf(stderr, "alSetChannels(%d) failed: %s\n", 
-		channels, alGetErrorString(oserror()));
-		return 0;
-	}
-	
-	if (alSetDevice(internal->alconfig, dev) < 0) {
-		fprintf(stderr, "alSetDevice failed: %s\n", 
-		alGetErrorString(oserror()));
-		return 0;
-	}
-	
-	if (alSetSampFmt(internal->alconfig, AL_SAMPFMT_TWOSCOMP) < 0) {
-		fprintf(stderr, "alSetSampFmt failed: %s\n", 
-		alGetErrorString(oserror()));
-		return 0;
-	}
-
-	switch (format->bits) {
-	case 8:         
-		internal->bytesPerWord = 1;
-		wsize = AL_SAMPLE_8;
-		break;
-		
-	case 16: 
-		internal->bytesPerWord = 2;
-		wsize = AL_SAMPLE_16;
-		break;
-		
-	case 24:
-		internal->bytesPerWord = 4;
-		wsize = AL_SAMPLE_24;
-		break;
-		
-	default:
-	    fprintf(stderr,"Irix audio: unsupported bit with %d\n", bits);
-		break;
-	}
-
-
-	internal->alport = alOpenPort("libao", "w", 0);
-
-	if (!internal->alport) {
-		fprintf(stderr, "alOpenPort failed: %s\n", 
+	if (alSetQueueSize(internal->alconfig, AO_IRIX_BUFFER_SIZE) < 0) {
+		fprintf(stderr, "alSetQueueSize failed: %s\n",
 			alGetErrorString(oserror()));
 		return 0;
 	}
 
+	if (alSetChannels(internal->alconfig, format->channels) < 0) {
+		fprintf(stderr, "alSetChannels(%d) failed: %s\n",
+			format->channels, alGetErrorString(oserror()));
+		return 0;
+	}
+
+	internal->channels = format->channels;
+
+	if (alSetDevice(internal->alconfig, dev) < 0) {
+		fprintf(stderr, "alSetDevice failed: %s\n",
+			alGetErrorString(oserror()));
+		return 0;
+	}
+
+	if (alSetSampFmt(internal->alconfig, AL_SAMPFMT_TWOSCOMP) < 0) {
+		fprintf(stderr, "alSetSampFmt failed: %s\n",
+			alGetErrorString(oserror()));
+		return 0;
+	}
+
+	switch (format->bits) {
+	case 8:
+		internal->bytesPerSample = 1;
+		wsize = AL_SAMPLE_8;
+		break;
+
+	case 16:
+		internal->bytesPerSample = 2;
+		wsize = AL_SAMPLE_16;
+		break;
+
+	case 24:
+		internal->bytesPerSample = 4;
+		wsize = AL_SAMPLE_24;
+		break;
+
+	default:
+		fprintf(stderr, "Irix audio: unsupported bit with %d\n",
+			format->bits);
+		break;
+	}
 
 	if (alSetWidth(internal->alconfig, wsize) < 0) {
-		fprintf(stderr, "alSetWidth failed: %s\n", alGetErrorString(oserror()));
+		fprintf(stderr, "alSetWidth failed: %s\n",
+			alGetErrorString(oserror()));
 		alClosePort(internal->alport);
 		return 0;
 	}
-	
-	params[0].param = AL_RATE;
-	params[0].value.ll = alDoubleToFixed((double)rate);
-	params[1].param = AL_MASTER_CLOCK;
-	params[1].value.i = AL_CRYSTAL_MCLK_TYPE;
-	if ( alSetParams(dev, params, 1) < 0) {
+
+	internal->alport = alOpenPort("libao", "w", internal->alconfig);
+	if (internal->alport == NULL)
+	{
+		fprintf(stderr, "alOpenPort failed: %s\n",
+			alGetErrorString(oserror()));
+		return 0;
+	}
+
+	params.param = AL_RATE;
+	params.value.ll = alDoubleToFixed((double) format->rate);
+	if (alSetParams(dev, &params, 1) < 0)
+	{
 		printf("alSetParams() failed: %s\n", alGetErrorString(oserror()));
 		alClosePort(internal->alport);
 		return 0;
 	}
-	
+
 	device->driver_byte_format = AO_FMT_NATIVE;
-	
+
 	return 1;
 }
 
-/*
- * play the sample to the already opened file descriptor
- */
-int ao_plugin_play(ao_device *device, const char *output_samples, 
+/* Play the sampled audio data to the already opened device. */
+int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
+	uint_32 num_frames;
 	ao_irix_internal *internal = (ao_irix_internal *) device->internal;
-	
-	alWriteFrames(internal->alport, output_samples, num_bytes); 
+
+	num_frames = num_bytes;
+	num_frames /= internal->bytesPerSample;
+	num_frames /= internal->channels;
+
+	alWriteFrames(internal->alport, output_samples, num_frames);
 
 	return 1; /* FIXME: Need to check if the above function failed */
 }
@@ -213,7 +214,6 @@ int ao_plugin_close(ao_device *device)
 
 	return 1;
 }
-
 
 void ao_plugin_device_clear(ao_device *device)
 {
