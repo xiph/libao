@@ -4,6 +4,15 @@ libao (0.6.0-1) unstable; urgency=low
 
  -- Christoper L Cheney <ccheney@debian.org>  Wed, 24 Jan 2001 21:39:41 -0600
 
+libao (0.5.0-3) unstable; urgency=low
+
+  * Fixed Build-Depends libasound1-dev to only not be on m68k.
+  * Fixed Sections.
+  * Updated to Standards-Version to 3.5.1.0
+  * Added Lintian override file.
+
+ -- Christopher L Cheney <ccheney@debian.org>  Sat, 17 Feb 2001 16:45:59 -0600
+
 libao (0.5.0-2) unstable; urgency=low
 
   *  Fixed Build-Depends for archs that do not have libasound1-dev (closes: #78097)
