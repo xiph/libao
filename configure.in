@@ -196,7 +196,19 @@ else
 fi
 AC_SUBST(ALSA09_LIBS)
 
+dnl Decide whether we need to enable the workaround for broken OSS APIs
+dnl such as the OSS emulation in ALSA.
 
+AC_ARG_ENABLE(broken-oss, [  --enable-broken-oss           workaround for some OSS drivers (see README for details)],,
+if test "x$have_alsa" = "xyes" -o "x$have_alsa09" = "xyes"; then
+   enable_broken_oss="yes"
+fi)
+
+if test "x$enable_broken_oss" = "xyes"; then
+   AC_DEFINE(BROKEN_OSS)
+   AC_MSG_WARN(Broken OSS API workaround enabled.  See README for details.)
+fi
+   
 dnl Check for Sun audio
 
 AC_CHECK_HEADERS(sys/audioio.h)

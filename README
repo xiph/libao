@@ -51,3 +51,15 @@ could be provided.  The API was revised for version 0.8.0.
 This code is being maintained by Stan Seibert (indigo@aztec.asu.edu) 
 and various other individuals.  Please DO NOT annoy Aaron Holtzman about 
 bugs, features, comments, etc. regarding this code.
+
+WORKAROUNDS
+
+The OSS emulation in ALSA deviates from the OSS spec by not returning
+immediately from an open() call if the OSS device is already in use.
+Instead, it makes the application wait until the device is available.
+This is not desirable during the autodetection phase of libao, so a
+workaround has been included in the source.  Since the workaround
+itself violates the OSS spec and causes other problems on some
+platforms, it is only enabled when ALSA is detected.  The workaround
+can be turned on or off by passing the --enable-broken-oss or
+--disable-broken-oss flag to the configure script.

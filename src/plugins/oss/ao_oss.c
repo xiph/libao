@@ -70,10 +70,11 @@ typedef struct ao_oss_internal {
  * *dev_path.  Assumes that *dev_path does not need to be free()'ed
  * initially.
  *
- * This opens the device in non-blocking mode at first in order to prevent
- * deadlock caused by ALSA's OSS emulation and some OSS drivers if the
- * device is already in use.  If blocking is non-zero, we remove the blocking
- * flag if possible so that the device can be used for actual output.
+ * If BROKEN_OSS is defined, this opens the device in non-blocking
+ * mode at first in order to prevent deadlock caused by ALSA's OSS
+ * emulation and some OSS drivers if the device is already in use.  If
+ * blocking is non-zero, we remove the blocking flag if possible so
+ * that the device can be used for actual output.
  */
 int _open_default_oss_device (char **dev_path, int blocking)
 {
@@ -83,7 +84,11 @@ int _open_default_oss_device (char **dev_path, int blocking)
 
 	/* default: first try the devfs path */
 	*dev_path = strdup("/dev/sound/dsp");
+#ifdef BROKEN_OSS
 	fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
+#else
+	fd = open(*dev_path, O_WRONLY);
+#endif /* BROKEN_OSS */
 
 	/* then try the original dsp path */
 	if(fd < 0) 
@@ -93,9 +98,14 @@ int _open_default_oss_device (char **dev_path, int blocking)
 		dev = strdup(*dev_path);
 		free(*dev_path);
 		*dev_path = strdup("/dev/dsp");
+#ifdef BROKEN_OSS
 		fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
+#else
+		fd = open(*dev_path, O_WRONLY);
+#endif /* BROKEN_OSS */
 	}
 
+#ifdef BROKEN_OSS
 	/* Now have to remove the O_NONBLOCK flag if so instructed. */
 	if (fd > 0 && blocking) {
 		if (fcntl(fd, F_SETFL, 0) < 0) { /* Remove O_NONBLOCK */
@@ -105,6 +115,7 @@ int _open_default_oss_device (char **dev_path, int blocking)
 			fd = -1;
 		}
 	}
+#endif /* BROKEN_OSS */
 
 	/* Deal with error cases */
 	if(fd < 0) 
