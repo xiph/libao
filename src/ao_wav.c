@@ -300,6 +300,11 @@ ERR:
 	free(s);
 }
 
+static int ao_wav_get_latency(void)
+{
+	return 0;
+}
+
 static ao_info_t *ao_wav_get_driver_info(void)
 {
 	return &ao_wav_info;
@@ -328,5 +333,6 @@ ao_functions_t ao_wav =
         ao_wav_get_driver_info,
         ao_wav_open,
         ao_wav_play,
-        ao_wav_close
+        ao_wav_close,
+        ao_wav_get_latency
 };

@@ -163,6 +163,12 @@ void plugin_close(ao_internal_t *state)
 	free(state);
 }
 
+int plugin_get_latency(ao_internal_t *state)
+{
+	/* TODO */
+	return 0;
+}
+
 ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_irix_info;

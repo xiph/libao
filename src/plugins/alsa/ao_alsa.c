@@ -212,6 +212,14 @@ void plugin_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
 	}
 }
 
+int plugin_get_latency(ao_internal_t *state)
+{
+	ao_alsa_internal_t * s = (ao_alsa_internal_t *) state;
+	snd_pcm_channel_status_t status;
+	int err = snd_pcm_channel_status(s->pcm_handle, &status);
+	return (err < 0 ? 0 : status.count);
+}
+
 ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_alsa_info;

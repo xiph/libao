@@ -32,14 +32,17 @@
 typedef struct ao_arts_internal_s
 {
   arts_stream_t stream;
+	uint_32 bits;
+	uint_32 rate;
+	uint_32 channels;
 } ao_arts_internal_t;
 
 ao_info_t ao_arts_info =
 {
-	"aRts output",
-	"arts",
-	"Rik Hemsley (rikkus) <rik@kde.org>",
-	"Outputs to the aRts soundserver."
+  "aRts output",
+  "arts",
+  "Rik Hemsley (rikkus) <rik@kde.org>",
+  "Outputs to the aRts soundserver."
 };
 
   ao_internal_t *
@@ -74,7 +77,11 @@ plugin_open
 
   state->stream = arts_play_stream(rate, bits, channels, "ao stream");
 
-	return state;
+	state->bits = bits;
+	state->rate = rate;
+	state->channels = channels;
+
+  return state;
 }
 
   void
@@ -102,9 +109,18 @@ plugin_play
   }
 }
 
+  int
+plugin_get_latency(ao_internal_t * state)
+{
+  ao_arts_internal_t * s = (ao_arts_internal_t *)state;
+	int ms = arts_stream_get(s->stream, ARTS_P_TOTAL_LATENCY);
+	int sample_rate = (s->bits / 8) * s->rate * s->channels;
+	return (sample_rate * ms) / 1000;
+}
+
   ao_info_t *
 plugin_get_driver_info(void)
 {
-	return &ao_arts_info;
+  return &ao_arts_info;
 }
 

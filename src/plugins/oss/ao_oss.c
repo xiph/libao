@@ -166,7 +166,6 @@ ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_opti
 	ioctl(state->fd,SNDCTL_DSP_SPEED, &tmp);
 	
 	return state;
-	
 
  ERR:
 	if(state != NULL)
@@ -196,6 +195,12 @@ void plugin_close(ao_internal_t *state)
 	free(s);
 }
 
+int plugin_get_latency(ao_internal_t *state)
+{
+	int odelay = 0;
+	ioctl(((ao_oss_internal_t *)state)->fd, SNDCTL_DSP_GETODELAY, &odelay);
+	return odelay;
+}
 
 ao_info_t *plugin_get_driver_info(void)
 {

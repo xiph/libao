@@ -61,6 +61,7 @@ typedef struct ao_functions_s {
 	ao_internal_t *(*open)(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options);
 	void (*play)(ao_internal_t *state, void* output_samples, uint_32 num_bytes);
 	void (*close)(ao_internal_t *state);
+	int (*get_latency)(ao_internal_t *state);
 } ao_functions_t;
 
 typedef struct ao_device_s {
@@ -96,6 +97,9 @@ void ao_close(ao_device_t *device);
 
 /* misc functions */
 int ao_is_big_endian(void);
+
+/* returns the number of bytes buffered by the driver / output device */
+int ao_get_latency(ao_device_t *device);
 
 #ifdef __cplusplus
 }

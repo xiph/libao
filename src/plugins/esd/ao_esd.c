@@ -108,7 +108,7 @@ ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_opti
 
 void plugin_close(ao_internal_t *state)
 {
-	ao_esd_internal_t *s = (ao_esd_internal_t *) state;
+	ao_esd_internal_t *s = (ao_esd_internal_t *)state;
 	close(s->sock);
 	free(s->host);
 	free(s);
@@ -117,6 +117,12 @@ void plugin_close(ao_internal_t *state)
 void plugin_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
 {
 	write(((ao_esd_internal_t *) state)->sock, output_samples, num_bytes);
+}
+
+int plugin_get_latency(ao_internal_t *state)
+{
+	ao_esd_internal_t *s = (ao_esd_internal_t *)state;
+	return (esd_get_latency(s->sock));
 }
 
 ao_info_t *plugin_get_driver_info(void)

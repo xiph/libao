@@ -84,6 +84,8 @@ driver_tree_t *_get_plugin(char *plugin_file)
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
 		dt->functions->close = dlsym(dt->handle, "plugin_close");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		dt->functions->get_latency = dlsym(dt->handle, "plugin_get_latency");
+		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
 	} else {
 		return NULL;
 	}
@@ -318,3 +320,9 @@ int ao_is_big_endian(void)
 	if (bytewise[0] == 0xba) return 1;
 	return 0;
 }
+
+int ao_get_latency(ao_device_t *device)
+{
+	return device->funcs->get_latency(device->state);
+}
+
