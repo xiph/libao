@@ -105,7 +105,7 @@ int _open_default_oss_device (char **dev_path, int blocking)
 
 #ifdef BROKEN_OSS
 	/* Now have to remove the O_NONBLOCK flag if so instructed. */
-	if (fd > 0 && blocking) {
+	if (fd >= 0 && blocking) {
 		if (fcntl(fd, F_SETFL, 0) < 0) { /* Remove O_NONBLOCK */
 			/* If we can't go to blocking mode, we can't use
 			   this device */
