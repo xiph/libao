@@ -1,6 +1,6 @@
 libao (0.8.2-1) unstable; urgency=low
 
-  * New upstream.
+  * New upstream. (Closes: #110858)
   * Changed to building alsa 0.9.x plugin instead of obsolete 0.5.x (Closes: #103787)
   * added autotools target (config.* updater) to rules
 
