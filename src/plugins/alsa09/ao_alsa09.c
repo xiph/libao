@@ -288,17 +288,21 @@ static inline int alsa_set_swparams(ao_alsa_internal *internal)
 	if (err < 0)
 		return err;
 
+	/* allow transfers to start when there are four periods */
+	/* setting the threshold to a very big values seems to cause a
+	   deadlock for dmix in a pol().  So here we just set it to 0,
+	   I'm not sure why we need to set a threshold > 0 anyway, maybe 
+	   someone could enlighten me. - shank */
+	internal->cmd = "snd_pcm_sw_params_set_start_threshold";
+	err = snd_pcm_sw_params_set_start_threshold(internal->pcm_handle,
+			params, /*internal->period_size << 2*/0);
+	if (err < 0)
+		return err;
+
 	/* require a minimum of one full transfer in the buffer */
 	internal->cmd = "snd_pcm_sw_params_set_avail_min";
 	err = snd_pcm_sw_params_set_avail_min(internal->pcm_handle, params,
 			internal->period_size);
-	if (err < 0)
-		return err;
-
-	/* allow transfers to start when there are four periods */
-	internal->cmd = "snd_pcm_sw_params_set_start_threshold";
-	err = snd_pcm_sw_params_set_start_threshold(internal->pcm_handle,
-			params, internal->period_size << 2);
 	if (err < 0)
 		return err;
 
@@ -417,8 +421,9 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 #endif
 
 		/* it's possible that no data was transferred */
-		if (err == -EAGAIN)
+		if (err == -EAGAIN) {
 			continue;
+		}
 
 		if (err < 0) {
 			/* this might be an error, or an exception */
