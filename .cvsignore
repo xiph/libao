@@ -1,3 +1,4 @@
+*.tar.gz
 ao-config
 Makefile
 config.status
