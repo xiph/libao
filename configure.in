@@ -85,6 +85,17 @@ dnl ==============================
 dnl Checks for header files
 dnl ==============================
 
+dnl --------------------------------------------------
+dnl Work around FHS stupidity
+dnl --------------------------------------------------
+
+if test "$prefix" = "/usr"; then
+    MANDIR='$(datadir)/man'
+else
+    MANDIR='$(prefix)/man'
+fi
+AC_SUBST(MANDIR)
+
 dnl ==============================
 dnl Checks for types
 dnl ==============================
