@@ -60,7 +60,7 @@ static int _is_big_endian(void)
 	uint_16 pattern = 0xbabe;
 	unsigned char *bytewise = (unsigned char *)&pattern;
 
-	if (bytewise[0] = 0xba) return 1;
+	if (bytewise[0] == 0xba) return 1;
 	return 0;
 }
 
