@@ -1,14 +1,14 @@
 Summary:	Cross Platform Audio Output Library
 Name:		libao
 Version:	0.8.2
-Release:	3
+Release:	4
 Group:		Libraries/Multimedia
 Copyright:	GPL
 URL:		http://www.xiph.org/
 Vendor:		Xiphophorus <team@xiph.org>
 Source:		http://www.xiph.org/ogg/vorbis/download/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
-BuildPrereq:	esound-devel >= 0.2.8
+BuildPrereq:	esound-devel >= 0.2.8, arts-devel
 Requires:	esound >= 0.2.8
 
 %description
@@ -32,7 +32,8 @@ if [ ! -f configure ]; then
   automake --add-missing
   autoconf 
 fi
-perl -p -i -e "s/-O20 -ffast-math/$RPM_OPT_FLAGS/" configure
+perl -p -i -e "s/-O20/$RPM_OPT_FLAGS/" configure
+perl -p -i -e "s/-ffast-math//" configure
 
 %build
 %configure
@@ -44,17 +45,13 @@ make DESTDIR=$RPM_BUILD_ROOT install
 
 %files
 %defattr(-,root,root)
-%doc AUTHORS
-%doc CHANGES
-%doc COPYING
-%doc README
+%doc AUTHORS CHANGES COPYING README
 %{_libdir}/libao.so*
 %{_libdir}/ao
+%{_mandir}/man5/*
 
 %files devel
-%doc doc/*.html
-%doc doc/*.css
-%doc doc/ao_example.c
+%doc doc/*
 %{_includedir}/ao
 %{_libdir}/libao.so
 %{_datadir}/aclocal/ao.m4
@@ -62,8 +59,7 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %clean 
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
 
-%post
-/sbin/ldconfig
+%post -p /sbin/ldconfig
 
 %postun
 if [ "$1" -ge "1" ]; then
@@ -71,6 +67,11 @@ if [ "$1" -ge "1" ]; then
 fi
 
 %changelog
+* Mon Jan  7 2002 Peter Jones <pjones@redhat.com> 0.8.2-4
+- minor cleanups, even closer to RH .spec 
+- arts-devel needs a build dependancy to be sure the
+  plugin will get built
+
 * Wed Jan  2 2002 Peter Jones <pjones@redhat.com> 0.8.2-3
 - fix libao.so's provide
 
