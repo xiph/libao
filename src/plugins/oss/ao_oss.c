@@ -68,15 +68,16 @@ typedef struct ao_oss_internal {
  * open either the devfs device or the traditional device and return a
  * file handle.  Also strdup() path to the selected device into
  * *dev_path.  Assumes that *dev_path does not need to be free()'ed
- * initially.
+ * initially.  The extra_open_flags allows additional flags to be
+ * passed to open() if needed.
  */
-int _open_default_oss_device (char **dev_path)
+int _open_default_oss_device (char **dev_path, int extra_open_flags)
 {
 	int fd;
 
 	/* default: first try the devfs path */
 	*dev_path = strdup("/dev/sound/dsp");
-	fd = open(*dev_path, O_WRONLY);
+	fd = open(*dev_path, O_WRONLY | extra_open_flags);
 
 	if(fd < 0) 
 	{
@@ -85,7 +86,7 @@ int _open_default_oss_device (char **dev_path)
 		char *dev = strdup(*dev_path);
 		free(*dev_path);
 		*dev_path = strdup("/dev/dsp");
-		fd = open(*dev_path,O_WRONLY);
+		fd = open(*dev_path, O_WRONLY | extra_open_flags);
 
 		if(fd < 0) 
 		{
@@ -111,9 +112,15 @@ int ao_plugin_test()
 	char *dev_path;
 	int fd;
 
-	if ( (fd = _open_default_oss_device(&dev_path)) < 0 )
+	/* OSS emulation in ALSA will by default cause the open() call
+	   to block if the dsp is in use.  This will freeze the default
+	   driver detection unless the O_NONBLOCK flag is passed to 
+	   open().  We cannot use this flag when we actually open the
+	   device for writing because then we will overflow the buffer. */
+	if ( (fd = _open_default_oss_device(&dev_path, O_NONBLOCK)) < 0 )
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
+		free(dev_path);
 		close(fd);
 		return 1; /* This plugin works in default mode */
 	}
@@ -178,7 +185,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		}
 
 	} else {
-		internal->fd = _open_default_oss_device(&internal->dev);
+		internal->fd = _open_default_oss_device(&internal->dev, 0);
 		if (internal->fd < 0)
 			return 0;  /* Cannot open default device */
 	}
