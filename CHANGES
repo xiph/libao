@@ -1,3 +1,6 @@
+? - ??
+- Can build with --disable-esd option
+
 0.8.4 - October 4, 2003
 - Added AIX sound driver from Stefan Tibus <sjti@gmx.net>
 - Committed some fixes from the Fink project to allow compiling on

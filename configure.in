@@ -174,8 +174,8 @@ AC_ARG_ENABLE(esd, [  --enable-esd            include ESD output plugin ],
 
 if test "$BUILD_ESD" = "yes"; then
   AM_PATH_ESD(0.2.8, have_esd=yes, have_esd=no)
-  AM_CONDITIONAL(HAVE_ESD,test "x$have_esd" = xyes)
 fi
+AM_CONDITIONAL(HAVE_ESD,test "x$have_esd" = xyes)
 
 
 dnl Check for OSS
