@@ -17,6 +17,10 @@ AC_ARG_ENABLE(aotest, [  --disable-aotest       Do not try to compile and run a 
     ao_args="$ao_args --prefix=$ao_prefix"
     AO_CFLAGS="-I$ao_prefix/include"
     AO_LIBS="-L$ao_prefix/lib"
+  elif test "$prefix" != ""; then
+    ao_args="$ao_args --prefix=$prefix"
+    AO_CFLAGS="-I$prefix/include"
+    AO_LIBS="-L$prefix/lib"
   fi
 
   # see where dl* and friends live
