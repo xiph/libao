@@ -1,0 +1,5 @@
+usr/include/ao/*.h
+usr/lib/*.so
+usr/lib/*.la
+usr/lib/ao/*.la
+usr/share/aclocal/ao.m4
