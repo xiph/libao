@@ -2,6 +2,7 @@ libao - A Cross-platform Audio Library, Version 0.5.0
 
 Originally Copyright (C) Aaron Holtzman - May 1999
 Changes Copyright (C) Stan Seibert - July 2000
+More Changes Copyright (C) Jack Moffitt - October 2000
 
 libao is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,12 +25,13 @@ OVERVIEW
 Libao is a cross-platform audio library that allows programs to output
 audio using a simple API on a wide variety of platforms.  It currently
 supports:
-   * Open Sound System (Linux, *BSD)
-   * ESounD
-   * Advanced Linux Sound Architecture
+   * Null output
+   * WAV files
+   * OSS (Open Sound System)
+   * ESD (ESounD or Enlighten Sound Daemon)
+   * ALSA (Advanced Linux Sound Architecture)
    * Solaris (untested)
    * IRIX (untested)
-   * WAV files
 
 HISTORY
 
@@ -42,277 +44,12 @@ cross-platform support to ogg123.  I (Stan Seibert) downloaded the
 libao library, severely hacked it up in order to make the build
 process simpler and support multiple live-playback devices.  (The
 original code allowed one live playback driver, the wav driver, and a
-null driver to be compiled into the library.)  The result is what you
-see here.
+null driver to be compiled into the library.)  
 
-This code is being maintained by Stan Seibert (indigo@aztec.asu.edu).
-Please DO NOT annoy Aaron Holtzman about bugs, features, comments,
-etc. regarding this code.
+Then Jack Moffitt got it supporting dynamicly loaded plugins so that 
+binary versions of libao could be provided.
 
-USAGE
-
-Libao is currently a statically-linked library.  This means if you
-want to use it, you have to rewrite your program to use the libao API
-and link libao.a to your programs.
-
-First, copy the libao directory into your source tree at an
-appropriate location.  Libao uses GNU autoconf to discover
-platform information and decide which output modules to compile into
-the library.  If you are already using autoconf in your project, just
-add the line
-
-AC_CONFIG_SUBDIRS(libao)
-
-(or whatever directory libao is located in) to your configure.in file
-and re-run autoconf.  Now your configure script will call libao's
-configure script.
-
-If you do not use autoconf, you need to modify your installation
-procedure (either manual or automatic) to run the configure script in
-the libao directory.
-
-Next you need to modify your Makefile so that either
-   * make target (optimized code)
-   * make profile (for profiling your code)
-   * make debug (for running gdb on your code)
-is run in the libao directory.  Additionally, need to add the line
-
-include libao/ao_libs.in
-
-to the top of your Makefile.  This defines the variable $(LIBAO_LIBS)
-which sets the compiler flags to link to any extra libraries libao
-needed.  Make sure you add $(LIBAO_LIBS) to the link command for your
-program.
-
-Finally, you need to modify your program to use the libao API.
-
-CONFIGURE OPTIONS
-
-The configure script used to build libao accepts several options to
-control which drivers are included in the library.  The script will
-compile all of the drivers supported by the system if given no
-options.  Usually this is sufficient, however sometimes the defaults
-need to be overridden (often the default output driver).
-
---enable-DRIVER
---disable-DRIVER
-
-Replace DRIVER with oss, irix, solaris, esd, or alsa.  These options
-specifically add or remove a driver from the final library.  Since all
-of the driver which can be built are built by default, usually only
-the --disable-DRIVER option is used.
-
---enable-default-output=DRIVER
-
-Replace driver with oss, irix, solaris, esd, alsa, null, or wav.  This
-option sets the default output driver returned by the library when
-ao_get_driver_id(NULL) is called.
-
-API
-
-The libao API makes a distinction between drivers and devices.  A
-driver is a set of functions that allow audio to be played on a
-particular platform (i.e. Solaris, ESD, etc.).  A device is a
-particular output target that uses a driver.  For example, on my
-system, I use the OSS driver to play to the /dev/dsp device.
-
-Using the libao API is fairly simple.  Your program should go like
-this:
-
-   * Include the audio_out.h header into your program.
-
-   * Call ao_get_driver_id() with a string corresponding to the short
-     name of the device (i.e. "oss", "wav", etc.) or NULL to get the
-     default output driver for this platform.
-
-   * Create an option list pointer of type (ao_option_t *) and
-     initialize it to NULL.
-
-   * Through successive calls to ao_append_option(), add any driver
-     specific options you need.  Note that the option string has the
-     form "key:value" where supported keys are listed below in the
-     DEVICE DRIVER section.
-
-   * Call ao_open() and save the returned device pointer.
-
-   * Call ao_play() to output each block of audio.
-
-   * Call ao_close() to close the device.  Note that this will
-     automatically free the memory that was allocated for the device.
-     Do not attempt to free the device pointer yourself
-
-
-FUNCTIONS
-
-Before reading the function descriptions below, you should read
-through the audio_out.h header file and see the data structures used.
-
-int ao_get_driver_id (const char *short_name)
-
-Purpose: Get the id number for a particular driver.
-
-Parameters:
-    const char* short_name - The short name of the driver or NULL for
-                             the default output driver.
-
-Returns: The driver id number or -1 if the driver does not exist.
-
----
-
-ao_info_t* ao_get_driver_info (int driver_id)
-
-Parameters:
-    int driver_id - The number returned from ao_get_driver_id().
-
-Purpose: To get the ao_info_t structure that describes this driver.
-
-Returns: A pointer to the info structure.  Do not modify this
-structure.
-
----
-
-int ao_append_option (ao_option_t **options, const char* op_str)
-
-Purpose: Append an option to a linked list of options.
-
-Parameters:
-    ao_option_t **options - A pointer to the linked list pointer.
-    const char* op_str - The option string.  Form "key:value".
-
-Returns: 1 if the option was appended successfully
-         0 if the option was not appended (either due to memory
-           allocation failure or incorrect option format)
-
----
-
-void ao_free_options (ao_option_t *options)
-
-Purpose: Free all of the memory allocated to an option list, including
-the key and value strings.
-
-Parameters:
-    ao_option_t *options - A pointer to the option list.
-
----
-
-ao_device_t* ao_open  (int driver_id, uint_32 bits, uint_32 rate, 
-                       uint_32 channels, ao_option_t *options)
-
-Purpose: To open a particular device for writing.
-
-Parameters:
-    int driver_id - ID number for the driver to use with this device
-    uint_32 bits - Bits per audio sample (8 or 16)
-    uint_32 rate - Samples per second (44100, 22050, etc.)
-    uint_32 channels - Audio channels (1 = mono, 2 = stereo)
-    ao_option_t *options - Option list
-
-Returns: Pointer to internal data used for this device.  Must be used
-in later calls to ao_play() or ao_close().  NULL is returned if the
-device cannot be opened.
-
----
-
-void ao_play (ao_device_t *device, void* output_samples, 
-              uint_32 num_bytes)
- 
-Purpose: To ouput some audio data to the device.
-
-Parameters:
-    ao_device_t *device - Device pointer
-    void *output_samples - Memory buffer containing audio data
-    uint_32 num_bytes - Number of bytes of audio data in memory buffer
-
----
-
-void ao_close (ao_device_t *device)
-
-Purpose: To close the audio device and free device memory. [Do not free
-device memory yourself!]
-
-Parameters
-    ao_device_t *device - Device pointer
-
-
-DEVICE DRIVERS
-
-Below are the short names of the devices that libao supports:
-
-null
-----
-Null device.  This is just a test device.  It counts the
-number of bytes sent, but does not write them anywhere.
-    Option keys: None.
-
-oss
----
-Open Sound System.  This is the audio driver system for
-Linux and Free/Net/OpenBSD as well as other UNIX-like systems.
-    Option keys:
-        "dsp" - set the dsp device.  By default, this is
-                "/dev/dsp". 
-
-irix
-----
-IRIX audio driver.  This was inherited from the original
-libao, but has not been tested.  Use at your own risk.  (Better yet,
-fix it!  I don't have access to an IRIX system.)
-    Option keys: None.
-
-solaris
--------
-Solaris audio driver.  This was also inherited from the
-original libao.  Same caveats apply.
-    Option keys: None.
-
-esd
----
-ESounD audio driver.  This driver by default connects to the ESounD
-Daemon on the localhost.
-    Option keys:
-        "host" - The hostname where esd is running.  This can include
-                 a port number after a colon, as in "whizbang.com:555".
-
-alsa
-----
-Advanced Linux Sound Architecture.  This driver borrows some code from
-Jaroslav Kysela's <perex@suse.cz> GPLed aplay that is included with
-the alsa-util distribution.  It defaults to device 0 on card 0.
-Because of the way ALSA reads data, this driver packs sound from
-successive calls into a fixed size buffer (defaults to 32kB) and sends
-it to the card.
-    Option keys:
-       "card" - Sound card number
-       "dev" - Device number on the sound card
-       "buf_size" - Override the default buffer size (in bytes)
- 
-esd
----
-ESounD audio driver.  Uses libesd to communicate with the audio
-server.
-    Option keys:
-        "host" - Hostname where esd is running.  By default, this is
-                 the localhost.
-
-wav
----
-WAV file output.  This produces a wav file from the audio
-data you output.
-    Option keys:
-        "file" - Sets the output file.  By default, this is
-                 "output.wav".
-
-
-ADDING NEW DRIVERS
-
-[To be written. - Stan]
-
-WANTED
-
-* Testers to check out the IRIX and Solaris drivers.
-* Win32 driver
-* BeOS driver
-* Other audio file formats.
-
-
+This code is being maintained by Stan Seibert (indigo@aztec.asu.edu) 
+and various other individuals.  Please DO NOT annoy Aaron Holtzman about 
+bugs, features, comments, etc. regarding this code.
 

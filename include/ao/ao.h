@@ -68,8 +68,7 @@ typedef struct ao_device_s {
 /* --- Standard driver_id numbers --- */
 
 #define AO_NULL     0
-#define AO_RAW      1
-#define AO_WAV      2
+#define AO_WAV      1
 
 /* --- Functions --- */
 

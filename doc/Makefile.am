@@ -4,6 +4,6 @@ AUTOMAKE_OPTIONS = foreign
 
 docdir = $(prefix)/doc/$(PACKAGE)-$(VERSION)
 
-doc_DATA = index.html
+doc_DATA = API USAGE DRIVERS WANTED
 
 EXTRA_DIST = $(doc_DATA)

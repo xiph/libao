@@ -1,5 +1,6 @@
 I think these are the next steps:
 
-- make the plugins dynamically loadable
-- make a ao-config liek gtk-config instead of ao_libs.inc
+- make the plugins dynamically loadable (done)
+- make a ao-config liek gtk-config instead of ao_libs.inc (done)
+- any ideas?
 

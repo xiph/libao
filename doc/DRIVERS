@@ -1,0 +1,72 @@
+DEVICE DRIVERS
+
+Below are the short names of the devices that libao supports:
+
+null
+----
+Null device.  This is just a test device.  It counts the
+number of bytes sent, but does not write them anywhere.
+    Option keys: None.
+
+oss
+---
+Open Sound System.  This is the audio driver system for
+Linux and Free/Net/OpenBSD as well as other UNIX-like systems.
+    Option keys:
+        "dsp" - set the dsp device.  By default, this is
+                "/dev/dsp". 
+
+irix
+----
+IRIX audio driver.  This was inherited from the original
+libao, but has not been tested.  Use at your own risk.  (Better yet,
+fix it!  I don't have access to an IRIX system.)
+    Option keys: None.
+
+solaris
+-------
+Solaris audio driver.  This was also inherited from the
+original libao.  Same caveats apply.
+    Option keys: None.
+
+esd
+---
+ESounD audio driver.  This driver by default connects to the ESounD
+Daemon on the localhost.
+    Option keys:
+        "host" - The hostname where esd is running.  This can include
+                 a port number after a colon, as in "whizbang.com:555".
+
+alsa
+----
+Advanced Linux Sound Architecture.  This driver borrows some code from
+Jaroslav Kysela's <perex@suse.cz> GPLed aplay that is included with
+the alsa-util distribution.  It defaults to device 0 on card 0.
+Because of the way ALSA reads data, this driver packs sound from
+successive calls into a fixed size buffer (defaults to 32kB) and sends
+it to the card.
+    Option keys:
+       "card" - Sound card number
+       "dev" - Device number on the sound card
+       "buf_size" - Override the default buffer size (in bytes)
+ 
+esd
+---
+ESounD audio driver.  Uses libesd to communicate with the audio
+server.
+    Option keys:
+        "host" - Hostname where esd is running.  By default, this is
+                 the localhost.
+
+wav
+---
+WAV file output.  This produces a wav file from the audio
+data you output.
+    Option keys:
+        "file" - Sets the output file.  By default, this is
+                 "output.wav".
+
+
+ADDING NEW DRIVERS
+
+[To be written. - Stan]

@@ -50,7 +50,10 @@ make DESTDIR=$RPM_BUILD_ROOT install
 /usr/lib/ao/*.so
 
 %files devel
-%doc doc/index.html
+%doc doc/API
+%doc doc/DRIVERS
+%doc doc/WANTED
+%doc doc/USAGE
 /usr/include/ao/ao.h
 /usr/include/ao/os_types.h
 /usr/lib/libao.so

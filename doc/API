@@ -1,0 +1,146 @@
+API
+
+The libao API makes a distinction between drivers and devices.  A
+driver is a set of functions that allow audio to be played on a
+particular platform (i.e. Solaris, ESD, etc.).  A device is a
+particular output target that uses a driver.  For example, on my
+system, I use the OSS driver to play to the /dev/dsp device.
+
+Using the libao API is fairly simple.  Your program should go like
+this:
+
+   * Include the <ao/ao.h> header into your program.
+
+   * Call ao_initialize() to initialize the library.
+
+   * Call ao_get_driver_id() with a string corresponding to the short
+     name of the device (i.e. "oss", "wav", etc.).
+
+   * Create an option list pointer of type (ao_option_t *) and
+     initialize it to NULL.
+
+   * Through successive calls to ao_append_option(), add any driver
+     specific options you need.  Note that the option string has the
+     form "key:value" where supported keys are listed in the
+     DRIVER file.
+
+   * Call ao_open() and save the returned device pointer.
+
+   * Call ao_play() to output each block of audio.
+
+   * Call ao_close() to close the device.  Note that this will
+     automatically free the memory that was allocated for the device.
+     Do not attempt to free the device pointer yourself
+
+   * Call ao_shutdown() to close the library.
+
+
+FUNCTIONS
+
+Before reading the function descriptions below, you should read
+through the <ao/ao.h> header file and see the data structures used.
+
+---
+
+void ao_initialize(void)
+
+Purpose: initialize the library.
+
+Parameters: none.
+
+---
+
+void ao_shutdown(void)
+
+Purpose: shuts down the library.
+
+Parameters: none.
+
+---
+
+int ao_get_driver_id(const char *short_name)
+
+Purpose: Get the id number for a particular driver.
+
+Parameters:
+    const char* short_name - The short name of the driver
+
+Returns: The driver id number or -1 if the driver does not exist.
+
+---
+
+ao_info_t *ao_get_driver_info(int driver_id)
+
+Parameters:
+    int driver_id - The number returned from ao_get_driver_id(). Or one
+                    of the standard drivers.
+
+Purpose: To get the ao_info_t structure that describes this driver.
+
+Returns: A pointer to the info structure.  Do not modify this
+structure.
+
+---
+
+int ao_append_options(ao_option_t **options, const char *op_str)
+
+Purpose: Append an option to a linked list of options.
+
+Parameters:
+    ao_option_t **options - A pointer to the linked list pointer.
+    const char* op_str - The option string.  Form "key:value".
+
+Returns: 1 if the option was appended successfully
+         0 if the option was not appended (either due to memory
+           allocation failure or incorrect option format)
+
+---
+
+void ao_free_options(ao_option_t *options)
+
+Purpose: Free all of the memory allocated to an option list, including
+the key and value strings.
+
+Parameters:
+    ao_option_t *options - A pointer to the option list.
+
+---
+
+ao_device_t* ao_open(int driver_id, uint_32 bits, uint_32 rate, 
+                       uint_32 channels, ao_option_t *options)
+
+Purpose: To open a particular device for writing.
+
+Parameters:
+    int driver_id - ID number for the driver to use with this device
+    uint_32 bits - Bits per audio sample (8 or 16)
+    uint_32 rate - Samples per second (44100, 22050, etc.)
+    uint_32 channels - Audio channels (1 = mono, 2 = stereo)
+    ao_option_t *options - Option list
+
+Returns: Pointer to internal data used for this device.  Must be used
+in later calls to ao_play() or ao_close().  NULL is returned if the
+device cannot be opened.
+
+---
+
+void ao_play(ao_device_t *device, void* output_samples, 
+              uint_32 num_bytes)
+ 
+Purpose: To ouput some audio data to the device.
+
+Parameters:
+    ao_device_t *device - Device pointer
+    void *output_samples - Memory buffer containing audio data
+    uint_32 num_bytes - Number of bytes of audio data in memory buffer
+
+---
+
+void ao_close(ao_device_t *device)
+
+Purpose: To close the audio device and free device memory. [Do not free
+device memory yourself!]
+
+Parameters
+    ao_device_t *device - Device pointer
+
