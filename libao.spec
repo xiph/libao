@@ -5,7 +5,7 @@ Release:	4
 Group:		Libraries/Multimedia
 Copyright:	GPL
 URL:		http://www.xiph.org/
-Vendor:		Xiphophorus <team@xiph.org>
+Vendor:		Xiph.org Foundation <team@xiph.org>
 Source:		http://www.xiph.org/ogg/vorbis/download/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 BuildRequires: esound-devel >= 0.2.8

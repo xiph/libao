@@ -1,3 +1,8 @@
+0.8.3 - July 2002
+- fix to ao.m4 macro
+- minor alsa09 plugin updates
+- fixes to irix plugin
+
 0.8.2 - December 2001
 - alsa09 plugin updated
 

@@ -1,4 +1,4 @@
-libao - A Cross-platform Audio Library, Version 0.8.2
+libao - A Cross-platform Audio Library, Version 0.8.3
 
 Originally Copyright (C) Aaron Holtzman - May 1999
 Changes Copyright (C) Stan Seibert - July 2000
@@ -48,7 +48,7 @@ null driver to be compiled into the library.)  Jack Moffitt got it
 supporting dynamically loaded plugins so that binary versions of libao
 could be provided.  The API was revised for version 0.8.0.
 
-This code is being maintained by Stan Seibert (indigo@aztec.asu.edu) 
+This code is being maintained by Stan Seibert (volsung@xiph.org) 
 and various other individuals.  Please DO NOT annoy Aaron Holtzman about 
 bugs, features, comments, etc. regarding this code.
 
