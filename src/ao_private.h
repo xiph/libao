@@ -58,7 +58,6 @@
 
 typedef struct ao_config {
 	char *default_driver;
-	int default_driver_id;
 } ao_config;
 
 /* --- Functions --- */

@@ -71,7 +71,6 @@ ao_functions *static_drivers[] = {
 driver_list *driver_head = NULL;
 ao_config config = {
 	NULL, /* default_driver */
-	-1,   /* default_driver_id */
 };
 
 ao_info **info_table = NULL;
@@ -85,7 +84,6 @@ void _clear_config()
 {
 	free(config.default_driver);
 	config.default_driver = NULL;
-	config.default_driver_id = -1;
 }
 
 
@@ -506,10 +504,6 @@ void ao_initialize(void)
 		_append_dynamic_drivers(end);
 	}
 
-	/* Find the default driver in the list of loaded drivers */
-	config.default_driver_id = 
-	  _find_default_driver_id(config.default_driver);
-
 	/* Create the table of driver info structs */
 	info_table = _make_info_table(driver_head, &driver_count);
 }
@@ -680,7 +674,9 @@ int ao_driver_id(const char *short_name)
 
 int ao_default_driver_id ()
 {
-	return config.default_driver_id;
+	/* Find the default driver in the list of loaded drivers */
+  
+	return _find_default_driver_id(config.default_driver);
 }
 
 
