@@ -71,7 +71,10 @@ int ao_plugin_test()
 	snd_pcm_t *handle;
 	int err;
 
-	err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+	/* Use nonblock flag when testing to avoid getting stuck if the device
+	   is in use. */
+	err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK,
+			   SND_PCM_NONBLOCK);
 
 	if (err != 0)
 		return 0; /* Cannot use this plugin with default parameters */
