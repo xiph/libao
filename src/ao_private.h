@@ -38,9 +38,12 @@
 #endif
 
 /* RTLD_NOW is the preferred symbol resolution behavior, but
-   some platforms do not support it. */
+ * some platforms do not support it. 
+ *
+ * ALSA requires RTLD_GLOBAL.
+ */
 #if defined(__OpenBSD__)	
-#define DLOPEN_FLAG RTLD_LAZY
+#define DLOPEN_FLAG (RTLD_LAZY | RTLD_GLOBAL)
 #else
 #define DLOPEN_FLAG (RTLD_NOW | RTLD_GLOBAL)
 #endif
