@@ -44,7 +44,7 @@ ao_info_t ao_esd_info =
 	"ESounD output",
 	"esd",
 	"Stan Seibert <volsung@asu.edu>",
-	"Outputs to the Enlighted Sound Daemon."
+	"Outputs to the Enlightened Sound Daemon."
 };
 
 void ao_esd_parse_options(ao_esd_internal_t *state, ao_option_t *options)
