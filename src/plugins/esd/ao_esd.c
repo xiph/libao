@@ -60,6 +60,8 @@ int ao_plugin_test()
 {
 	int sock;
 
+	/* don't wake up the beast while detecting */
+	setenv("ESD_NO_SPAWN", "1", 1); 
 	sock = esd_open_sound(NULL);
 	if (sock < 0) 
 		return 0;
