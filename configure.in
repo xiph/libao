@@ -128,8 +128,10 @@ AM_CONDITIONAL(HAVE_ALSA,test "x$have_alsa" = xyes)
 
 if test "x$have_alsa" = xyes; then
 	ALSA_LIBS="-lasound"
-	AC_SUBST(ALSA_LIBS)
+else
+	ALSA_LIBS=""
 fi
+AC_SUBST(ALSA_LIBS)
 
 dnl Check for IRIX
 
