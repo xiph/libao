@@ -1,0 +1,4 @@
+libao0: shlib-missing-in-control-file libalsa.so usr/lib/ao/libalsa.so
+libao0: shlib-missing-in-control-file libarts.so usr/lib/ao/libarts.so
+libao0: shlib-missing-in-control-file libesd.so usr/lib/ao/libesd.so
+libao0: shlib-missing-in-control-file liboss.so usr/lib/ao/liboss.so
