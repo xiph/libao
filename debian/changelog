@@ -1,6 +1,7 @@
 libao (0.6.0-1) unstable; urgency=low
 
   * New upstream.
+  * Fixed spelling error (closes: #85420)
 
  -- Christopher L Cheney <ccheney@debian.org>  Wed, 24 Jan 2001 21:39:41 -0600
 

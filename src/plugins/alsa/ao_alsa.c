@@ -50,7 +50,7 @@ ao_info_t ao_alsa_info =
 	"Advanced Linux Sound Architecture (ALSA) output",
 	"alsa",
 	"Stan Seibert <volsung@asu.edu>",
-	"Otuputs to the Advanced Linux Sound Architecture."
+	"Outputs to the Advanced Linux Sound Architecture."
 };
 
 static int _is_big_endian(void)
