@@ -29,22 +29,13 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-HANDLE notdone;
-
-static	void CALLBACK waveOutProc(HWAVEOUT hwo,UINT uMsg,DWORD dwInstance,DWORD dwParam1,DWORD dwParam2)
-{
-	if (uMsg == WOM_DONE)
-	{
-		ReleaseSemaphore(notdone, 1, NULL);
-	}
-}
-
 typedef struct ao_mmsound_internal {
 	HWAVEOUT m_hWaveOut;
 	WAVEHDR	m_waveHeader[2];
 	uint_32 buf_size;
 	void *buffer[2];
 	int currentb;
+  HANDLE notdone;
 } ao_mmsound_internal;
 
 static char *ao_mmsound_options[] = {"buf_size"};
@@ -62,18 +53,25 @@ static ao_info ao_mmsound_info =
 	1
 };
 
+static	void CALLBACK waveOutProc(HWAVEOUT hwo,UINT uMsg,DWORD dwInstance,DWORD dwParam1,DWORD dwParam2)
+{
+  ao_mmsound_internal *internal = (ao_mmsound_internal *)dwInstance;
+
+	if (uMsg == WOM_DONE)
+	{
+		ReleaseSemaphore(internal->notdone, 1, NULL);
+	}
+}
 
 int ao_plugin_test()
 {
 	return 1; /* This plugin works in default mode */
 }
 
-
 ao_info *ao_plugin_driver_info(void)
 {
 	return &ao_mmsound_info;
 }
-
 
 int ao_plugin_device_init(ao_device *device)
 {
@@ -91,7 +89,6 @@ int ao_plugin_device_init(ao_device *device)
 	return 1; /* Memory alloc successful */
 }
 
-
 int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
 	ao_mmsound_internal *internal = (ao_mmsound_internal *) device->internal;
@@ -100,7 +97,6 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	
 	return 1;
 }
-
 
 /*
  * open the audio device for writing to
@@ -124,7 +120,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 							WAVE_MAPPER,
 							&wfx,
 							(DWORD)waveOutProc,
-							0,
+							(DWORD)device->internal,
 							(DWORD)CALLBACK_FUNCTION);
 
 	if (errCode != MMSYSERR_NOERROR) return 0;
@@ -140,8 +136,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	internal->buffer[1] = malloc(internal->buf_size);
 	internal->currentb = 0;
 
-	notdone = CreateSemaphore(NULL, 0, 1, NULL);
-	ReleaseSemaphore(notdone, 1, NULL);
+	internal->notdone = CreateSemaphore(NULL, 0, 1, NULL);
 
 	device->driver_byte_format = AO_FMT_NATIVE;
 	
@@ -171,7 +166,7 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 
 	// Send internal->buffer[n] to the WaveOut device buffer.
 	waveOutWrite(internal->m_hWaveOut,&internal->m_waveHeader[internal->currentb],sizeof(WAVEHDR));
-	WaitForSingleObject(notdone, INFINITE);
+	WaitForSingleObject(internal->notdone, INFINITE);
 
 	internal->currentb++;
 	if(internal->currentb >= 2) internal->currentb = 0;
@@ -183,7 +178,7 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_mmsound_internal *internal = (ao_mmsound_internal *) device->internal;
 
-	CloseHandle(notdone);
+	CloseHandle(internal->notdone);
 	free(internal->buffer[0]);
 	free(internal->buffer[1]);
 	
@@ -192,7 +187,6 @@ int ao_plugin_close(ao_device *device)
 
 	return 1;
 }
-
 
 void ao_plugin_device_clear(ao_device *device)
 {
