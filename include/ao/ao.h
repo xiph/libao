@@ -28,9 +28,6 @@
 
 #include "os_types.h"
 
-// Type sizes
-#include "config.h"
-
 /* --- Structures --- */
 
 typedef struct ao_option_s {

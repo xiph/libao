@@ -241,10 +241,9 @@ esac
 
 AC_MSG_RESULT("setting default output device... $ao_default")
 
-LIBAO_FLAGS="$LIBAO_FLAGS -DAO_DEFAULT=$AO_DEFAULT_DEF"
+CFLAGS="$LIBAO_FLAGS -DAO_DEFAULT=$AO_DEFAULT_DEF"
 
 AC_SUBST(LIBAO_FILES)
-AC_SUBST(LIBAO_FLAGS)
 AC_SUBST(LIBAO_LIBS)
 
 AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h include/ao/ao_libs.inc)
