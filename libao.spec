@@ -1,5 +1,5 @@
 Name:		libao
-Version:	0.8.4
+Version:	0.8.5
 Release:	1
 Summary:	Cross-Platform Audio Output Library
 
@@ -82,7 +82,10 @@ fi
 %{_libdir}/pkgconfig/ao.pc
 
 %changelog
-* Fri Oct 5 2002 Stan Seibert <volsung@xiph.org> 0.8.4-1
+* Fri Mar 11 2004 Stan Seibert <volsung@xiph.org> 0.8.5-1
+- Version bump
+
+* Fri Oct 5 2003 Stan Seibert <volsung@xiph.org> 0.8.4-1
 - Remove alsa libraries from RPM since RedHat doesn't ship with ALSA
   ALSA users will need to recompile from source.
 - Add ao.pc to -devel
