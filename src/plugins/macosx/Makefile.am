@@ -16,7 +16,7 @@ macosxsources =
 
 endif
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include -framework CoreAudio
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(macosxltlibs)

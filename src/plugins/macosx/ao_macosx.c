@@ -316,11 +316,13 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
                 
                 // Can we do anything useful here?  The library doesn't expect this call
                 // to be able to fail.
-                exit(1);
+		return 0;
             }
         }
 #endif
     }
+
+    return 1;
 }
 
 
