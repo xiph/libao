@@ -220,16 +220,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Now set all of the parameters */
 
-	internal->buf_size = -1;
-	if ((ioctl(internal->fd,SNDCTL_DSP_GETBLKSIZE,
-				&(internal->buf_size)) < 0) ||
-			internal->buf_size<=0 )
-	{
-		fprintf(stderr, "libao - OSS cannot get buffer size for "
-				" device\n");
-		goto ERR;
-	}
-
 	switch (format->channels)
 	{
 	case 1: tmp = 0;
@@ -276,6 +266,17 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	    || tmp > 1.01 * format->rate || tmp < 0.99 * format->rate) {
 		fprintf(stderr, "libao - OSS cannot set rate to %d\n", 
 			format->rate);
+		goto ERR;
+	}
+
+	/* this calculates and sets the fragment size */
+	internal->buf_size = -1;
+	if ((ioctl(internal->fd,SNDCTL_DSP_GETBLKSIZE,
+				&(internal->buf_size)) < 0) ||
+			internal->buf_size<=0 )
+	{
+		fprintf(stderr, "libao - OSS cannot get buffer size for "
+				" device\n");
 		goto ERR;
 	}
 
