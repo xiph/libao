@@ -27,6 +27,11 @@
 #ifndef __AO_H__
 #define __AO_H__
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 #include <stdlib.h>
 #include "os_types.h"
 
@@ -91,5 +96,9 @@ void ao_close(ao_device_t *device);
 
 /* misc functions */
 int ao_is_big_endian(void);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif  /* __AO_H__ */

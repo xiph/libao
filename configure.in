@@ -133,6 +133,20 @@ else
 fi
 AC_SUBST(ALSA_LIBS)
 
+dnl Check for aRts
+
+AC_PATH_PROG(ARTSC_CONFIG, artsc-config)
+AM_CONDITIONAL(HAVE_ARTS,test "x$ac_cv_path_ARTSC_CONFIG" != x)
+
+if test "x$ac_cv_path_ARTSC_CONFIG" != x
+then
+	ARTS_CFLAGS=`$ac_cv_path_ARTSC_CONFIG --cflags`
+	ARTS_LIBS=`$ac_cv_path_ARTSC_CONFIG --libs`
+fi
+
+AC_SUBST(ARTS_CFLAGS)
+AC_SUBST(ARTS_LIBS)
+
 dnl Check for IRIX
 
 case $host in
@@ -146,4 +160,4 @@ AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
 
 CFLAGS="$CFLAGS -DAO_PLUGIN_PATH=\\\"$plugindir\\\""
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile debian/Makefile)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/arts/Makefile debian/Makefile)
