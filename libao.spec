@@ -1,7 +1,7 @@
 %define name		libao
 %define version		0.8.1
 %define release 	1
-%define apiversion 	2
+%define pluginver 	2
 
 Summary:	Cross Platform Audio Output Library
 Name:		%{name}
@@ -49,7 +49,7 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %doc COPYING
 %doc README
 /usr/lib/libao.so.*
-/usr/lib/ao/plugins-%{apiversion}/*.so
+/usr/lib/ao/plugins-%{pluginver}/*.so
 
 %files devel
 %doc doc/*.html
