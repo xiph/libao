@@ -1,7 +1,7 @@
 Summary:	Cross Platform Audio Output Library
 Name:		libao
 Version:	0.8.2
-Release:	2
+Release:	3
 Group:		Libraries/Multimedia
 Copyright:	GPL
 URL:		http://www.xiph.org/
@@ -48,7 +48,7 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %doc CHANGES
 %doc COPYING
 %doc README
-%{_libdir}/libao.so.*
+%{_libdir}/libao.so*
 %{_libdir}/ao
 
 %files devel
@@ -71,7 +71,10 @@ if [ "$1" -ge "1" ]; then
 fi
 
 %changelog
-* Wed Jan  2 2002 Peter Jones <pjones@redhat.com>
+* Wed Jan  2 2002 Peter Jones <pjones@redhat.com> 0.8.2-3
+- fix libao.so's provide
+
+* Wed Jan  2 2002 Peter Jones <pjones@redhat.com> 0.8.2-2
 - merge RH and Xiphophorous packages
 
 * Tue Dec 18 2001 Jack Moffitt <jack@xiph.org>
