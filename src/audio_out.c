@@ -73,7 +73,7 @@ static ao_functions *static_drivers[] = {
 
 static driver_list *driver_head = NULL;
 static ao_config config = {
-	NULL, /* default_driver */
+	NULL /* default_driver */
 };
 
 static ao_info **info_table = NULL;
