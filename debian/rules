@@ -130,7 +130,7 @@ binary-common:
 	dh_makeshlibs -V
 	dh_installdeb
 #	dh_perl
-	dh_shlibdeps
+	dh_shlibdeps --exclude=/usr/lib/ao/plugins-2
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
