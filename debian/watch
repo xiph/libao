@@ -1,0 +1,3 @@
+version=2
+
+http://downloads.xiph.org/releases/ao/libao-(.*)\.tar\.gz	debian uupdate
