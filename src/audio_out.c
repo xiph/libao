@@ -63,7 +63,7 @@ extern ao_functions ao_wav;
 extern ao_functions ao_raw;
 extern ao_functions ao_au;
 
-ao_functions *static_drivers[] = {
+static ao_functions *static_drivers[] = {
 	&ao_null, /* Must have at least one static driver! */
 	&ao_wav,
 	&ao_raw,
@@ -71,19 +71,19 @@ ao_functions *static_drivers[] = {
 	NULL /* End of list */
 };
 
-driver_list *driver_head = NULL;
-ao_config config = {
+static driver_list *driver_head = NULL;
+static ao_config config = {
 	NULL, /* default_driver */
 };
 
-ao_info **info_table = NULL;
-int driver_count = 0;
+static ao_info **info_table = NULL;
+static int driver_count = 0;
 
 /* ---------- Helper functions ---------- */
 
 /* Clear out all of the library configuration options and set them to
    defaults.   The defaults should match the initializer above. */
-void _clear_config()
+static void _clear_config()
 {
 	free(config.default_driver);
 	config.default_driver = NULL;
@@ -93,7 +93,7 @@ void _clear_config()
 /* Load a plugin from disk and put the function table into a driver_list
    struct. */
 
-driver_list *_get_plugin(char *plugin_file)
+static driver_list *_get_plugin(char *plugin_file)
 {
 	driver_list *dt;
 	void *handle;
@@ -151,7 +151,7 @@ driver_list *_get_plugin(char *plugin_file)
 
 /* If *name is a valid driver name, return its driver number.
    Otherwise, test all of available live drivers until one works. */
-int _find_default_driver_id (const char *name)
+static int _find_default_driver_id (const char *name)
 {
 	int def_id;
 	int id;
@@ -186,7 +186,7 @@ int _find_default_driver_id (const char *name)
 
 
 /* Convert the static drivers table into a linked list of drivers. */ 
-driver_list* _load_static_drivers(driver_list **end)
+static driver_list* _load_static_drivers(driver_list **end)
 {
 	driver_list *head;
 	driver_list *driver;
@@ -223,7 +223,7 @@ driver_list* _load_static_drivers(driver_list **end)
 
 /* Load the dynamic drivers from disk and append them to end of the
    driver list.  end points the driver_list node to append to. */
-void _append_dynamic_drivers(driver_list *end)
+static void _append_dynamic_drivers(driver_list *end)
 {
 	struct dirent *plugin_dirent;
 	char *ext;
@@ -259,7 +259,7 @@ void _append_dynamic_drivers(driver_list *end)
 
 
 /* Make a table of driver info structures for ao_driver_info_list(). */
-ao_info ** _make_info_table (driver_list *head, int *driver_count)
+static ao_info ** _make_info_table (driver_list *head, int *driver_count)
 {
 	driver_list *list;
 	int i;
@@ -290,7 +290,7 @@ ao_info ** _make_info_table (driver_list *head, int *driver_count)
 
 /* Return the driver struct corresponding to particular driver id
    number. */
-driver_list *_get_driver(int driver_id) {
+static driver_list *_get_driver(int driver_id) {
 	int i = 0;
 	driver_list *driver = driver_head;
 
@@ -309,7 +309,7 @@ driver_list *_get_driver(int driver_id) {
 
 
 /* Check if driver_id is a valid id number */
-int _check_driver_id(int driver_id)
+static int _check_driver_id(int driver_id)
 {
 	int i = 0;
 	driver_list *driver = driver_head;
@@ -331,7 +331,7 @@ int _check_driver_id(int driver_id)
 /* helper function to convert a byte_format of AO_FMT_NATIVE to the
    actual byte format of the machine, otherwise just return
    byte_format */
-int _real_byte_format(int byte_format)
+static int _real_byte_format(int byte_format)
 {
 	if (byte_format == AO_FMT_NATIVE) {
 		if (ao_is_big_endian())
@@ -344,8 +344,8 @@ int _real_byte_format(int byte_format)
 
 
 /* Create a new ao_device structure and populate it with data */
-ao_device* _create_device(int driver_id, driver_list *driver,
-			  ao_sample_format *format, FILE *file)
+static ao_device* _create_device(int driver_id, driver_list *driver,
+				 ao_sample_format *format, FILE *file)
 {
 	ao_device *device;
 	
@@ -371,7 +371,7 @@ ao_device* _create_device(int driver_id, driver_list *driver,
 
 /* Expand the swap buffer in this device if it is smaller than
    min_size. */
-int _realloc_swap_buffer(ao_device *device, int min_size)
+static int _realloc_swap_buffer(ao_device *device, int min_size)
 {
 	void *temp;
 
@@ -390,7 +390,8 @@ int _realloc_swap_buffer(ao_device *device, int min_size)
 
 /* Swap and copy the byte order of samples from the source buffer to
    the target buffer. */
-void _swap_samples(char *target_buffer, char* source_buffer, uint_32 num_bytes)
+static void _swap_samples(char *target_buffer, char* source_buffer,
+			  uint_32 num_bytes)
 {
 	uint_32 i;
 
@@ -402,8 +403,8 @@ void _swap_samples(char *target_buffer, char* source_buffer, uint_32 num_bytes)
 		
 
 /* Open a device.  If this is a live device, file == NULL. */
-ao_device* _open_device(int driver_id, ao_sample_format *format, 
-			ao_option *options, FILE *file)
+static ao_device* _open_device(int driver_id, ao_sample_format *format, 
+			       ao_option *options, FILE *file)
 {
 	ao_functions *funcs;
 	driver_list *driver;
