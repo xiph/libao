@@ -5,16 +5,17 @@ Maintainer: Christopher L Cheney <ccheney@debian.org>
 Build-Depends: debhelper
 Standards-Version: 3.1.1
 
-Package: libao-dev
+Package: libao0-dev
 Architecture: any
-Depends: libao (= ${Source-Version}), libc6-dev
+Depends: libao0 (= ${Source-Version}), libc6-dev
 Description: Cross Platform Audio Output Library Development
  The libao-devel package contains the header files and documentation
  needed to develop applications with libao.
 
-Package: libao
+Package: libao0
 Architecture: any
 Depends: ${shlibs:Depends}
+Suggests: libasound1
 Description: Cross Platform Audio Output Library
  Libao is a cross platform audio output library.  It currently supports
  ESD, OSS, Solaris, and IRIX.
