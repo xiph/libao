@@ -55,6 +55,15 @@ typedef struct ao_oss_internal_s {
 	int fd;
 } ao_oss_internal_t;
 
+static int _is_big_endian(void)
+{
+	uint_16 pattern = 0xbabe;
+	unsigned char *bytewise = (unsigned char *)&pattern;
+
+	if (bytewise[0] = 0xba) return 1;
+	return 0;
+}
+
 void ao_oss_parse_options(ao_oss_internal_t *state, ao_option_t *options)
 {
 	state->dev = NULL;
@@ -117,7 +126,7 @@ ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_opti
 	{
 	case 8: tmp = AFMT_S8;
 		break;
-        case 16: tmp = ao_is_big_endian() ? AFMT_S16_BE : AFMT_S16_LE;
+        case 16: tmp = _is_big_endian() ? AFMT_S16_BE : AFMT_S16_LE;
 	        break;
 	default:fprintf(stderr,"libao - Unsupported number of bits: %d.",
 			bits);

@@ -53,6 +53,15 @@ ao_info_t ao_alsa_info =
 	"Otuputs to the Advanced Linux Sound Architecture."
 };
 
+static int _is_big_endian(void)
+{
+        uint_16 pattern = 0xbabe;
+        unsigned char *bytewise = (unsigned char *)&pattern;
+
+        if (bytewise[0] == 0xba) return 1;
+        return 0;
+}
+
 void ao_alsa_parse_options(ao_alsa_internal_t *state, ao_option_t *options)
 {
 	state->card = 0;
@@ -87,7 +96,7 @@ ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_opti
 	switch (bits) {
 	case 8  : param.format.format = SND_PCM_SFMT_S8;
 		  break;
-        case 16 : param.format.format = ao_is_big_endian() ?
+        case 16 : param.format.format = _is_big_endian() ?
 		    SND_PCM_SFMT_S16_BE : SND_PCM_SFMT_S16_LE;
 		  break;
 	default : return NULL;
