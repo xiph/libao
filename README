@@ -46,7 +46,7 @@ process simpler and support multiple live-playback devices.  (The
 original code allowed one live playback driver, the wav driver, and a
 null driver to be compiled into the library.)  Jack Moffitt got it
 supporting dynamically loaded plugins so that binary versions of libao
-could be provided.  The API was revised after version 0.7.0.
+could be provided.  The API was revised for version 0.8.0.
 
 This code is being maintained by Stan Seibert (indigo@aztec.asu.edu) 
 and various other individuals.  Please DO NOT annoy Aaron Holtzman about 

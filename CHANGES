@@ -1,7 +1,12 @@
 0.8.0 - August 2000
 - Major API rewrite.  Old apps and plugins will not work with this library!
 - Default driver detection now works.
-- /etc/libao.conf and ~/.libao config files now supported
+- /etc/libao.conf and ~/.libao config files now supported, see libao.conf man
+  page for details.
+- WAV files can now be piped to non-picky applications.  (Please don't
+  complain if this fails.  You shouldn't be using be using WAV for this
+  anyway.)
+- Various portability fixes for Solaris and *BSD.
 
 0.7.0 - June 2000
 - minor build fixes for different platforms
