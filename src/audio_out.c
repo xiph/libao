@@ -102,7 +102,7 @@ void ao_initialize(void)
 	char *ext;
 	struct stat statbuf;
 	void *plughand;
-	char fullpath[NAME_MAX];
+	char fullpath[FILENAME_MAX];
 
 	if (driver_head == NULL) {
 		/* insert the null and wav drivers into the tree */
@@ -123,7 +123,7 @@ void ao_initialize(void)
 		plugindir = opendir(AO_PLUGIN_PATH);
 		if (plugindir != NULL) {
 			while ((plugin_dirent = readdir(plugindir)) != NULL) {
-				snprintf(fullpath, NAME_MAX, "%s/%s", AO_PLUGIN_PATH, plugin_dirent->d_name);
+				snprintf(fullpath, FILENAME_MAX, "%s/%s", AO_PLUGIN_PATH, plugin_dirent->d_name);
 				if (!stat(fullpath, &statbuf) && S_ISREG(statbuf.st_mode) && (ext = strrchr(plugin_dirent->d_name, '.')) != NULL) {
 					if (strcmp(ext, SHARED_LIB_EXT) == 0) {
 						plugin = _get_plugin(fullpath);
