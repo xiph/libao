@@ -1,5 +1,5 @@
 %define name		libao
-%define version		0.8.1
+%define version		0.8.2
 %define release 	1
 %define pluginver 	2
 
@@ -72,6 +72,9 @@ make DESTDIR=$RPM_BUILD_ROOT install
 /sbin/ldconfig
 
 %changelog
+* Tue Dec 18 2001 Jack Moffitt <jack@xiph.org>
+- Update for 0.8.2 release.
+
 * Sun Oct 07 2001 Jack Moffitt <jack@xiph.org>
 - supports configurable prefixes
 

@@ -1,3 +1,6 @@
+0.8.2 - December 2001
+- alsa09 plugin updated
+
 0.8.0 - August 2000
 - Major API rewrite.  Old apps and plugins will not work with this library!
 - Default driver detection now works.
