@@ -291,7 +291,6 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
 
-	/* drain audio, bug id 282 */
 	snd_pcm_drain(internal->pcm_handle);
 	snd_pcm_close(internal->pcm_handle);
 
