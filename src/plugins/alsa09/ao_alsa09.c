@@ -336,8 +336,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	internal->cmd = "snd_pcm_open";
 	err = snd_pcm_open(&(internal->pcm_handle), internal->dev,
 			   SND_PCM_STREAM_PLAYBACK, 0);
-	if (err < 0)
+	if (err < 0) {
+		internal->pcm_handle = NULL;
 		goto error;
+	}
 
 	/* Set up the hardware parameters, ie sample and buffer specs */
 	err = alsa_set_hwparams(internal, format);
