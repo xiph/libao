@@ -51,7 +51,6 @@ static ao_info ao_alsa_info =
 	3
 };
 
-
 typedef struct ao_alsa_internal
 {
 	snd_pcm_t *pcm_handle;
@@ -145,7 +144,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	else
 		return 0;
 
-	// Finish filling in the parameter structure
+	/* Finish filling in the parameter structure */
 	param.format.rate = format->rate;
 
 	param.start_mode = SND_PCM_START_FULL;
@@ -193,9 +192,18 @@ int _alsa_write_buffer(ao_alsa_internal *s)
 	snd_pcm_channel_status_t status;
 	snd_pcm_t *pcm_handle = s->pcm_handle;
 	int len = s->buf_end;
+	ssize_t written, snd_pcm_write_ret;
 
 	s->buf_end = 0;
-	snd_pcm_write(pcm_handle, s->buf, len);
+
+	snd_pcm_write_ret = written = 0;
+	while ((snd_pcm_write_ret >= 0) && (written < len)) {
+		while ((snd_pcm_write_ret = snd_pcm_write(pcm_handle, s->buf, len)) == -EINTR)
+			;
+		if (snd_pcm_write_ret > 0)
+			written += snd_pcm_write_ret;
+	}
+
 	memset(&status, 0, sizeof(status));
 	if (snd_pcm_channel_status(pcm_handle, &status) < 0) {
 		fprintf(stderr, "ALSA: could not get channel status\n");
