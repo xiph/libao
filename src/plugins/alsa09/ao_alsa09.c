@@ -47,10 +47,24 @@
  * supplying a period_time to ao overrides the use of this  */
 #define AO_ALSA_SAMPLE_XFER 256
 
+/* set mmap to default if enabled at compile time, otherwise, mmap isn't
+   the default */
+#ifdef USE_ALSA_MMIO
+#define AO_ALSA_WRITEI snd_pcm_mmap_writei
+#define AO_ALSA_ACCESS_MASK SND_PCM_ACCESS_MMAP_INTERLEAVED
+#else
+#define AO_ALSA_WRITEI snd_pcm_writei
+#define AO_ALSA_ACCESS_MASK SND_PCM_ACCESS_RW_INTERLEAVED
+#endif
+
+typedef snd_pcm_sframes_t ao_alsa_writei_t(snd_pcm_t *pcm, const void *buffer,
+						snd_pcm_uframes_t size);
+
 static char *ao_alsa_options[] = {
 	"dev",
 	"buffer_time",
-        "period_time"
+        "period_time",
+	"use_mmap"
 };
 
 
@@ -79,6 +93,8 @@ typedef struct ao_alsa_internal
 	int bitformat;
 	char *dev;
 	char *cmd;
+	ao_alsa_writei_t * writei;
+	snd_pcm_access_t access_mask;
 } ao_alsa_internal;
 
 
@@ -121,6 +137,8 @@ int ao_plugin_device_init(ao_device *device)
 	
 	internal->buffer_time = AO_ALSA_BUFFER_TIME;
 	internal->period_time = AO_ALSA_PERIOD_TIME;
+	internal->writei = AO_ALSA_WRITEI;
+	internal->access_mask = AO_ALSA_ACCESS_MASK;
 
 	if (!(internal->dev = strdup("default"))) {
 		free (internal);
@@ -148,6 +166,19 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 		internal->buffer_time = atoi(value);
 	else if (!strcmp(key, "period_time"))
 		internal->period_time = atoi(value);
+	else if (!strcmp(key,"use_mmap")) {
+		if(!strcmp(value,"yes") || !strcmp(value,"y") || 
+			!strcmp(value,"true") || !strcmp(value,"t") ||
+			!strcmp(value,"1"))
+		{
+			internal->writei = snd_pcm_mmap_writei;
+			internal->access_mask = SND_PCM_ACCESS_MMAP_INTERLEAVED;
+		}
+		else {
+			internal->writei = snd_pcm_writei;
+			internal->access_mask = SND_PCM_ACCESS_RW_INTERLEAVED;
+		}
+	}
 
 	return 1;
 }
@@ -196,13 +227,7 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 	/* create a null access mask */
 	snd_pcm_access_mask_none(access);
 
-#ifdef USE_ALSA_MMIO
-	/* allow interleaved memory-mapped access */
-	snd_pcm_access_mask_set(access, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-#else
-	/* allow interleaved non memory-mapped access */
-	snd_pcm_access_mask_set(access, SND_PCM_ACCESS_RW_INTERLEAVED);
-#endif
+	snd_pcm_access_mask_set(access, internal->access_mask);
 
 	/* commit the access value to params structure */
 	internal->cmd = "snd_pcm_hw_params_set_access";
@@ -414,11 +439,7 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 	/* the entire buffer might not transfer at once */
 	while (len > 0) {
 		/* try to write the entire buffer at once */
-#ifdef USE_ALSA_MMIO
-		err = snd_pcm_mmap_writei(internal->pcm_handle, ptr, len);
-#else
-		err = snd_pcm_writei(internal->pcm_handle, ptr, len);
-#endif
+		err = internal->writei(internal->pcm_handle, ptr, len);
 
 		/* it's possible that no data was transferred */
 		if (err == -EAGAIN) {
