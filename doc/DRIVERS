@@ -59,6 +59,18 @@ data you output.
         "file" - Sets the output file.  By default, this is
                  "output.wav".
 
+raw
+---
+Raw sample output.  Writes the sound data to disk in uncompressed,
+headerless form using the byte order specified.
+	Option keys:
+		"file" - Sets the output file.  Use "-" if you want to write
+		to stdout.  By default this is "output.raw".
+		
+		"byteorder" - Sets the byte order used in the output.  Use
+		"native" for native machine byte order, "big" for 
+		big-endian order, and "little" for little-endian order. By
+		default this is "native".
 
 ADDING NEW DRIVERS
 
