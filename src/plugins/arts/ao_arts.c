@@ -2,7 +2,7 @@
  *
  *  ao_arts.c
  *
- *      Copyright (C) Rik Hemsley (rikkus) <rik@kde.org 2000
+ *      Copyright (C) Rik Hemsley (rikkus) <rik@kde.org> 2000
  *
  *  This file is part of libao, a cross-platform library.  See
  *  README for a history of this source code.
@@ -28,100 +28,113 @@
 
 #include <artsc.h>
 #include <ao/ao.h>
+#include <ao/plugin.h>
 
-typedef struct ao_arts_internal_s
-{
-  arts_stream_t stream;
-	uint_32 bits;
-	uint_32 rate;
-	uint_32 channels;
-} ao_arts_internal_t;
 
-ao_info_t ao_arts_info =
+static ao_info ao_arts_info =
 {
-  "aRts output",
-  "arts",
-  "Rik Hemsley (rikkus) <rik@kde.org>",
-  "Outputs to the aRts soundserver."
+	AO_TYPE_LIVE,
+	"aRts output",
+	"arts",
+	"Rik Hemsley (rikkus) <rik@kde.org>",
+	"Outputs to the aRts soundserver.",
+	AO_FMT_NATIVE,
+	10,
+	NULL,
+	0
 };
 
-  ao_internal_t *
-plugin_open
-(
- uint_32 bits,
- uint_32 rate,
- uint_32 channels,
- ao_option_t * options
-)
+
+typedef struct ao_arts_internal
 {
-  ao_arts_internal_t * state;
-  int errorcode;
+	arts_stream_t stream;
+} ao_arts_internal;
 
-  state = malloc(sizeof(ao_arts_internal_t));
 
-  if (NULL == state)
-  {
-    fprintf(stderr, "libao: Can't initialise aRts driver. Out of memory.\n");
-    return NULL;
-  }
-
-  errorcode = arts_init();
-
-  if (0 != errorcode)
-  {
-    fprintf(stderr, "libao: Can't initialise aRts driver.\n");
-    fprintf(stderr, "libao: Error: %s\n", arts_error_text(errorcode));
-    free(state);
-    return NULL;
-  }
-
-  state->stream = arts_play_stream(rate, bits, channels, "ao stream");
-
-	state->bits = bits;
-	state->rate = rate;
-	state->channels = channels;
-
-  return state;
+int ao_plugin_test()
+{
+	if (arts_init() == 0) {
+		arts_free();
+		return 1;
+	} else
+		return 0;
 }
 
-  void
-plugin_close(ao_internal_t * state)
+
+ao_info *ao_plugin_driver_info(void)
 {
-  arts_close_stream(((ao_arts_internal_t *)state)->stream);
-  arts_free();
-  free(state);
+	return &ao_arts_info;
 }
 
-  void
-plugin_play
-(
- ao_internal_t * state,
- void * buf,
- uint_32 count
-)
+
+int ao_plugin_device_init(ao_device *device)
 {
-  int bytes_written;
+	ao_arts_internal *internal;
 
-  bytes_written = arts_write(((ao_arts_internal_t *)state)->stream, buf, count);
+	internal = (ao_arts_internal *) malloc(sizeof(ao_arts_internal));
 
-  if (bytes_written != count)
-  {
-    fprintf(stderr, "libao: aRts driver would not write all data !\n");
-  }
+	if (internal == NULL)	
+		return 0; /* Could not initialize device memory */
+	
+	device->internal = internal;
+
+	return 1; /* Memory alloc successful */
 }
 
-  int
-plugin_get_latency(ao_internal_t * state)
+
+int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
-  ao_arts_internal_t * s = (ao_arts_internal_t *)state;
-	int ms = arts_stream_get(s->stream, ARTS_P_TOTAL_LATENCY);
-	int sample_rate = (s->bits / 8) * s->rate * s->channels;
-	return (sample_rate * ms) / 1000;
+	return 1; /* No options */
 }
 
-  ao_info_t *
-plugin_get_driver_info(void)
+int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
-  return &ao_arts_info;
+	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+	int errorcode;
+
+	errorcode = arts_init();
+
+	if (0 != errorcode)
+	{
+		return 0; /* Could not connect to server */
+	}
+
+	device->driver_byte_format = AO_FMT_NATIVE;
+
+	internal->stream = arts_play_stream(format->rate, 
+					    format->bits, 
+					    format->channels, 
+					    "libao stream");
+	return 1;
 }
 
+
+int ao_plugin_play(ao_device *device, const char *output_samples, 
+		uint_32 num_bytes)
+{
+	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+
+	if (arts_write(internal->stream, output_samples, 
+		       num_bytes) < num_bytes)
+		return 0;
+	else
+		return 1;
+}
+
+
+int ao_plugin_close(ao_device *device)
+{
+	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+	arts_close_stream(internal->stream);
+	arts_free();
+
+	return 1;
+}
+
+
+void ao_plugin_device_clear(ao_device *device)
+{
+	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+
+	free(internal);
+}

@@ -32,119 +32,149 @@
 #include <unistd.h>
 #include <sys/audioio.h>
 
+#include <ao/ao.h>
+#include <ao/plugin.h>
+
+
 #ifndef AUDIO_ENCODING_SLINEAR
 #define AUDIO_ENCODING_SLINEAR AUDIO_ENCODING_LINEAR	/* Solaris */
 #endif
 
-#include <ao/ao.h>
+#ifndef AO_SUN_DEFAULT_DEV
+#define AO_SUN_DEFAULT_DEV "/dev/audio"
+#endif
 
-ao_info_t ao_sun_info = {
+
+static char *ao_sun_options[] = {"dev"};
+ao_info ao_sun_info = {
+	AO_TYPE_LIVE,
 	"Sun audio driver output",
 	"sun",
 	"Christian Weisgerber <naddy@openbsd.org>",
-	"Outputs to the sun audio system."
+	"Outputs to the sun audio system.",
+	AO_FMT_NATIVE,
+	20,
+	ao_sun_options,
+	1
 };
 
-typedef struct ao_sun_internal_s {
+
+typedef struct ao_sun_internal {
 	char *dev;
 	int fd;
-} ao_sun_internal_t;
+} ao_sun_internal;
 
-void ao_sun_parse_options(ao_sun_internal_t *state, ao_option_t *options)
+
+int ao_plugin_test()
 {
-	state->dev = NULL;
+	int fd;
 
-	while (options) {
-		if (!strcmp(options->key, "dev"))
-			state->dev = strdup(options->value);
-		options = options->next;
+	if ( (fd = open(AO_SUN_DEFAULT_DEV, O_WRONLY)) < 0 )
+		return 0; /* Cannot use this plugin with default parameters */
+	else {
+		close(fd);
+		return 1; /* This plugin works in default mode */
 	}
 }
 
-ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+
+ao_info *ao_plugin_driver_info(void)
 {
-	ao_sun_internal_t *state;
+	return &ao_sun_info;
+}
+
+
+int ao_plugin_device_init(ao_device *device)
+{
+	ao_sun_internal *internal;
+
+	internal = (ao_sun_internal *) malloc(sizeof(ao_sun_internal));
+
+	if (internal == NULL)	
+		return 0; /* Could not initialize device memory */
+	
+	internal->dev = strdup(AO_SUN_DEFAULT_DEV);
+	
+	if (internal->dev == NULL) {
+		free(internal);
+		return 0;
+	}
+		
+	device->internal = internal;
+
+	return 1; /* Memory alloc successful */
+}
+
+int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
+{
+	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
+
+
+	if (!strcmp(key, "dev")) {
+		/* Free old string in case "dsp" set twice in options */
+		free(internal->dev); 
+		internal->dev = strdup(value);
+	}
+
+	return 1;
+}
+
+
+int ao_plugin_open(ao_device *device, ao_sample_format *format)
+{
+	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
+	
 	audio_info_t info;
 
-	state = malloc(sizeof(ao_sun_internal_t));
-
-	if (state == NULL) {
-		fprintf(stderr,"libao: Error allocating state memory: %s\n",
-			strerror(errno));
-		goto ERR;
-	}
-
-	ao_sun_parse_options(state, options);
-
-	if (state->dev != NULL) {
-		/* open the user-specified path */
-		state->fd = open(state->dev, O_WRONLY);
-		if (state->fd < 0) {
-			fprintf(stderr, "libao: Error opening audio device %s: %s\n",
-				state->dev, strerror(errno));
-			goto ERR;
-		}
-	} else {
-		/* default */
-		state->dev = strdup("/dev/audio");
-		state->fd = open(state->dev, O_WRONLY);
-		if (state->fd < 0) {
-			fprintf(stderr,
-				"libao: Could not open default device %s: %s\n",
-				state->dev, strerror(errno));
-			goto ERR;
-		}
-	}
+	if ( (internal->fd = open(internal->dev, O_WRONLY)) < 0 )
+		return 0;
 
 	AUDIO_INITINFO(&info);
 #ifdef AUMODE_PLAY	/* NetBSD/OpenBSD */
 	info.mode = AUMODE_PLAY;
 #endif
 	info.play.encoding = AUDIO_ENCODING_SLINEAR;
-	info.play.precision = bits;
-	info.play.sample_rate = rate;
-	info.play.channels = channels;
+	info.play.precision = format->bits;
+	info.play.sample_rate = format->rate;
+	info.play.channels = format->channels;
 
- 	if (ioctl(state->fd, AUDIO_SETINFO, &info) < 0) {
-		fprintf(stderr,
-			"libao: Cannot set device to %d bits, %d Hz, %d channels: %s\n",
-			bits, rate, channels, strerror(errno));
-		goto ERR;
+ 	if (ioctl(internal->fd, AUDIO_SETINFO, &info) < 0) {
+		close(internal->fd);
+		return 0;  /* Unsupported audio format */
 	}
 
-	return state;
+	device->driver_byte_format = AO_FMT_NATIVE;
 
-ERR:
-	if (state != NULL) {
-		if (state->fd >= 0)
-			close(state->fd);
-		if (state->dev)
-			free(state->dev);
-		free(state);
-	}
-	return NULL;
+	return 1;
 }
 
-void plugin_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
+
+int ao_plugin_play(ao_device *device, const char *output_samples, 
+		uint_32 num_bytes)
 {
-	write(((ao_sun_internal_t *)state)->fd, output_samples, num_bytes);
+	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
+	
+	if (write(internal->fd, output_samples, num_bytes) < 0)
+		return 0;
+	else
+		return 1;
 }
 
-void plugin_close(ao_internal_t *state)
+
+int ao_plugin_close(ao_device *device)
 {
-	ao_sun_internal_t *s = (ao_sun_internal_t *)state;
-	close(s->fd);
-	free(s->dev);
-	free(s);
+	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
+
+	close(internal->fd);
+
+	return 1;
 }
 
-int plugin_get_latency(ao_internal_t *state)
-{
-	/* dummy */
-	return 0;
-}
 
-ao_info_t *plugin_get_driver_info(void)
+void ao_plugin_device_clear(ao_device *device)
 {
-	return &ao_sun_info;
+	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
+
+	free(internal->dev);
+	free(internal);
 }

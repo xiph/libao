@@ -1,0 +1,71 @@
+<html>
+
+<head>
+<title>libao - function - ao_plugin_open</title>
+<link rel=stylesheet href="style.css" type="text/css">
+</head>
+
+<body bgcolor=white text=black link="#5555ff" alink="#5555ff" vlink="#5555ff">
+<table border=0 width=100%>
+<tr>
+<td><p class=tiny>libao documentation</p></td>
+<td align=right><p class=tiny>libao version 0.90 - 20010528</p></td>
+</tr>
+</table>
+
+<h1>ao_plugin_open</h1>
+
+<p><i>declared in "ao/plugin.h";</i></p>
+
+<p>Open the device for playback.  All of the device options will have
+already been set by previous calls to <a
+href="ao_plugin_set_option.html">ao_plugin_set_option()</a>.  If this is a
+file output driver, the file itself will have be already opened and a
+pointer to a <tt>FILE</tt> structure stored in <tt>device->file</tt>.
+
+<br><br>
+<table border=0 color=black cellspacing=0 cellpadding=7>
+<tr bgcolor=#cccccc>
+	<td>
+<pre><b>
+int ao_plugin_open(<a href="ao_device.html">ao_device</a> *device, <a href="ao_sample_format.html">ao_sample_format</a> *format);
+</b></pre>
+	</td>
+</tr>
+</table>
+
+<h3>Parameters</h3>
+<dl>
+<dt><i>device</i></dt>
+<dd>Pointer to pre-allocated device structure.  The plugin should
+set its desired byte format in <tt>device->driver_byte_format</tt>.</dd>
+<dt><i>format</i></dt>
+<dd>Output device sample format.  <tt>format->byte_format</tt> should be
+ignored as it is relevant only to the library core.</dd>
+</dl>
+
+<h3>Return Values</h3>
+<blockquote>
+<li>1 indicates success.</li>
+
+<li>0 indicates failure to open the device.
+<a href="ao_plugin_device_clear.html">ao_plugin_device_clear()</a> should be
+called to ensure the deallocate of all private data structures.</li>
+</blockquote>
+<p>
+
+<br><br>
+<hr noshade>
+<table border=0 width=100%>
+<tr valign=top>
+<td><p class=tiny>copyright &copy; 2001 Stan Seibert</p></td>
+<td align=right><p class=tiny><a href="http://www.xiph.org/">xiph.org</a><br><a href="mailto:indigo@aztec.asu.edu">indigo@aztec.asu.edu</a></p></td>
+</tr><tr>
+<td><p class=tiny>libao documentation</p></td>
+<td align=right><p class=tiny>libao version 0.90 - 20010528</p></td>
+</tr>
+</table>
+
+</body>
+
+</html>

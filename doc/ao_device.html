@@ -1,0 +1,88 @@
+<html>
+
+<head>
+<title>libao - datatype - ao_device</title>
+<link rel=stylesheet href="style.css" type="text/css">
+</head>
+
+<body bgcolor=white text=black link="#5555ff" alink="#5555ff" vlink="#5555ff">
+<table border=0 width=100%>
+<tr>
+<td><p class=tiny>libao documentation</p></td>
+<td align=right><p class=tiny>libao version 0.90 - 20010528</p></td>
+</tr>
+</table>
+
+<h1>ao_device</h1>
+
+<p><i>declared in "ao/ao.h";</i></p>
+
+<p>This structure holds all of the data for an open device.
+
+<br><br>
+<table border=0 width=100% color=black cellspacing=0 cellpadding=7>
+<tr bgcolor=#cccccc>
+        <td>
+<pre><b>typedef struct {
+  int  type; /* live output or file output? */
+  int  driver_id;
+  ao_functions *funcs;
+  FILE *file; /* File for output if this is a file driver */
+  int  client_byte_format;
+  int  machine_byte_format;
+  int  driver_byte_format;
+  char *swap_buffer;
+  int  swap_buffer_size; /* Bytes allocated to swap_buffer */
+  void *internal; /* Pointer to driver-specific data */
+} ao_device;</b></pre>
+        </td>
+</tr>
+</table>
+
+<h3>Relevant Struct Members</h3>
+<dl>
+<dt><i>type</i></dt>
+<dd>The output type of the driver:
+<ul>
+<li>AO_TYPE_LIVE - Live output.</li>
+<li>AO_TYPE_FILE - File output.</li>
+</ul>
+</dd>
+<dt><i>driver_id</i></dt>
+<dd>The ID number for the driver used with this device.</dd>
+<dt><i>funcs</i></dt>
+<dd>Function table for the driver associated with this device.</dd>
+<dt><i>client_byte_format</i></dt>
+<dd>The byte format (use constants from 
+<a href="ao_sample_format.html">ao_sample_format</a>) of samples provided by
+the client to <a href="ao_sample_format.html">ao_play()</a>.
+</dd>
+<dt><i>machine_byte_format</i></dt>
+<dd>The native byte format of the computer.  Will be either
+<tt>AO_FMT_BIG</tt> or <tt>AO_FMT_LITTLE</tt>.
+</dd>
+<dt><i>driver_byte_format</i></dt>
+<dd>The byte format of samples requested by
+the driver.
+</dd>
+<dt><i>swap_buffer</i></dt>
+<dd>Scratch buffer used to swap the byte order of samples.  Only allocated
+if <tt>client_byte_format</tt> and <tt>driver_byte_format</tt> correspond to
+different byte orders, otherwise set to NULL</dd>
+</dl>
+
+<br><br>
+<hr noshade>
+<table border=0 width=100%>
+<tr valign=top>
+<td><p class=tiny>copyright &copy; 2001 Stan Seibert</p></td>
+<td align=right><p class=tiny><a href="http://www.xiph.org/">xiph.org</a><br><a href="mailto:indigo@aztec.asu.edu">indigo@aztec.asu.edu</a></p></td>
+</tr><tr>
+<td><p class=tiny>libao documentation</p></td>
+<td align=right><p class=tiny>libao version 0.90 - 20010528</p></td>
+</tr>
+</table>
+
+</body>
+
+</html>

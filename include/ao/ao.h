@@ -3,7 +3,7 @@
  *  ao.h 
  *    
  *	Original Copyright (C) Aaron Holtzman - May 1999
- *      Modifications Copyright (C) Stan Seibert - July 2000
+ *      Modifications Copyright (C) Stan Seibert - July 2000, July 2001
  *      More Modifications Copyright (C) Jack Moffitt - October 2000
  *
  *  This file is part of libao, a cross-platform audio outputlibrary.  See
@@ -31,77 +31,114 @@
 extern "C"
 {
 #endif /* __cplusplus */
-
+	
 #include <stdlib.h>
+#include <errno.h>
 #include "os_types.h"
+
+/* --- Constants ---*/
+
+#define AO_TYPE_LIVE 1
+#define AO_TYPE_FILE 2
+
+
+#define AO_ENODRIVER   1
+#define AO_ENOTFILE    2
+#define AO_ENOTLIVE    3
+#define AO_EBADOPTION  4
+#define AO_EOPENDEVICE 5
+#define AO_EOPENFILE   6
+#define AO_EFILEEXISTS 7
+
+#define AO_EFAIL       100
+
+
+#define AO_FMT_LITTLE 1
+#define AO_FMT_BIG    2
+#define AO_FMT_NATIVE 4
 
 /* --- Structures --- */
 
-typedef struct ao_option_s {
+typedef struct ao_info {
+	int  type; /* live output or file output? */
+	char *name; /* full name of driver */
+	char *short_name; /* short name of driver */
+        char *author; /* driver author */
+	char *comment; /* driver comment */
+	int  preferred_byte_format;
+	int  priority;
+	char **options;
+	int  option_count;
+} ao_info;
+
+typedef struct ao_functions ao_functions; /* Forward decl to make C happy */
+
+typedef struct ao_device {
+	int  type; /* live output or file output? */
+	int  driver_id;
+	ao_functions *funcs;
+	FILE *file; /* File for output if this is a file driver */
+	int  client_byte_format;
+	int  machine_byte_format;
+	int  driver_byte_format;
+	char *swap_buffer;
+	int  swap_buffer_size; /* Bytes allocated to swap_buffer */
+	void *internal; /* Pointer to driver-specific data */
+} ao_device;
+
+typedef struct ao_sample_format {
+	int bits; /* bits per sample */
+	int rate; /* samples per second (in a single channel) */
+	int channels; /* number of audio channels */
+	int byte_format; /* Byte ordering in sample, see constants below */
+} ao_sample_format;
+
+struct ao_functions {
+	int (*test)(void);
+	ao_info* (*driver_info)(void);
+	int (*device_init)(ao_device *device);
+	int (*set_option)(ao_device *device, const char *key, 
+			  const char *value);
+	int (*open)(ao_device *device, ao_sample_format *format);
+	int (*play)(ao_device *device, const char *output_samples,
+			   uint_32 num_bytes);
+	int (*close)(ao_device *device);
+	void (*device_clear)(ao_device *device);
+};
+
+typedef struct ao_option {
 	char *key;
 	char *value;
-	struct ao_option_s *next;
-} ao_option_t;
-
-typedef struct ao_info_s {
-	/* driver name (Ex: "OSS Audio driver") */
-	const char *name;
-	/* short name (for config strings) (Ex: "oss") */
-	const char *short_name;
-	/* author (Ex: "Aaron Holtzman <aholtzma@ess.engr.uvic.ca>") */
-	const char *author;
-	/* any additional comments (Ex: "Needs work.") */
-	const char *comment;
-} ao_info_t;
-
-typedef void ao_internal_t;
-
-typedef struct ao_functions_s {
-	ao_info_t *(*get_driver_info)(void);
-	ao_internal_t *(*open)(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options);
-	void (*play)(ao_internal_t *state, void* output_samples, uint_32 num_bytes);
-	void (*close)(ao_internal_t *state);
-	int (*get_latency)(ao_internal_t *state);
-} ao_functions_t;
-
-typedef struct ao_device_s {
-	ao_functions_t *funcs;
-	ao_internal_t *state;
-} ao_device_t;
-
-
-
-/* --- Standard driver_id numbers --- */
-
-#define AO_NULL     0
-#define AO_WAV      1
-#define AO_RAW	    2
-#define AO_AU	    3
+	struct ao_option *next;
+} ao_option;		
 
 /* --- Functions --- */
 
-/* library init/shutdown */
+/* library setup/teardown */
 void ao_initialize(void);
 void ao_shutdown(void);
 
+/* device setup/playback/teardown */
+int ao_append_option(ao_option **options, const char *key, 
+		     const char *value);
+void ao_free_options(ao_option *options);
+ao_device* ao_open_live(int driver_id, ao_sample_format *format,
+				ao_option *option);
+ao_device* ao_open_file(int driver_id, const char *filename, int overwrite,
+			ao_sample_format *format, ao_option *option);
+
+int ao_play(ao_device *device, char *output_samples, uint_32 num_bytes);
+int ao_close(ao_device *device);
+
 /* driver information */
-int ao_get_driver_id(const char *short_name);
-ao_info_t *ao_get_driver_info(int driver_id);
+int ao_driver_id(const char *short_name);
+int ao_default_driver_id();
+ao_info *ao_driver_info(int driver_id);
+ao_info **ao_driver_info_list(int *driver_count);
 
-/* driver options */
-int ao_append_option(ao_option_t **options, const char *key, const char *value);
-void ao_free_options(ao_option_t *options);
-
-/* the meat: open/play/close */
-ao_device_t *ao_open(int driver_id, uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options);
-void ao_play(ao_device_t *device, void* output_samples, uint_32 num_bytes);
-void ao_close(ao_device_t *device);
-
-/* misc functions */
+/* miscellaneous */
 int ao_is_big_endian(void);
 
-/* returns the number of bytes buffered by the driver / output device */
-int ao_get_latency(ao_device_t *device);
 
 #ifdef __cplusplus
 }

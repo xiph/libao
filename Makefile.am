@@ -7,7 +7,9 @@ SUBDIRS = src include doc debian
 m4datadir = $(datadir)/aclocal
 m4data_DATA = ao.m4
 
-EXTRA_DIST = README AUTHORS CHANGES COPYING libao.spec ao.m4 acinclude.m4
+man_MANS = libao.conf.5
+
+EXTRA_DIST = README AUTHORS CHANGES COPYING libao.spec ao.m4 acinclude.m4 $(man_MANS)
 
 debug:
 	$(MAKE) all CFLAGS="@DEBUG@"

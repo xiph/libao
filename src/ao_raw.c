@@ -2,7 +2,7 @@
  *
  *  ao_raw.c
  *
- *      Copyright (C) Stan Seibert - January 2001
+ *      Copyright (C) Stan Seibert - January 2001, July 2001
  *
  *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
@@ -25,190 +25,124 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <unistd.h>
 #include <ao/ao.h>
+#include <ao/plugin.h>
 
-/* Byte ordering constants */
-#define BYTEORDER_NATIVE        1
-#define BYTEORDER_BIG_ENDIAN    2
-#define BYTEORDER_LITTLE_ENDIAN 3
-
-#define DEFAULT_SWAP_BUFFER_SIZE 2048
-
-
-static ao_info_t ao_raw_info =
+static char *ao_raw_options[] = {"byteorder"};
+static ao_info ao_raw_info =
 {
+	AO_TYPE_FILE,
 	"RAW sample output",
 	"raw",
 	"Stan Seibert <indigo@aztec.asu.edu>",
-	"Writes raw audio samples to a file"
+	"Writes raw audio samples to a file",
+	AO_FMT_NATIVE,
+	0,
+	ao_raw_options,
+	1
 };
 
-typedef struct ao_raw_internal_s
+typedef struct ao_raw_internal
 {
-	char *output_file;
-	int fd;
-	int byteorder;
-	int byte_swap;
-	char *swap_buffer;
-	int buffer_size;
-} ao_raw_internal_t;
+	int byte_order;
+} ao_raw_internal;
 
 
-static void ao_raw_parse_options(ao_raw_internal_t *state, ao_option_t *options)
+static int ao_raw_test()
 {
-	state->output_file = NULL;
-
-	while (options) {
-		if (!strcmp(options->key, "file"))
-			state->output_file = strdup(options->value);
-		else if (!strcmp(options->key, "byteorder")) {
-			
-			if (!strcmp(options->value, "native"))
-				state->byteorder = BYTEORDER_NATIVE;
-			else if (!strcmp(options->value, "big"))
-				state->byteorder = BYTEORDER_BIG_ENDIAN;
-			else if (!strcmp(options->value, "little"))
-				state->byteorder = BYTEORDER_LITTLE_ENDIAN;
-		}
-		options = options->next;
-	}
-
-	if (state->output_file == NULL)
-		state->output_file = strdup("output.raw");
-	if (state->byteorder == 0)
-		state->byteorder = BYTEORDER_NATIVE;
+	return 1; /* Always works */
 }
 
-static ao_internal_t *ao_raw_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+
+static ao_info *ao_raw_driver_info(void)
 {
-	ao_raw_internal_t *state;
+	return &ao_raw_info;
+}
 
-	state = malloc(sizeof(ao_raw_internal_t));
-	if (state == NULL) {
-		fprintf(stderr, "ao_raw: Could not allocate state memory.\n");
-		goto ERR;
-	}
-	state->byteorder = 0;
-	state->output_file = NULL;
 
-	/* Grab options here */
-	ao_raw_parse_options(state, options);
+static int ao_raw_device_init(ao_device *device)
+{
+	ao_raw_internal *internal;
 
-	/* Figure out byte swapping */
-	if (bits == 16) {
-		switch (state->byteorder) {
-		case BYTEORDER_NATIVE :
-			state->byte_swap = 0;
-			break;
-		case BYTEORDER_BIG_ENDIAN :
-			state->byte_swap = !ao_is_big_endian();
-			break;
-		case BYTEORDER_LITTLE_ENDIAN :
-			state->byte_swap = ao_is_big_endian();
-			break;
-		default :
-			fprintf(stderr, "ao_raw: Internal error - incorrect byte order constant %d\n", state->byteorder);
-			goto ERR;
-		}
-	} else 
-		state->byte_swap = 0;
-		
-	if (state->byte_swap) {
-		state->buffer_size = DEFAULT_SWAP_BUFFER_SIZE;
-		state->swap_buffer = calloc(sizeof(char), state->buffer_size);
-	       
-		if (state->swap_buffer == NULL) {
-			fprintf(stderr, "ao_raw: Could not allocate byte-swapping buffer.\n");
-			goto ERR;
-		}
+	internal = (ao_raw_internal *) malloc(sizeof(ao_raw_internal));
+
+	if (internal == NULL)	
+		return 0; /* Could not initialize device memory */
+	
+	internal->byte_order = AO_FMT_NATIVE;
+	
+	device->internal = internal;
+
+	return 1; /* Memory alloc successful */
+}
+
+static int ao_raw_set_option(ao_device *device, const char *key, 
+			      const char *value)
+{
+	ao_raw_internal *internal = (ao_raw_internal *)device->internal;
+	
+	if (!strcmp(key, "byteorder")) {    
+		if (!strcmp(value, "native"))
+			internal->byte_order = AO_FMT_NATIVE;
+		else if (!strcmp(value, "big"))
+			internal->byte_order = AO_FMT_BIG;
+		else if (!strcmp(value, "little"))
+			internal->byte_order = AO_FMT_LITTLE;
+		else
+			return 0; /* Bad option value */
 	}
 
+	return 1;
+}
 
-	/* Setup output file */
-	if (strncmp(state->output_file, "-", 2) == 0)
-	  state->fd = STDOUT_FILENO;
-	else
-	  state->fd = open(state->output_file,
-			   O_WRONLY | O_TRUNC | O_CREAT, 0644);
 
-	if(state->fd < 0) {
-		fprintf(stderr,"%s: Opening audio output %s\n", strerror(errno), state->output_file);
-		goto ERR;
-	}
+static int ao_raw_open(ao_device *device, ao_sample_format *format)
+{
+	ao_raw_internal *internal = (ao_raw_internal *)device->internal;
 
-	return state;
+	device->driver_byte_format = internal->byte_order;
 
-ERR:
-	if(state->fd >= 0) { close(state->fd); }
-	return NULL;
+	return 1;
 }
 
 
 /*
  * play the sample to the already opened file descriptor
  */
-static void ao_raw_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
+static int ao_raw_play(ao_device *device, const char *output_samples, 
+		       uint_32 num_bytes)
 {
-	int i;
-	ao_raw_internal_t *s = (ao_raw_internal_t *)state;
-
-	/* Swap all of the bytes if things are not little_endian */
-	if (s->byte_swap) {
-		/* Resize buffer larger if needed */
-		if (num_bytes > s->buffer_size) {
-			s->swap_buffer = realloc(s->swap_buffer, sizeof(char)*num_bytes);
-			if (s->swap_buffer == NULL) {
-				fprintf(stderr, "ao_raw: Could not resize swap buffer.\n");
-				return;
-			} else {
-				s->buffer_size = num_bytes;
-			}
-		}
-
-		/* Swap the bytes into the swap buffer (so we don't
-		 mess up the output_samples buffer) */
-		for(i = 0; i < num_bytes; i+=2) {
-			s->swap_buffer[i]   = ((char *) output_samples)[i+1];
-			s->swap_buffer[i+1] = ((char *) output_samples)[i];
-		}
-
-		write(s->fd, s->swap_buffer, num_bytes );
-	} else {
-		/* Otherwise just write the output buffer directly */
-		write(s->fd, output_samples, num_bytes );
-	}
+	if (fwrite(output_samples, sizeof(char), num_bytes, 
+		   device->file) < num_bytes)
+		return 0;
+	else
+		return 1;
 }
 
-static void ao_raw_close(ao_internal_t *state)
-{
-	ao_raw_internal_t *s = (ao_raw_internal_t *)state;
 
-	close(s->fd);
-	if (s->byte_swap)
-		free(s->swap_buffer);
-	free(s);
+static int ao_raw_close(ao_device *device)
+{
+	/* No closeout needed */
+	return 1;
 }
 
-static int ao_raw_get_latency(ao_internal_t *state)
+
+static void ao_raw_device_clear(ao_device *device)
 {
-	return 0;
+	ao_raw_internal *internal = (ao_raw_internal *) device->internal;
+
+	free(internal);
 }
 
-static ao_info_t *ao_raw_get_driver_info(void)
-{
-	return &ao_raw_info;
-}
 
-ao_functions_t ao_raw =
-{
-        ao_raw_get_driver_info,
-        ao_raw_open,
-        ao_raw_play,
-        ao_raw_close,
-	ao_raw_get_latency
+ao_functions ao_raw = {
+	ao_raw_test,
+	ao_raw_driver_info,
+	ao_raw_device_init,
+	ao_raw_set_option,
+	ao_raw_open,
+	ao_raw_play,
+	ao_raw_close,
+	ao_raw_device_clear
 };

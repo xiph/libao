@@ -1,0 +1,67 @@
+<html>
+
+<head>
+<title>libao - function - ao_plugin_device_init</title>
+<link rel=stylesheet href="style.css" type="text/css">
+</head>
+
+<body bgcolor=white text=black link="#5555ff" alink="#5555ff" vlink="#5555ff">
+<table border=0 width=100%>
+<tr>
+<td><p class=tiny>libao documentation</p></td>
+<td align=right><p class=tiny>libao version 0.90 - 20010528</p></td>
+</tr>
+</table>
+
+<h1>ao_plugin_device_init</h1>
+
+<p><i>declared in "ao/plugin.h";</i></p>
+
+<p>Initialize the private device data structures.  Memory should be
+allocated, and default values set if necessary, but devices should not
+be opened until <a href="ao_plugin_open.html">ao_plugin_open()</a> is
+called.
+
+<br><br>
+<table border=0 color=black cellspacing=0 cellpadding=7>
+<tr bgcolor=#cccccc>
+	<td>
+<pre><b>
+int ao_plugin_device_init(<a href="ao_device.html">ao_device</a> *device);
+</b></pre>
+	</td>
+</tr>
+</table>
+
+<h3>Parameters</h3>
+<dl>
+<dt><i>device</i></dt>
+<dd>Pointer to pre-allocated device structure.  The driver should
+store the address of its private memory in <tt>device->internal</tt>.</dd>
+</dl>
+
+<h3>Return Values</h3>
+<blockquote>
+<li>1 indicates success.</li>
+
+<li>0 indicates failure, probably due to memory allocation problems.
+<a href="ao_plugin_device_clear.html">ao_plugin_device_clear()</a> should be
+called to ensure the deallocate of all private data structures.</li>
+</blockquote>
+<p>
+
+<br><br>
+<hr noshade>
+<table border=0 width=100%>
+<tr valign=top>
+<td><p class=tiny>copyright &copy; 2001 Stan Seibert</p></td>
+<td align=right><p class=tiny><a href="http://www.xiph.org/">xiph.org</a><br><a href="mailto:indigo@aztec.asu.edu">indigo@aztec.asu.edu</a></p></td>
+</tr><tr>
+<td><p class=tiny>libao documentation</p></td>
+<td align=right><p class=tiny>libao version 0.90 - 20010528</p></td>
+</tr>
+</table>
+
+</body>
+
+</html>

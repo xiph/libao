@@ -3,7 +3,7 @@
  *  ao_null.c
  *
  *      Original Copyright (C) Aaron Holtzman - May 1999
- *      Modifications Copyright (C) Stan Seibert - July 2000
+ *      Modifications Copyright (C) Stan Seibert - July 2000, July 2001
  *
  *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
@@ -27,61 +27,107 @@
 #include <stdio.h>
 #include <ao/ao.h>
 
-typedef struct ao_null_internal_s {
-	unsigned long byte_counter;
-} ao_null_internal_t;
-
-static ao_info_t ao_null_info = {
+static ao_info ao_null_info = {
+	AO_TYPE_LIVE,
 	"Null output",
 	"null",
-	"Aaron Holtzman <aholtzma@ess.engr.uvic.ca>",
-	"This plugin does nothing"
+	"Stan Seibert <volsung@asu.edu>",
+	"This driver does nothing.",
+	AO_FMT_NATIVE,
+	0,
+	NULL, /* No options */
+	0
 };
 
-static ao_internal_t *ao_null_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+
+typedef struct ao_null_internal {
+	unsigned long byte_counter;
+} ao_null_internal;
+
+
+static int ao_null_test()
 {
-	ao_null_internal_t *state;
-
-	state = malloc(sizeof(ao_null_internal_t));
-
-	if (state != NULL) {
-		state->byte_counter = 0;
-		return state;
-	} else {
-		return NULL;
-	}
-
-	return NULL;
+	return 1; /* Null always works */
 }
 
-static void ao_null_close(ao_internal_t *state)
-{
-        /* why would we print in a lib :)
-	fprintf(stderr, "ao_null: %ld bytes sent to null device.\n",
-		((ao_null_internal_t *) state)->byte_counter);
-	*/
-	if (state) free(state);
-}
 
-static void ao_null_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
-{
-	((ao_null_internal_t *)state)->byte_counter += num_bytes;
-}
-
-static ao_info_t *ao_null_get_driver_info(void)
+static ao_info *ao_null_driver_info(void)
 {
 	return &ao_null_info;
 }
 
-static int ao_null_get_latency(ao_internal_t *state)
+
+static int ao_null_device_init(ao_device *device)
 {
-	return 0;
+	ao_null_internal *internal;
+
+	internal = (ao_null_internal *) malloc(sizeof(ao_null_internal));
+
+	if (internal == NULL)	
+		return 0; /* Could not initialize device memory */
+	
+	internal->byte_counter = 0;
+	
+	device->internal = internal;
+
+	return 1; /* Memory alloc successful */
 }
 
-ao_functions_t ao_null = {
-	ao_null_get_driver_info,
+
+static int ao_null_set_option(ao_device *device, const char *key, 
+			      const char *value)
+{
+	return 1; /* No options! */
+}
+
+
+
+static int ao_null_open(ao_device *device, ao_sample_format *format)
+{
+	/* Use whatever format the client requested */
+	device->driver_byte_format = device->client_byte_format;
+
+	return 1;
+}
+
+
+static int ao_null_play(ao_device *device, const char *output_samples, 
+			uint_32 num_bytes)
+{
+	ao_null_internal *internal = (ao_null_internal *)device->internal;
+
+	internal->byte_counter += num_bytes;
+
+	return 1;
+}
+
+
+static int ao_null_close(ao_device *device)
+{
+	ao_null_internal *internal = (ao_null_internal *) device->internal;
+
+	fprintf(stderr, "ao_null: %ld bytes sent to null device.\n",
+		internal->byte_counter);
+
+	return 1;
+}
+
+
+static void ao_null_device_clear(ao_device *device)
+{
+	ao_null_internal *internal = (ao_null_internal *) device->internal;
+
+	free(internal);
+}
+
+
+ao_functions ao_null = {
+	ao_null_test,
+	ao_null_driver_info,
+	ao_null_device_init,
+	ao_null_set_option,
 	ao_null_open,
 	ao_null_play,
 	ao_null_close,
-	ao_null_get_latency
+	ao_null_device_clear
 };

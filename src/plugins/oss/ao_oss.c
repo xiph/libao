@@ -3,7 +3,7 @@
  *  ao_oss.c
  *
  *      Original Copyright (C) Aaron Holtzman - May 1999
- *      Modifications Copyright (C) Stan Seibert - July 2000
+ *      Modifications Copyright (C) Stan Seibert - July 2000, June 2001
  *
  *  This file is part of libao, a cross-platform library.  See
  *  README for a history of this source code.
@@ -39,170 +39,218 @@
 #endif
 #include <sys/ioctl.h>
 
-#include <ao/ao.h>
+#include "ao/ao.h"
+#include "ao/plugin.h"
 
-ao_info_t ao_oss_info =
+
+static char *ao_oss_options[] = {"dev"};
+static ao_info ao_oss_info =
 {
+	AO_TYPE_LIVE,
 	"OSS audio driver output ",
 	"oss",
 	"Aaron Holtzman <aholtzma@ess.engr.uvic.ca>",
-	"Outputs audio to the Open Sound System driver."
+	"Outputs audio to the Open Sound System driver.",
+	AO_FMT_NATIVE,
+	20,
+	ao_oss_options,
+	1
 };
 
 
-typedef struct ao_oss_internal_s {
+typedef struct ao_oss_internal {
 	char *dev;
 	int fd;
-} ao_oss_internal_t;
+} ao_oss_internal;
 
-static int _is_big_endian(void)
+
+/*
+ * open either the devfs device or the traditional device and return a
+ * file handle.  Also strdup() path to the selected device into
+ * *dev_path.  Assumes that *dev_path does not need to be free()'ed
+ * initially.
+ */
+int _open_default_oss_device (char **dev_path)
 {
-	uint_16 pattern = 0xbabe;
-	unsigned char *bytewise = (unsigned char *)&pattern;
+	int fd;
 
-	if (bytewise[0] == 0xba) return 1;
-	return 0;
-}
+	/* default: first try the devfs path */
+	*dev_path = strdup("/dev/sound/dsp");
+	fd = open(*dev_path, O_WRONLY);
 
-void ao_oss_parse_options(ao_oss_internal_t *state, ao_option_t *options)
-{
-	state->dev = NULL;
+	if(fd < 0) 
+	{
+		/* no? then try the traditional path */
+		char *err = strdup(strerror(errno));
+		char *dev = strdup(*dev_path);
+		free(*dev_path);
+		*dev_path = strdup("/dev/dsp");
+		fd = open(*dev_path,O_WRONLY);
 
-	while (options) {
-		if (!strcmp(options->key, "dsp"))
-			state->dev = strdup(options->value);
-		
-		options = options->next;
+		if(fd < 0) 
+		{
+		  /*			fprintf(stderr,
+				"libao - error: Could not open either default device:\n"
+				"  %s - %s\n"
+				"  %s - %s\n",
+				err, dev,
+				strerror(errno), *dev_path); */
+			free(err);
+			free(dev);
+			free(*dev_path);
+			*dev_path = NULL;
+		}
 	}
 
-	/* otherwise, the NULL setting indicates the open()
-	   routine should choose something from hardwired defaults */
+	return fd;
 }
+
+
+int ao_plugin_test()
+{
+	char *dev_path;
+	int fd;
+
+	if ( (fd = _open_default_oss_device(&dev_path)) < 0 )
+		return 0; /* Cannot use this plugin with default parameters */
+	else {
+		close(fd);
+		return 1; /* This plugin works in default mode */
+	}
+}
+
+
+ao_info *ao_plugin_driver_info(void)
+{
+	return &ao_oss_info;
+}
+
+
+int ao_plugin_device_init(ao_device *device)
+{
+	ao_oss_internal *internal;
+
+	internal = (ao_oss_internal *) malloc(sizeof(ao_oss_internal));
+
+	if (internal == NULL)	
+		return 0; /* Could not initialize device memory */
+	
+	internal->dev = NULL;
+	
+	device->internal = internal;
+
+	return 1; /* Memory alloc successful */
+}
+
+int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
+{
+	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
+
+
+	if (!strcmp(key, "dev")) {
+		/* Free old string in case "dev" set twice in options */
+		free(internal->dev); 
+		internal->dev = strdup(value);
+	}
+
+	return 1;
+}
+
 
 /*
  * open the audio device for writing to
  */
-ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
-	ao_oss_internal_t *state;
+	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
 	int tmp;
-	
-	/* Allocate a state structure to hold instance
-	   information.  (Long live C++!) */
-	state = malloc(sizeof(ao_oss_internal_t));
-
-	if (state == NULL)	
-	{
-		fprintf(stderr,"libao - %s: Allocating state memory.\n",
-			strerror(errno));
-		goto ERR;
-	}
-
-	ao_oss_parse_options(state, options);
 
 	/* Open the device driver */
 	
-	if (state->dev != NULL) {
+	if (internal->dev != NULL) {
 		/* open the user-specified path */
-		state->fd=open(state->dev,O_WRONLY);
-		if(state->fd < 0) 
-		{
-			fprintf(stderr,"libao - %s: Opening audio device %s\n",
-				strerror(errno), state->dev);
-			goto ERR;
+		internal->fd = open(internal->dev, O_WRONLY);
+
+		if(internal->fd < 0) {
+		  /* fprintf(stderr,"libao - %s: Opening audio device %s\n",
+		     strerror(errno), internal->dev); */
+			return 0;  /* Cannot open device */
 		}
+
 	} else {
-		/* default: first try the devfs path */
-		state->dev = strdup("/dev/sound/dsp");
-		state->fd=open(state->dev,O_WRONLY);
-		if(state->fd < 0) 
-		{
-			/* no? then try the traditional path */
-			char *err = strdup(strerror(errno));
-			char *dev = strdup(state->dev);
-			free(state->dev);
-			state->dev = strdup("/dev/dsp");
-			state->fd=open(state->dev,O_WRONLY);
-			if(state->fd < 0) 
-			{
-				fprintf(stderr,
-					"libao - error: Could not open either default device:\n"
-					"  %s - %s\n"
-					"  %s - %s\n",
-					err, dev,
-					strerror(errno), state->dev);
-				free(err);
-				free(dev);
-				goto ERR;
-			}
-		}
+		internal->fd = _open_default_oss_device(&internal->dev);
+		if (internal->fd < 0)
+			return 0;  /* Cannot open default device */
 	}
 
-	switch (channels)
+	/* Now set all of the parameters */
+
+	switch (format->channels)
 	{
 	case 1: tmp = 0;
 		break;
 	case 2: tmp = 1;
 		break;
 	default:fprintf(stderr,"libao - Unsupported number of channels: %d.",
-			channels);
+			format->channels);
 		goto ERR;
 	}
-	ioctl(state->fd,SNDCTL_DSP_STEREO,&tmp);
+	ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp);
 	
-	switch (bits)
+	/* To eliminate the need for a swap buffer, we set the device
+	   to use whatever byte format the client selected. */
+	switch (format->bits)
 	{
 	case 8: tmp = AFMT_S8;
 		break;
-        case 16: tmp = _is_big_endian() ? AFMT_S16_BE : AFMT_S16_LE;
+        case 16: tmp = device->client_byte_format == AO_FMT_BIG ? 
+		   AFMT_S16_BE : AFMT_S16_LE;
+	        device->driver_byte_format = device->client_byte_format;
 	        break;
 	default:fprintf(stderr,"libao - Unsupported number of bits: %d.",
-			bits);
+			format->bits);
 		goto ERR;
 	}
-	ioctl(state->fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
+	ioctl(internal->fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
 	
-	tmp = rate;
-	ioctl(state->fd,SNDCTL_DSP_SPEED, &tmp);
+	tmp = format->rate;
+	ioctl(internal->fd,SNDCTL_DSP_SPEED, &tmp);
 	
-	return state;
+	return 1; /* Open successful */
 
  ERR:
-	if(state != NULL)
-	{ 
-		if (state->fd >= 0) { close(state->fd); }
-		if (state->dev) { free(state->dev); }
-		free(state);
-	}
-
-	return NULL;
+	close(internal->fd);
+	return 0; /* Failed to open device */
 }
 
 /*
  * play the sample to the already opened file descriptor
  */
-void plugin_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
+int ao_plugin_play(ao_device *device, const char *output_samples, 
+		uint_32 num_bytes)
 {
-	write( ((ao_oss_internal_t *)state)->fd, output_samples, num_bytes);
+	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
+
+	if (write(internal->fd, output_samples, num_bytes) < 0)
+		return 0;
+	else
+		return 1;
 }
 
 
-void plugin_close(ao_internal_t *state)
+int ao_plugin_close(ao_device *device)
 {
-	ao_oss_internal_t *s = (ao_oss_internal_t *) state;
-	close(s->fd);
-	free(s->dev);
-	free(s);
+	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
+	close(internal->fd);
+
+	return 1;
 }
 
-int plugin_get_latency(ao_internal_t *state)
-{
-	int odelay = 0;
-	ioctl(((ao_oss_internal_t *)state)->fd, SNDCTL_DSP_GETODELAY, &odelay);
-	return odelay;
-}
 
-ao_info_t *plugin_get_driver_info(void)
+void ao_plugin_device_clear(ao_device *device)
 {
-	return &ao_oss_info;
+	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
+
+	free(internal->dev);
+	free(internal);
 }
