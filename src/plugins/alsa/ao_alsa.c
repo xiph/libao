@@ -210,7 +210,7 @@ int _alsa_write_buffer(ao_alsa_internal *s)
 		return 0;
 	}       
 	if (status.underrun) {
-		fprintf(stderr, "ALSA: underrun. resetting channel\n");
+		/* fprintf(stderr, "ALSA: underrun. resetting channel\n"); */
 		snd_pcm_channel_flush(pcm_handle, SND_PCM_CHANNEL_PLAYBACK);
 		snd_pcm_playback_prepare(pcm_handle);
 		snd_pcm_write(pcm_handle, s->buf, len);

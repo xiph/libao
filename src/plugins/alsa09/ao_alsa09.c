@@ -237,7 +237,7 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 		}
 	} while (len > 0 && (res > 0 || res == -EAGAIN));
 	if (res == -EPIPE) {
-		fprintf(stderr, "ALSA: underrun. resetting stream\n");
+		/* fprintf(stderr, "ALSA: underrun. resetting stream\n"); */
 		snd_pcm_prepare(internal->pcm_handle);
 		res = snd_pcm_writei(internal->pcm_handle, buf, len);
 		if (res != len) {

@@ -28,6 +28,9 @@
 #include <string.h>
 #include <ao/ao.h>
 
+static char *ao_null_options[] = {
+	"debug"
+};
 static ao_info ao_null_info = {
 	AO_TYPE_LIVE,
 	"Null output",
@@ -36,8 +39,8 @@ static ao_info ao_null_info = {
 	"This driver does nothing.",
 	AO_FMT_NATIVE,
 	0,
-	NULL, /* No options */
-	0
+	ao_null_options,
+	1
 };
 
 
