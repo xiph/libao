@@ -35,7 +35,7 @@
 #include <ao/plugin.h>
 
 #define AO_ALSA_BUF_SIZE 4096
-#define AO_ALSA_PERIODS  16
+#define AO_ALSA_PERIODS  8
 
 static char *ao_alsa_options[] = {
 	"dev",
