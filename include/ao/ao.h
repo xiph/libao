@@ -81,7 +81,7 @@ int ao_get_driver_id(const char *short_name);
 ao_info_t *ao_get_driver_info(int driver_id);
 
 /* driver options */
-int ao_append_options(ao_option_t **options, const char *op_str);
+int ao_append_option(ao_option_t **options, const char *key, const char *value);
 void ao_free_options(ao_option_t *options);
 
 /* the meat: open/play/close */

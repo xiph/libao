@@ -20,8 +20,8 @@ this:
      initialize it to NULL.
 
    * Through successive calls to ao_append_option(), add any driver
-     specific options you need.  Note that the option string has the
-     form "key:value" where supported keys are listed in the
+     specific options you need.  Note that the options take the
+     form of key-value pairs where supported keys are listed in the
      DRIVER file.
 
    * Call ao_open() and save the returned device pointer.
@@ -82,13 +82,15 @@ structure.
 
 ---
 
-int ao_append_options(ao_option_t **options, const char *op_str)
+int ao_append_option(ao_option_t **options, const char *key, const char *value)
 
 Purpose: Append an option to a linked list of options.
 
 Parameters:
-    ao_option_t **options - A pointer to the linked list pointer.
-    const char* op_str - The option string.  Form "key:value".
+    ao_option_t **options - Address of a pointer to the head of the
+                    option list, which may be NULL.
+    const char* key   - The option key
+    const char* value - the setting for this particular option
 
 Returns: 1 if the option was appended successfully
          0 if the option was not appended (either due to memory
@@ -113,8 +115,8 @@ Purpose: To open a particular device for writing.
 
 Parameters:
     int driver_id - ID number for the driver to use with this device
-    uint_32 bits - Bits per audio sample (8 or 16)
-    uint_32 rate - Samples per second (44100, 22050, etc.)
+    uint_32 bits  - Bits per audio sample (8 or 16)
+    uint_32 rate  - Samples per second (44100, 22050, etc.)
     uint_32 channels - Audio channels (1 = mono, 2 = stereo)
     ao_option_t *options - Option list
 
@@ -130,7 +132,7 @@ void ao_play(ao_device_t *device, void* output_samples,
 Purpose: To ouput some audio data to the device.
 
 Parameters:
-    ao_device_t *device - Device pointer
+    ao_device_t *device  - Device pointer
     void *output_samples - Memory buffer containing audio data
     uint_32 num_bytes - Number of bytes of audio data in memory buffer
 

@@ -272,50 +272,25 @@ void ao_close(ao_device_t *device)
 
 /* --- Option Functions --- */
 
-ao_option_t* _parse_option(const char* op_str)
+int ao_append_option(ao_option_t **options, const char *key, const char *value)
 {
-	char *copy;
-	char *value_ptr;
-	char *colon;
-        ao_option_t *op = NULL;
-	
-        copy = strdup(op_str);
-	
-        colon = strchr(copy, ':');
-        if (colon != NULL) {
-                value_ptr = colon + 1;
-                *colon = 0x00; // Null terminate the key part
-                
-                /* Allocate the option structure */
-                op = malloc(sizeof(ao_option_t));
-                if (op != NULL) {
-                        op->key = strdup(copy);
-                        op->value = strdup(value_ptr);
-                        op->next = NULL;
-                }
-        }
-	
-        free(copy);
-        return op;
-}
+	ao_option_t *op, *list;
 
+	op = malloc(sizeof(ao_option_t));
+	if (op == NULL) return 0;
 
-int ao_append_option(ao_option_t **options, const char *op_str)
-{
-	ao_option_t *temp;
+	op->key = strdup(key);
+	op->value = strdup(value);
+	op->next = NULL;
 
-	temp = _parse_option(op_str);
-
-	if (temp == NULL)
-		return 0; //Bad option format
-
-	if (*options != NULL) {
-		while ((*options)->next != NULL)
-			*options = (*options)->next;
-		(*options)->next = temp;
+	if ((list = *options) != NULL) {
+		list = *options;
+		while (list->next != NULL) list = list->next;
+		list->next = op;
 	} else {
-		*options = temp;
+		*options = op;
 	}
+
 
 	return 1;
 }
