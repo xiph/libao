@@ -73,6 +73,10 @@ dnl ==============================
 dnl Check for libraries
 dnl ==============================
 
+# we link to libpthread just in case one of our plugins does
+# in which case this is required to avoid problems on dlclose()
+AC_CHECK_LIB(pthread, pthread_kill)
+
 dnl ==============================
 dnl Checks for header files
 dnl ==============================
