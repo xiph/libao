@@ -172,7 +172,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	if (err < 0)
 		goto error;
 
-	printf("Setting channels to %d\n", format->channels);
 	cmd = "snd_pcm_hw_params_set_channels";
 	if (format->channels == 1 || format->channels == 2)
 		err = snd_pcm_hw_params_set_channels(internal->pcm_handle,
@@ -180,7 +179,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	else
 		return 0;
 
-	printf("Error for channels was %d\n", err);
 	if (err < 0)
 		goto error;
 	internal->sample_size = format->bits * format->channels / 8;
