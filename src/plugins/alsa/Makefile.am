@@ -16,7 +16,7 @@ alsasources =
 
 endif
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include
+INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(alsaltlibs)

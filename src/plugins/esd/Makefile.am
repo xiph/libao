@@ -16,7 +16,7 @@ esdsources =
 
 endif
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include @ESD_CFLAGS@
+INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include @ESD_CFLAGS@
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(esdltlibs)
