@@ -231,7 +231,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		goto ERR;
 	}
 	
-	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0) {
+	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0 || 
+			tmp+1 != format->channels) {
 		fprintf(stderr, "libao - OSS cannot set channels to %d\n", 
 			format->channels);
 		goto ERR;
@@ -263,7 +264,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	   exact data rate, but something close.  Fail only if completely out
 	   of whack. */
 	if (ioctl(internal->fd,SNDCTL_DSP_SPEED, &tmp) < 0
-	    || tmp > 1.01 * format->rate || tmp < 0.99 * format->rate) {
+	    || tmp > 1.02 * format->rate || tmp < 0.98 * format->rate) {
 		fprintf(stderr, "libao - OSS cannot set rate to %d\n", 
 			format->rate);
 		goto ERR;

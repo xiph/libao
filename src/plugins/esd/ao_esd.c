@@ -102,7 +102,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
 	if (!strcmp(key, "host")) {
-		free(internal->host);
+		if(internal->host) free(internal->host);
 		internal->host = strdup(value);
 	}
 
@@ -165,7 +165,7 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
-	close(internal->sock);
+	esd_close(internal->sock);
 
 	return 1;
 }
@@ -175,6 +175,6 @@ void ao_plugin_device_clear(ao_device *device)
 {
 	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
-	free(internal->host);
+	if(internal->host) free(internal->host);
 	free(internal);
 }
