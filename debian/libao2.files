@@ -1,3 +1,4 @@
+etc/*
 usr/lib/*.so.*
 usr/lib/ao/*.so
 usr/share/lintian/overrides/libao0
