@@ -46,6 +46,9 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#define true  1
+#define false 0
+
 static ao_info ao_macosx_info =
 {
 	AO_TYPE_LIVE,
@@ -89,7 +92,7 @@ typedef struct ao_macosx_internal
 } ao_macosx_internal;
 
 // The function that the CoreAudio thread calls when it wants more data
-static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *inNow, const void *inInputData, const AudioTimeStamp *inInputTime, void *outOutputData, const AudioTimeStamp *inOutputTime, void *inClientData);
+static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *inNow, const AudioBufferList *inInputData, const AudioTimeStamp *inInputTime, AudioBufferList *outOutputData, const AudioTimeStamp *inOutputTime, void *inClientData);
 
 int ao_plugin_test()
 {
@@ -141,12 +144,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     UInt32 propertySize;
     int rc;
     
-    if (rate != 44100) {
+    if (format->rate != 44100) {
         fprintf(stderr, "ao_macosx_open: Only support 44.1kHz right now\n");
         return 0;
     }
     
-    if (channels != 2) {
+    if (format->channels != 2) {
         fprintf(stderr, "ao_macosx_open: Only two channel audio right now\n");
         return 0;
     }
@@ -172,7 +175,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
     fprintf(stderr, "hardware format...\n");
     fprintf(stderr, "%f mSampleRate\n", internal->outputStreamBasicDescription.mSampleRate);
-    fprintf(stderr, "%c%c%c%c mFormatID\n", (int)(s->outputStreamBasicDescription.mFormatID & 0xff000000) >> 24,
+    fprintf(stderr, "%c%c%c%c mFormatID\n", (int)(internal->outputStreamBasicDescription.mFormatID & 0xff000000) >> 24,
                                             (int)(internal->outputStreamBasicDescription.mFormatID & 0x00ff0000) >> 16,
                                             (int)(internal->outputStreamBasicDescription.mFormatID & 0x0000ff00) >>  8,
                                             (int)(internal->outputStreamBasicDescription.mFormatID & 0x000000ff) >>  0);
@@ -363,9 +366,9 @@ void ao_plugin_device_clear(ao_device *device)
 }
 
 
-static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *inNow, const void *inInputData, const AudioTimeStamp *inInputTime, void *outOutputData, const AudioTimeStamp *inOutputTime, void *inClientData)
+static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *inNow, const AudioBufferList *inInputData, const AudioTimeStamp *inInputTime, AudioBufferList *outOutputData, const AudioTimeStamp *inOutputTime, void *inClientData)
 {
-    ao_macosx_internal *internal = (ao_macosx_internal *)inClientData;;
+    ao_macosx_internal *internal = (ao_macosx_internal *)inClientData;
     short *sample;
     unsigned int validByteCount;
     float scale = (0.5f / SHRT_MAX), *outBuffer;
@@ -409,12 +412,11 @@ static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *
         short x = *sample;
 #warning The bytes in the buffer are currently in little endian, but we need big endian.  Supposedly these are going to be host endian at some point and the following line of code can go away.
 /* They will go away now, I think. --- Stan */
-/*        x = ((x & 0xff00) >> 8) | ((x & 0x00ff) << 8);
+/*        x = ((x & 0xff00) >> 8) | ((x & 0x00ff) << 8); */
         *outBuffer = x * scale;
         outBuffer++;
         sample++;
     }
-*/
     
     pthread_cond_signal(&internal->condition);
     pthread_mutex_unlock(&internal->mutex);

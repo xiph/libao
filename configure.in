@@ -236,9 +236,9 @@ AM_CONDITIONAL(HAVE_IRIX,test "x$have_irix" = xyes)
 dnl Check for MacOS X
 case $host in
        *-darwin*)
-               has_macosx=yes;;
+               have_macosx=yes;;
        *)
-               has_macosx=no;;
+               have_macosx=no;;
 esac
 AM_CONDITIONAL(HAVE_MACOSX,test "x$have_macosx" = xyes)
 
