@@ -25,6 +25,9 @@
  *
  */
 
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -85,12 +88,12 @@ static ao_info ao_alsa_info =
 typedef struct ao_alsa_internal
 {
 	snd_pcm_t *pcm_handle;
-	int buffer_time;
-	int period_time;
-	int buffer_size;
-	int period_size;
+	unsigned int buffer_time;
+	unsigned int period_time;
+	snd_pcm_uframes_t buffer_size;
+	snd_pcm_uframes_t period_size;
 	int sample_size;
-	int bitformat;
+	snd_pcm_format_t bitformat;
 	char *dev;
 	char *cmd;
 	ao_alsa_writei_t * writei;
@@ -213,6 +216,7 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 	snd_pcm_hw_params_t   *params;
 	snd_pcm_access_mask_t *access;
 	int err;
+	unsigned int rate = format->rate;
 
 	/* allocate the hardware parameter structure */
 	snd_pcm_hw_params_alloca(&params);
@@ -246,7 +250,7 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 	/* set the number of channels */
 	internal->cmd = "snd_pcm_hw_params_set_channels";
 	err = snd_pcm_hw_params_set_channels(internal->pcm_handle,
-			params, format->channels);
+			params, (unsigned int)format->channels);
 	if (err < 0)
 		return err;
 
@@ -256,29 +260,29 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 	/* set the sample rate */
 	internal->cmd = "snd_pcm_hw_params_set_rate_near";
 	err = snd_pcm_hw_params_set_rate_near(internal->pcm_handle,
-			params, format->rate, 0);
+			params, &rate, 0);
 	if (err < 0)
 		return err;
 
 	/* set the length of the hardware sample buffer in milliseconds */
 	internal->cmd = "snd_pcm_hw_params_set_buffer_time_near";
 	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
-			params, internal->buffer_time, 0);
+			params, &(internal->buffer_time), 0);
 	if (err < 0)
 		return err;
 
 	/* save the buffer time in case alsa overrode it */
-	internal->buffer_time = err;
+	/*internal->buffer_time = err;*/
 
 	/* calculate a period time of one half sample time */
-	if ((internal->period_time == 0) && (format->rate > 0))
+	if ((internal->period_time == 0) && (rate > 0))
 		internal->period_time =
-			1000000 * AO_ALSA_SAMPLE_XFER / format->rate;
+			1000000 * AO_ALSA_SAMPLE_XFER / rate;
 
 	/* set the time per hardware sample transfer */
 	internal->cmd = "snd_pcm_hw_params_set_period_time_near";
 	err = snd_pcm_hw_params_set_period_time_near(internal->pcm_handle,
-			params, internal->period_time, 0);
+			params, &(internal->period_time), 0);
 	if (err < 0)
 		return err;
 
@@ -289,10 +293,18 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 		return err;
 
 	/* save the period size in bytes for posterity */
-	internal->period_size = snd_pcm_hw_params_get_period_size(params, 0);
+	internal->cmd = "snd_pcm_hw_get_period_size";
+	err = snd_pcm_hw_params_get_period_size(params, 
+						&(internal->period_size), 0);
+	if (err < 0)
+		return err;
 
 	/* save the buffer size in bytes for posterity */
-	internal->buffer_size = snd_pcm_hw_params_get_buffer_size(params);
+	internal->cmd = "snd_pcm_hw_get_period_size";
+	err = snd_pcm_hw_params_get_buffer_size(params, 
+						&(internal->buffer_size)); 
+	if (err < 0)
+		return err;
 
 	return 1;
 }
