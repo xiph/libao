@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -232,7 +233,7 @@ static void _append_dynamic_drivers(driver_list *end)
 	struct dirent *plugin_dirent;
 	char *ext;
 	struct stat statbuf;
-	char fullpath[FILENAME_MAX];
+	char fullpath[PATH_MAX];
 	DIR *plugindir;
 	driver_list *plugin;
 	driver_list *driver = end;
@@ -241,7 +242,7 @@ static void _append_dynamic_drivers(driver_list *end)
 	plugindir = opendir(AO_PLUGIN_PATH);
 	if (plugindir != NULL) {
 		while ((plugin_dirent = readdir(plugindir)) != NULL) {
-			snprintf(fullpath, FILENAME_MAX, "%s/%s", 
+			snprintf(fullpath, PATH_MAX, "%s/%s", 
 				 AO_PLUGIN_PATH, plugin_dirent->d_name);
 			if (!stat(fullpath, &statbuf) && 
 			    S_ISREG(statbuf.st_mode) && 
