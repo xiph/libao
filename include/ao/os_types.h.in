@@ -1,11 +1,11 @@
 /*
  *
- *  config.h
+ *  os_types.h
  *
  *      Original Copyright (C) Aaron Holtzman - May 1999
  *      Modifications Copyright (C) Stan Seibert - July 2000
  *
- *  This file is part of libao, a cross-platform library.  See
+ *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
  *
  *  libao is free software; you can redistribute it and/or modify

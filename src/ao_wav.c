@@ -5,7 +5,7 @@
  *      Original Copyright (C) Aaron Holtzman - May 1999
  *      Modifications Copyright (C) Stan Seibert - July 2000
  *
- *  This file is part of libao, a cross-platform library.  See
+ *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
  *
  *  libao is free software; you can redistribute it and/or modify
@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
-
 #include <ao/ao.h>
 
 #define WAVE_FORMAT_PCM  0x0001
@@ -51,11 +50,10 @@
 
 #define DEFAULT_SWAP_BUFFER_SIZE 2048
 
-struct riff_struct 
-{
-  unsigned char id[4];   /* RIFF */
-  unsigned int len;
-  unsigned char wave_id[4]; /* WAVE */
+struct riff_struct {
+	unsigned char id[4];   /* RIFF */
+	unsigned int len;
+	unsigned char wave_id[4]; /* WAVE */
 };
 
 
@@ -89,7 +87,7 @@ static ao_info_t ao_wav_info =
 	"WAV file output",
 	"wav",
 	"Aaron Holtzman <aholtzma@ess.engr.uvic.ca>",
-	""
+	"Sends output to a .wav file"
 };
 
 typedef struct ao_wav_internal_s
@@ -118,13 +116,11 @@ static void (*old_sig)(int);
 static void signal_handler(int sig);
 
 
-static void
-ao_wav_parse_options(ao_wav_internal_t *state, ao_option_t *options)
+static void ao_wav_parse_options(ao_wav_internal_t *state, ao_option_t *options)
 {
 	state->output_file = NULL;
 
-	while (options)
-	{
+	while (options) {
 		if (!strcmp(options->key, "file"))
 			state->output_file = strdup(options->value);
 		
@@ -135,8 +131,7 @@ ao_wav_parse_options(ao_wav_internal_t *state, ao_option_t *options)
 		state->output_file = strdup("output.wav");
 }
 
-static ao_internal_t*
-ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+static ao_internal_t *ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 {
 	ao_wav_internal_t *state;
 	unsigned char buf[WAV_HEADER_LEN];
@@ -144,8 +139,7 @@ ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	memset(buf, 0, WAV_HEADER_LEN);
 
 	state = malloc(sizeof(ao_wav_internal_t));
-	if (state == NULL)
-	{
+	if (state == NULL) {
 		fprintf(stderr, "ao_wav: Could not allocate state memory.\n");
 		goto ERR;
 	}
@@ -153,13 +147,11 @@ ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	// Grab options here
 	ao_wav_parse_options(state, options);
 	state->byte_swap = (bits == 16) && (ao_is_big_endian());
-	if (state->byte_swap)
-	{
+	if (state->byte_swap) {
 		state->buffer_size = DEFAULT_SWAP_BUFFER_SIZE;
 		state->swap_buffer = calloc(sizeof(char), state->buffer_size);
 	       
-		if (state->swap_buffer == NULL)
-		{
+		if (state->swap_buffer == NULL) {
 			fprintf(stderr, "ao_wav: Could not allocate byte-swapping buffer.\n");
 			goto ERR;
 		}
@@ -167,8 +159,7 @@ ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 		
 	state->fd=open(state->output_file,O_WRONLY | O_TRUNC | O_CREAT, 0644);
 
-	if(state->fd < 0) 
-	{
+	if(state->fd < 0) {
 		fprintf(stderr,"%s: Opening audio output %s\n", strerror(errno), state->output_file);
 		goto ERR;
 	}
@@ -181,21 +172,17 @@ ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	state->wave.common.wBitsPerSample = bits;
 	state->wave.common.dwSamplesPerSec = rate;
 
-	if (write(state->fd, buf, WAV_HEADER_LEN) != WAV_HEADER_LEN) 
-	{
+	if (write(state->fd, buf, WAV_HEADER_LEN) != WAV_HEADER_LEN) {
 		fprintf(stderr,"failed to write wav-header: %s\n", strerror(errno));
 		goto ERR;
 	}
 
-	if (last == NULL) 
-	{
+	if (last == NULL) {
 		// Empty list, install our signal handler only once
 		old_sig = signal(SIGINT,signal_handler);		
 
 		last = states = malloc(sizeof(ao_wav_state_list_t));
-	}
-	else
-	{
+	} else {
 		last->next = malloc(sizeof(ao_wav_state_list_t));
 		last = last->next;
 	}
@@ -204,7 +191,6 @@ ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	last->next = NULL;
 
 	return state;
-
 
 ERR:
 	if(state->fd >= 0) { close(state->fd); }
@@ -215,44 +201,39 @@ ERR:
 /*
  * play the sample to the already opened file descriptor
  */
-static void
-ao_wav_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
+static void ao_wav_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
 {
 	int i;
-	ao_wav_internal_t *s = (ao_wav_internal_t *) state;
+	ao_wav_internal_t *s = (ao_wav_internal_t *)state;
 
 	/* Swap all of the bytes if things are not little_endian */
-	if (s->byte_swap)
-	{
+	if (s->byte_swap) {
 		/* Resize buffer larger if needed */
-		if (num_bytes > s->buffer_size)
-		{
+		if (num_bytes > s->buffer_size) {
 			s->swap_buffer = realloc(s->swap_buffer, sizeof(char)*num_bytes);
 			if (s->swap_buffer == NULL) {
 				fprintf(stderr, "ao_wav: Could not resize swap buffer.\n");
 				return;
-			}
-			else
+			} else {
 				s->buffer_size = num_bytes;
+			}
 		}
 
 		/* Swap the bytes into the swap buffer (so we don't
 		 mess up the output_samples buffer) */
-		for(i = 0; i < num_bytes/2; i+=2)
-		{
+		for(i = 0; i < num_bytes/2; i+=2) {
 			s->swap_buffer[i]   = ((char *) output_samples)[i+1];
 			s->swap_buffer[i+1] = ((char *) output_samples)[i];
 		}
 
 		write(s->fd, s->swap_buffer, num_bytes );
-	}
-	else    /* Otherwise just write the output buffer directly */
+	} else {
+		/* Otherwise just write the output buffer directly */
 		write(s->fd, output_samples, num_bytes );
+	}
 }
 
-
-static void
-ao_wav_close(ao_internal_t *state)
+static void ao_wav_close(ao_internal_t *state)
 {
 	unsigned char buf[WAV_HEADER_LEN];
 
@@ -263,20 +244,18 @@ ao_wav_close(ao_internal_t *state)
 	/* Find how long our file is in total, including header */
 	size = lseek(s->fd, 0, SEEK_CUR);
 
-  if (size < 0) 
-	{
+	if (size < 0) {
 		fprintf(stderr,"lseek failed - wav-header is corrupt\n");
 		goto ERR;
 	}
 
-  /* Rewind file */
-	if (lseek(s->fd, 0, SEEK_SET) < 0) 
-	{
+	/* Rewind file */
+	if (lseek(s->fd, 0, SEEK_SET) < 0) {
 		fprintf(stderr,"rewind failed - wav-header is corrupt\n");
 		goto ERR;
 	}
 
-	// Fill out our wav-header with some information. 
+	/* Fill out our wav-header with some information. */
 
 	strncpy(s->wave.riff.id, "RIFF",4);
 	s->wave.riff.len = size - 8;
@@ -311,8 +290,7 @@ ao_wav_close(ao_internal_t *state)
 	strncpy(buf+36, s->wave.data.id, 4);
 	WRITE_U32(buf+40, s->wave.data.len);
 
-	if (write(s->fd, buf, WAV_HEADER_LEN) < WAV_HEADER_LEN) 
-	{
+	if (write(s->fd, buf, WAV_HEADER_LEN) < WAV_HEADER_LEN) {
 		fprintf(stderr,"wav-header write failed -- file is corrupt\n");
 		goto ERR;
 	}
@@ -322,20 +300,17 @@ ERR:
 	free(s);
 }
 
-static ao_info_t*
-ao_wav_get_driver_info(void)
+static ao_info_t *ao_wav_get_driver_info(void)
 {
 	return &ao_wav_info;
 }
 
 
-static 
-void signal_handler(int sig)
+static void signal_handler(int sig)
 {
 	ao_wav_state_list_t *temp = states;
 	
-	while (states)
-	{
+	while (states) {
 		ao_wav_close(states->state);
 		temp = states;
 		states = states->next;

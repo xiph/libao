@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include <esd.h>
-#include "audio_out.h"
+#include <ao/ao.h>
 
 typedef struct ao_esd_internal_s
 {
