@@ -35,7 +35,7 @@
 #include <ao/plugin.h>
 
 #define AO_ALSA_BUF_SIZE 1024
-#define AO_ALSA_PERIODS  32
+#define AO_ALSA_PERIODS  16
 
 static char *ao_alsa_options[] = {
 	"dev",
@@ -207,7 +207,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	cmd = "snd_pcm_hw_params_set_periods";
 	err = snd_pcm_hw_params_set_periods(internal->pcm_handle, hwparams,
-			internal->periods, 0);
+			internal->periods * format->channels, 0);
 	if (err < 0)
 		goto error;
 
