@@ -37,7 +37,7 @@
 
 /* These should have been set by the Makefile */
 #ifndef AO_PLUGIN_PATH
-#define AO_PLUGIN_PATH "/usr/local/lib/ao"
+#define AO_PLUGIN_PATH "/usr/local/lib/ao/plugins"
 #endif
 #ifndef SHARED_LIB_EXT
 #define SHARED_LIB_EXT ".so"

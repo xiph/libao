@@ -18,7 +18,7 @@ PLUGIN_VERSION=2
 
 AC_CANONICAL_HOST
 
-plugindir=$libdir/ao$PLUGIN_VERSION
+plugindir=$libdir/ao/plugins-$PLUGIN_VERSION
 AC_SUBST(plugindir)
 
 dnl ====================================
