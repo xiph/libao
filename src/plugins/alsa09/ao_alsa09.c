@@ -23,6 +23,10 @@
  *
  */
 
+/* use new API's */
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -140,7 +144,9 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	int err;
 	int fmt;
+	snd_pcm_uframes_t period_size;
 	char *cmd;
+	unsigned int rate;
 
 
 	/* Open the ALSA device */
@@ -186,17 +192,22 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		goto error;
 	internal->sample_size = format->bits * format->channels / 8;
 
-	cmd = "snd_pcm_hw_params_set_rate";
+	rate = format->rate;
+	cmd = "snd_pcm_hw_params_set_rate_near";
+	/* make compatible with new API */
 	err = snd_pcm_hw_params_set_rate_near(internal->pcm_handle, hwparams,
-			format->rate, 0);
+			&rate, 0);
 	if (err < 0)
 		goto error;
 
-	cmd = "snd_pcm_hw_params_set_period_size";
-	err = snd_pcm_hw_params_set_period_size(internal->pcm_handle, hwparams,
-			internal->buf_size / internal->sample_size, 0);
+	period_size = internal->buf_size / internal->sample_size;
+	cmd = "snd_pcm_hw_params_set_period_size_near";
+	err = snd_pcm_hw_params_set_period_size_near(internal->pcm_handle, 
+			hwparams, &period_size, 0);
 	if (err < 0)
 		goto error;
+
+	internal->buf_size = period_size*internal->sample_size;
 
 	cmd = "snd_pcm_hw_params_set_periods";
 	err = snd_pcm_hw_params_set_periods(internal->pcm_handle, hwparams,
@@ -221,6 +232,36 @@ error:
 	return 0;
 }
 
+/* xrun_recover is ripped from pcm example at alsa-project.org */
+
+/*
+ *   Underrun and suspend recovery
+ */
+ 
+static int xrun_recovery(snd_pcm_t *handle, int err)
+{
+        if (err == -EPIPE) {    /* under-run */
+                err = snd_pcm_prepare(handle);
+                if (err < 0)
+                        printf("ALSA write error: Can't recovery from underrun" 
+					", prepare failed: %s\n", 
+					snd_strerror(err));
+                return 0;
+        } else if (err == -ESTRPIPE) {
+                while ((err = snd_pcm_resume(handle)) == -EAGAIN)
+                        sleep(1); /* wait until the suspend flag is released */
+                if (err < 0) {
+                        err = snd_pcm_prepare(handle);
+                        if (err < 0)
+                                printf("ALSA write error: Can't recovery from "
+						"suspend, prepare failed: %s\n",
+						snd_strerror(err));
+                }
+                return 0;
+        }
+        return err;
+}
+
 int ao_plugin_play(ao_device *device, const char *output_samples, 
 		uint_32 num_bytes)
 {
@@ -229,26 +270,18 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 	char *buf = (char *)output_samples;
 	int len = num_bytes / internal->sample_size;
 
-	do {
+	while (len > 0) {
 		res = snd_pcm_writei(internal->pcm_handle, buf, len);
-		if (res > 0) {
+		if(res == -EAGAIN) continue;
+		else if(res < 0) {
+			if(xrun_recovery(internal->pcm_handle, res)<0)
+				return 0;
+		}
+		else {
 			len -= res;
 			buf += res;
 		}
-	} while (len > 0 && (res > 0 || res == -EAGAIN));
-	if (res == -EPIPE) {
-		/* fprintf(stderr, "ALSA: underrun. resetting stream\n"); */
-		snd_pcm_prepare(internal->pcm_handle);
-		res = snd_pcm_writei(internal->pcm_handle, buf, len);
-		if (res != len) {
-			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(res));
-			return 0;
-		} else if (res < 0) {
-			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(res));
-			return 0;
-		}
 	}
-
 
 	return 1;
 }
@@ -258,6 +291,8 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
 
+	/* drain audio, bug id 282 */
+	snd_pcm_drain(internal->pcm_handle);
 	snd_pcm_close(internal->pcm_handle);
 
 	return 1;
