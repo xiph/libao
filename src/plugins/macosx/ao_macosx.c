@@ -234,6 +234,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
         fprintf(stderr, "ao_macosx_open: Unable to allocate queue buffer.\n");
 	return 0;
     }
+
+    /* initialize debugging state */
+    internal->bytesQueued = 0;
+    internal->bytesDequeued = 0;
     
     device->driver_byte_format = AO_FMT_NATIVE;
 
