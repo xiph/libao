@@ -161,8 +161,11 @@ void ao_shutdown(void)
 	}
 
 	/* free the standard drivers */
-	if (driver_head->next) free(driver_head->next);
-	if (driver_head->next) free(driver_head);
+	if (driver_head) {
+		if(driver_head->next)
+			free(driver_head->next);
+		free(driver_head);
+	}
 	
 	/* NULL out driver_head or ao_initialize won't work */
 	driver_head = NULL;

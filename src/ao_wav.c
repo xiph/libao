@@ -300,7 +300,7 @@ ERR:
 	free(s);
 }
 
-static int ao_wav_get_latency(void)
+static int ao_wav_get_latency(ao_internal_t *state)
 {
 	return 0;
 }

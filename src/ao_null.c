@@ -73,7 +73,7 @@ static ao_info_t *ao_null_get_driver_info(void)
 	return &ao_null_info;
 }
 
-static int ao_null_get_latency(void)
+static int ao_null_get_latency(ao_internal_t *state)
 {
 	return 0;
 }

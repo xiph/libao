@@ -89,6 +89,7 @@ plugin_close(ao_internal_t * state)
 {
   arts_close_stream(((ao_arts_internal_t *)state)->stream);
   arts_free();
+  free(state);
 }
 
   void
