@@ -1,0 +1,10 @@
+ao-config
+Makefile
+config.status
+config.cache
+libtool
+config.log
+configure
+Makefile.in
+config.h.in
+aclocal.m4
