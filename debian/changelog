@@ -1,3 +1,11 @@
+libao (0.7.0-1) unstable; urgency=low
+
+  * New upstream.
+  * Fixed versioned depends
+  * Changed clean method to distclean
+
+ -- Christopher L Cheney <ccheney@debian.org>  Sun, 17 Jun 2001 20:00:00 -0500
+
 libao (0.6.0-1) unstable; urgency=low
 
   * New upstream.
