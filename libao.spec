@@ -1,5 +1,5 @@
 Name:		libao
-Version:	0.8.3
+Version:	0.8.4
 Release:	1
 Summary:	Cross-Platform Audio Output Library
 
@@ -14,7 +14,6 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 BuildRequires:  glibc-devel
 BuildRequires: 	esound-devel >= 0.2.8
 BuildRequires: 	arts-devel
-BuildRequires: 	alsa-lib-devel >= 0.9.0
 # FIXME: perl is needed for the dirty configure flag trick, which should be
 # solved differently
 BuildRequires:  perl
@@ -71,7 +70,6 @@ fi
 %{_libdir}/ao/*/liboss.so
 %{_libdir}/ao/*/libesd.so
 %{_libdir}/ao/*/libarts.so
-%{_libdir}/ao/*/libalsa09.so
 %{_mandir}/man5/*
 
 %files devel
@@ -81,8 +79,14 @@ fi
 %{_libdir}/libao.a
 %{_libdir}/ao/*/*.a
 %{_datadir}/aclocal/ao.m4
+%{_libdir}/pkgconfig/ao.pc
 
 %changelog
+* Fri Oct 4 2002 Michael Smith <msmith@xiph.org> 0.8.4-1
+- Remove alsa libraries from RPM since RedHat doesn't ship with ALSA
+  ALSA users will need to recompile from source.
+- Add ao.pc to -devel
+
 * Fri Jul 19 2002 Michael Smith <msmith@xiph.org> 0.8.3-2
 - re-disable static libraries (they do not work - at all)
 
