@@ -104,6 +104,7 @@ struct ao_functions {
 			   uint_32 num_bytes);
 	int (*close)(ao_device *device);
 	void (*device_clear)(ao_device *device);
+	char* (*file_extension)(void);
 };
 
 typedef struct ao_option {
@@ -135,6 +136,7 @@ int ao_driver_id(const char *short_name);
 int ao_default_driver_id();
 ao_info *ao_driver_info(int driver_id);
 ao_info **ao_driver_info_list(int *driver_count);
+char *ao_file_extension(int driver_id);
 
 /* miscellaneous */
 int ao_is_big_endian(void);

@@ -221,6 +221,13 @@ static void ao_au_device_clear(ao_device *device)
 	free(internal);
 }
 
+
+static char *ao_au_file_extension(void)
+{
+	return "au";
+}
+
+
 ao_functions ao_au = {
 	ao_au_test,
 	ao_au_driver_info,
@@ -229,5 +236,6 @@ ao_functions ao_au = {
 	ao_au_open,
 	ao_au_play,
 	ao_au_close,
-	ao_au_device_clear
+	ao_au_device_clear,
+	ao_au_file_extension
 };

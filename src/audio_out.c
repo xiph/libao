@@ -137,6 +137,11 @@ driver_list *_get_plugin(char *plugin_file)
 		  dlsym(dt->handle, "ao_plugin_device_clear");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
 
+		/* Optional function */
+		dt->functions->file_extension = 
+		  dlsym(dt->handle, "ao_plugin_file_extension");
+		if (dlerror()) { dt->functions->file_extension = NULL; }
+
 
 	} else {
 		return NULL;
@@ -696,6 +701,18 @@ ao_info **ao_driver_info_list(int *count)
 	*count = driver_count;
 	return info_table;
 }
+
+
+char *ao_file_extension(int driver_id)
+{
+	driver_list *driver;
+
+	if ( (driver = _get_driver(driver_id)) 
+	     && driver->functions->file_extension != NULL)
+		return driver->functions->file_extension();
+	else
+		return NULL;
+}  
 
 
 /* -- Miscellaneous -- */
