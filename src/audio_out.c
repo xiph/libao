@@ -306,7 +306,9 @@ static ao_info ** _make_info_table (driver_list **head, int *driver_count)
 	*driver_count = i;
 	for (i = 0; i < *driver_count; i++, list = list->next)
 		drivers_table[i] = list;
-	qsort(drivers_table, i, sizeof(driver_list *), _compar_driver_priority);
+	qsort(drivers_table, i, sizeof(driver_list *), 
+			(int(*)(const void *, const void *))
+			_compar_driver_priority);
 	*head = drivers_table[0];
 	for (i = 1; i < *driver_count; i++)
 		drivers_table[i-1]->next = drivers_table[i];
