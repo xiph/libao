@@ -17,6 +17,7 @@ doc_DATA =  ao_append_option.html \
             ao_free_options.html \
             ao_info.html \
             ao_initialize.html \
+            ao_is_big_endian.html \
             ao_open_file.html \
             ao_open_live.html \
             ao_option.html \
