@@ -8,8 +8,12 @@ URL:		http://www.xiph.org/
 Vendor:		Xiphophorus <team@xiph.org>
 Source:		http://www.xiph.org/ogg/vorbis/download/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
-BuildPrereq:	esound-devel >= 0.2.8, arts-devel
-Requires:	esound >= 0.2.8
+BuildRequires: esound-devel >= 0.2.8
+BuildRequires: arts-devel
+# This is commented out because there don't seem to be good alsa RPMs on many
+# RPM-based platforms. It's recommended you build with it, though (to build the
+# alsa plugin)
+#BuildRequires: alsa-devel >= 0.5.0
 
 %description
 Libao is a cross platform audio output library.  It currently supports
