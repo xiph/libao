@@ -76,16 +76,17 @@ fi
 %doc doc/*
 %{_includedir}/ao
 %{_libdir}/libao.so
-%{_libdir}/libao.a
-%{_libdir}/ao/*/*.a
+%{_libdir}/libao.la
+%{_libdir}/ao/*/*.la
 %{_datadir}/aclocal/ao.m4
 %{_libdir}/pkgconfig/ao.pc
 
 %changelog
-* Fri Oct 4 2002 Michael Smith <msmith@xiph.org> 0.8.4-1
+* Fri Oct 5 2002 Stan Seibert <volsung@xiph.org> 0.8.4-1
 - Remove alsa libraries from RPM since RedHat doesn't ship with ALSA
   ALSA users will need to recompile from source.
 - Add ao.pc to -devel
+- Make the devel libraries .la instead of .a
 
 * Fri Jul 19 2002 Michael Smith <msmith@xiph.org> 0.8.3-2
 - re-disable static libraries (they do not work - at all)
