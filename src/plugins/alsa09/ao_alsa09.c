@@ -39,7 +39,7 @@
 
 static char *ao_alsa_options[] = {
 	"dev",
-	"buf_size"
+	"buf_size",
         "periods"
 };
 static ao_info ao_alsa_info =
