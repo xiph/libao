@@ -255,8 +255,12 @@ AM_CONDITIONAL(HAVE_SUN_AUDIO,test "${ac_cv_header_sys_audioio_h}" = yes)
 
 dnl Check for AIX audio
 
-AC_CHECK_HEADERS(sys/audio.h)
-AM_CONDITIONAL(HAVE_AIX_AUDIO,test "${ac_cv_header_sys_audio_h}" = yes)
+case $host in
+    *-aix*)
+	AC_CHECK_HEADERS(sys/audio.h)
+	;;
+esac
+AM_CONDITIONAL(HAVE_AIX_AUDIO,test "x${ac_cv_header_sys_audio_h}" = xyes)
 
 dnl Check for aRts
 
