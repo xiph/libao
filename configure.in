@@ -146,4 +146,4 @@ AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
 
 CFLAGS="$CFLAGS -DAO_PLUGIN_PATH=\\\"$plugindir\\\""
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile debian/Makefile)
