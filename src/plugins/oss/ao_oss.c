@@ -226,7 +226,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 			internal->buf_size<=0 )
 	{
 		fprintf(stderr, "libao - OSS cannot get buffer size for "
-				" devince\n");
+				" device\n");
 		goto ERR;
 	}
 
