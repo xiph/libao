@@ -67,8 +67,8 @@ int main(int argc, char **argv)
 			sizeof(char));
 	
 	for (i = 0; i < format.rate; i++) {
-		sample = 0.75 * 32768.0 * 
-			sin(2 * M_PI * freq * ((float) i/format.rate));
+		sample = (int)(0.75 * 32768.0 * 
+			sin(2 * M_PI * freq * ((float) i/format.rate)));
 		
 		/* Put the same stuff in left and right channel */
 		buffer[4*i] = buffer[4*i+2] = sample & 0xff;
@@ -80,4 +80,6 @@ int main(int argc, char **argv)
 	ao_close(device);
     
 	ao_shutdown();
+
+  return (0);
 }
