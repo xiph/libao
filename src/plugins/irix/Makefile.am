@@ -20,6 +20,7 @@ libdir = $(plugindir)
 lib_LTLIBRARIES = $(irixltlibs)
 
 libirix_la_LDFLAGS = @PLUGIN_LDFLAGS@
+libirix_la_LIBADD = -laudio
 libirix_la_SOURCES = $(irixsources)
 
 EXTRA_DIST = ao_irix.c
