@@ -2,7 +2,7 @@ Source: libao
 Section: devel
 Priority: optional
 Maintainer: Christopher L Cheney <ccheney@debian.org>
-Build-Depends: debhelper, libarts-dev, libasound1-dev [alpha i386 powerpc sparc], libesd0-dev
+Build-Depends: debhelper, libarts-dev, libasound1-dev [!m68k], libesd0-dev
 Standards-Version: 3.1.1
 
 Package: libao-dev
