@@ -13,7 +13,7 @@ dnl
 AC_ARG_WITH(ao-prefix,[  --with-ao-prefix=PFX   Prefix where libao is installed (optional)], ao_prefix="$withval", ao_prefix="")
 AC_ARG_ENABLE(aotest, [  --disable-aotest       Do not try to compile and run a test ao program],, enable_aotest=yes)
 
-  if test x$ao_prefix != x ; then
+  if test "x$ao_prefix" != "xNONE" ; then
     ao_args="$ao_args --prefix=$ao_prefix"
     AO_CFLAGS="-I$ao_prefix/include"
     AO_LIBS="-L$ao_prefix/lib"
@@ -63,7 +63,7 @@ int main ()
        LIBS="$ac_save_LIBS"
   fi
 
-  if test "x$no_ao" = x ; then
+  if test "x$no_ao" = "x" ; then
      AC_MSG_RESULT(yes)
      ifelse([$1], , :, [$1])     
   else
