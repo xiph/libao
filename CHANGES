@@ -1,4 +1,4 @@
-0.8.5 - March 12, 2004
+0.8.5 - March 19, 2004
 - Support now for the ALSA 1.0 API
 - Can build with --disable-esd option again
 - Minor build fixes
