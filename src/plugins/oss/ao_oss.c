@@ -220,8 +220,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 			format->channels);
 		goto ERR;
 	}
-	ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp);
 	
+	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0) {
+		fprintf(stderr, "libao - OSS cannot set channels to %d\n", 
+			format->channels);
+		goto ERR;
+	}
+
 	/* To eliminate the need for a swap buffer, we set the device
 	   to use whatever byte format the client selected. */
 	switch (format->bits)
@@ -236,11 +241,24 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 			format->bits);
 		goto ERR;
 	}
-	ioctl(internal->fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
-	
+
+	if (ioctl(internal->fd,SNDCTL_DSP_SAMPLESIZE,&tmp) < 0) {
+		fprintf(stderr, "libao - OSS cannot set sample size to %d\n",
+			format->bits);
+		goto ERR;
+	}
+
 	tmp = format->rate;
-	ioctl(internal->fd,SNDCTL_DSP_SPEED, &tmp);
-	
+	/* Some cards aren't too accurate with their clocks and set to the
+	   exact data rate, but something close.  Fail only if completely out
+	   of whack. */
+	if (ioctl(internal->fd,SNDCTL_DSP_SPEED, &tmp) < 0
+	    || tmp > 1.01 * format->rate || tmp < 0.99 * format->rate) {
+		fprintf(stderr, "libao - OSS cannot set rate to %d\n", 
+			format->rate);
+		goto ERR;
+	}
+
 	return 1; /* Open successful */
 
  ERR:
