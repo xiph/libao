@@ -4,4 +4,5 @@ debian/tmp/usr/lib/ao/plugins-2/libarts.so
 debian/tmp/usr/lib/ao/plugins-2/libesd.so
 debian/tmp/usr/lib/ao/plugins-2/libnas.so
 debian/tmp/usr/lib/ao/plugins-2/liboss.so
+debian/tmp/usr/lib/ao/plugins-2/libpolyp.so
 debian/tmp/usr/lib/libao.so.*
