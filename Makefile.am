@@ -4,8 +4,6 @@ AUTOMAKE_OPTIONS = foreign dist-zip
 
 SUBDIRS = src include doc
 
-bin_SCRIPTS = ao-config
-
 m4datadir = $(datadir)/aclocal
 m4data_DATA = ao.m4
 
