@@ -1,6 +1,6 @@
 /*
  *
- *  ao.h 
+ *  audio_out.h 
  *    
  *	Original Copyright (C) Aaron Holtzman - May 1999
  *      Modifications Copyright (C) Stan Seibert - July 2000
@@ -24,13 +24,10 @@
  *
  */
 
-#ifndef __AO_H__
-#define __AO_H__
-
 #include <stdlib.h>
 
-/* Type sizes */
-#include <ao/os_types.h>
+// Type sizes
+#include "config.h"
 
 /* --- Structures --- */
 
@@ -90,6 +87,7 @@ typedef struct ao_device_s
 /* Total number of drivers */
 #define AO_DRIVERS 12
 
+
 /* --- Functions --- */
 
 int ao_get_driver_id (const char *short_name);
@@ -108,4 +106,4 @@ int ao_append_option (ao_option_t **options, const char* op_str);
 
 void ao_free_options (ao_option_t* options);
 
-#endif  /* __AO_H__ */
+int ao_is_big_endian();

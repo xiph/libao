@@ -27,7 +27,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <ao/ao.h>
+#include <assert.h>
+#include "audio_out.h"
 
 /* --- Function Tables --- */
 
@@ -267,4 +268,14 @@ void ao_free_options (ao_option_t* options)
 		free(options);
 		options = rest;
 	}
+}
+
+/* Helper function lifted from lib/vorbisfile.c */
+int ao_is_big_endian() {
+	uint_16 pattern = 0xbabe;
+	unsigned char *bytewise = (unsigned char *)&pattern;
+	if (bytewise[0] == 0xba) return 1;
+	
+	assert(bytewise[0] == 0xbe);
+	return 0;
 }

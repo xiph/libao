@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include <sys/asoundlib.h>
-#include <ao/ao.h>
+#include "audio_out.h"
 
 #define AO_ALSA_BUF_SIZE 32768
 
@@ -91,7 +91,8 @@ ao_alsa_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options
 	{
 	case 8  : param.format.format = SND_PCM_SFMT_S8;
 		  break;
-	case 16 : param.format.format = SND_PCM_SFMT_S16_LE;
+        case 16 : param.format.format = ao_is_big_endian() ?
+		    SND_PCM_SFMT_S16_BE : SND_PCM_SFMT_S16_LE;
 		  break;
 	default : return NULL;
 	}

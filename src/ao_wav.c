@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include <ao/ao.h>
+#include "audio_out.h"
 
 #define WAVE_FORMAT_PCM  0x0001
 #define FORMAT_MULAW     0x0101
@@ -48,6 +48,8 @@
 
 #define WRITE_U16(buf, x) *(buf)     = (unsigned char)(x&0xff);\
 						  *((buf)+1) = (unsigned char)((x>>8)&0xff);
+
+#define DEFAULT_SWAP_BUFFER_SIZE 2048
 
 struct riff_struct 
 {
@@ -94,6 +96,9 @@ typedef struct ao_wav_internal_s
 {
 	char *output_file;
 	int fd;
+	int byte_swap;
+	char *swap_buffer;
+	int buffer_size;
 	struct wave_header wave;
 } ao_wav_internal_t;
 
@@ -147,7 +152,19 @@ ao_wav_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 
 	// Grab options here
 	ao_wav_parse_options(state, options);
-
+	state->byte_swap = (bits == 16) && (ao_is_big_endian());
+	if (state->byte_swap)
+	{
+		state->buffer_size = DEFAULT_SWAP_BUFFER_SIZE;
+		state->swap_buffer = calloc(sizeof(char), state->buffer_size);
+	       
+		if (state->swap_buffer == NULL)
+		{
+			fprintf(stderr, "ao_wav: Could not allocate byte-swapping buffer.\n");
+			goto ERR;
+		}
+	}
+		
 	state->fd=open(state->output_file,O_WRONLY | O_TRUNC | O_CREAT, 0644);
 
 	if(state->fd < 0) 
@@ -201,7 +218,36 @@ ERR:
 static void
 ao_wav_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
 {
-  	write( ((ao_wav_internal_t *) state)->fd, output_samples, num_bytes );
+	int i;
+	ao_wav_internal_t *s = (ao_wav_internal_t *) state;
+
+	/* Swap all of the bytes if things are not little_endian */
+	if (s->byte_swap)
+	{
+		/* Resize buffer larger if needed */
+		if (num_bytes > s->buffer_size)
+		{
+			s->swap_buffer = realloc(s->swap_buffer, sizeof(char)*num_bytes);
+			if (s->swap_buffer == NULL) {
+				fprintf(stderr, "ao_wav: Could not resize swap buffer.\n");
+				return;
+			}
+			else
+				s->buffer_size = num_bytes;
+		}
+
+		/* Swap the bytes into the swap buffer (so we don't
+		 mess up the output_samples buffer) */
+		for(i = 0; i < num_bytes/2; i+=2)
+		{
+			s->swap_buffer[i]   = ((char *) output_samples)[i+1];
+			s->swap_buffer[i+1] = ((char *) output_samples)[i];
+		}
+
+		write(s->fd, s->swap_buffer, num_bytes );
+	}
+	else    /* Otherwise just write the output buffer directly */
+		write(s->fd, output_samples, num_bytes );
 }
 
 

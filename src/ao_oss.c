@@ -39,7 +39,7 @@
 #endif
 #include <sys/ioctl.h>
 
-#include <ao/ao.h>
+#include "audio_out.h"
 
 static ao_info_t ao_oss_info =
 {
@@ -120,8 +120,8 @@ ao_oss_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	{
 	case 8: tmp = AFMT_S8;
 		break;
-	case 16: tmp = AFMT_S16_LE;
-		break;
+        case 16: tmp = ao_is_big_endian() ? AFMT_S16_BE : AFMT_S16_LE;
+	        break;
 	default:fprintf(stderr,"libao - Unsupported number of bits: %d.",
 			bits);
 		goto ERR;
