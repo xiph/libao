@@ -16,13 +16,12 @@ artssources =
 
 endif
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include @ARTS_CFLAGS@
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(artsltlibs)
 
 libarts_la_LDFLAGS = $(artsldflags)
-CFLAGS = @ARTS_CFLAGS@
 libarts_la_LIBADD = @ARTS_LIBS@
 libarts_la_SOURCES = $(artssources)
 
