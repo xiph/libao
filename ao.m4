@@ -10,17 +10,26 @@ AC_DEFUN(AM_PATH_AO,
 [dnl 
 dnl Get the cflags and libraries
 dnl
-AC_ARG_WITH(ao-prefix,[  --with-ao-prefix=PFX   Prefix where libao is installed (optional)], ao_prefix="$withval", ao_prefix="")
+AC_ARG_WITH(ao,[  --with-ao=PFX   Prefix where libao is installed (optional)], ao_prefix="$withval", ao_prefix="")
+AC_ARG_WITH(ao-libraries,[  --with-ao-libraries=DIR   Directory where libao library is installed (optional)], ao_libraries="$withval", ao_libraries="")
+AC_ARG_WITH(ao-includes,[  --with-ao-includes=DIR   Directory where libao header files are installed (optional)], ao_includes="$withval", ao_includes="")
 AC_ARG_ENABLE(aotest, [  --disable-aotest       Do not try to compile and run a test ao program],, enable_aotest=yes)
 
-  if test "x$ao_prefix" != "x"; then
-    ao_args="$ao_args --prefix=$ao_prefix"
-    AO_CFLAGS="-I$ao_prefix/include"
+
+  if test "x$ao_libraries" != "x" ; then
+    AO_LIBS="-L$ao_libraries"
+  elif test "x$ao_prefix" != "x"; then
     AO_LIBS="-L$ao_prefix/lib"
   elif test "x$prefix" != "xNONE"; then
-    ao_args="$ao_args --prefix=$prefix"
-    AO_CFLAGS="-I$prefix/include"
     AO_LIBS="-L$prefix/lib"
+  fi
+
+  if test "x$ao_includes" != "x" ; then
+    AO_CFLAGS="-I$ao_includes"
+  elif test "x$ao_prefix" != "x"; then
+    AO_CFLAGS="-I$ao_prefix/include"
+  elif test "x$prefix" != "xNONE"; then
+    AO_CFLAGS="-I$prefix/include"
   fi
 
   # see where dl* and friends live
