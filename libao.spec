@@ -1,5 +1,5 @@
 %define name	libao
-%define version	1.0.0
+%define version	0.5.0
 %define release 1
 
 Summary:	Cross Platform Audio Output Library
@@ -12,6 +12,7 @@ URL:		http://www.xiph.org/
 Vendor:		Xiphophorus <team@xiph.org>
 Source:		ftp://ftp.xiph.org/pub/ao/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-root
+Requires:	esound >= 0.2.8
 
 %description
 Libao is a cross platform audio output library.  It currently supports
