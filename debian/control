@@ -1,4 +1,4 @@
-Source: libao2
+Source: libao
 Section: libs
 Priority: optional
 Maintainer: Christopher L Cheney <ccheney@debian.org>

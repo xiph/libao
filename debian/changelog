@@ -1,4 +1,4 @@
-libao2 (0.8.1-1) unstable; urgency=high
+libao (0.8.1-1) unstable; urgency=high
 
   * New upstream.
   * Plugin dir changed. (Closes: #109071, #109532, #108750, #108755, #108790, #109383)
