@@ -1,7 +1,7 @@
 #ifndef __DLFCN_H__
 # define __DLFCN_H__
 /*
- * $Id: dlfcn.h,v 1.1 2001/09/05 19:10:00 cwolf Exp $
+ * $Id: dlfcn.h,v 1.2 2001/09/05 19:48:03 cwolf Exp $
  * $Name:  $
  * 
  *
@@ -11,6 +11,13 @@ extern int   dlclose (void *handle);
 extern void *dlsym   (void * handle, const char * name);
 extern char *dlerror (void);
 
-#define RTLD_NOW 0
+/* These don't mean anything on windows */
+#define RTLD_NEXT      ((void *) -1l)
+#define RTLD_DEFAULT   ((void *) 0)
+#define RTLD_LAZY					-1
+#define RTLD_NOW					-1
+#define RTLD_BINDING_MASK -1
+#define RTLD_NOLOAD				-1
+#define RTLD_GLOBAL				-1
 
 #endif /* __DLFCN_H__ */
