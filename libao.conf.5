@@ -45,7 +45,11 @@ They will probably be interpreted as part of the option value.
 Valid option keys are:
 .RS
 .IP default_driver
-The short name of the driver libao should use by default.
+The short name of the driver libao should use by default.  Valid values
+include (not all are available on every platform): oss, esd, arts, alsa,
+alsa09, nas, irix, and sun.  Note that "sun" is used on many BSD
+systems as well as Solaris.  The "alsa" driver is for the 0.5.x ALSA API,
+whereas the "alsa09" driver is for the 0.9.x API.
 .RE
 
 .SH EXAMPLE
