@@ -190,6 +190,11 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     }
 
     propertySize = sizeof(internal->outputBufferByteCount);
+    
+    internal->outputBufferByteCount = 8192;
+    status = AudioDeviceSetProperty(internal->outputDeviceID, 0, 0, false, kAudioDevicePropertyBufferSize,
+        propertySize, &internal->outputBufferByteCount);
+        
     status = AudioDeviceGetProperty(internal->outputDeviceID, 0, false, kAudioDevicePropertyBufferSize, &propertySize, &internal->outputBufferByteCount);
     if (status) {
         fprintf(stderr, "ao_macosx_open: AudioDeviceGetProperty returned %d when getting kAudioDevicePropertyBufferSize\n", (int)status);
@@ -200,7 +205,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
     // It appears that AudioDeviceGetProperty lies about this property in DP4
     // Set the actual value
-    internal->outputBufferByteCount = 32768;
+    //internal->outputBufferByteCount = 32768;
 
     // Set the IO proc that CoreAudio will call when it needs data, but don't start
     // the stream yet.
@@ -383,10 +388,10 @@ static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *
     // Find the first valid frame and the number of valid frames
     pthread_mutex_lock(&internal->mutex);
 
-    bytesToCopy = internal->outputBufferByteCount;
+    bytesToCopy = internal->outputBufferByteCount/2;
     validByteCount = internal->validByteCount;
-    outBuffer = (float *)outOutputData;
-
+    outBuffer = (float *)outOutputData->mBuffers[0].mData;
+    
     if (validByteCount < bytesToCopy && !internal->isStopping) {
         // Not enough data ... let it build up a bit more before we start copying stuff over.
         // If we are stopping, of course, we should just copy whatever we have.
@@ -424,8 +429,8 @@ static OSStatus audioDeviceIOProc(AudioDeviceID inDevice, const AudioTimeStamp *
         sample++;
     }
     
-    pthread_cond_signal(&internal->condition);
     pthread_mutex_unlock(&internal->mutex);
+    pthread_cond_signal(&internal->condition);
     
     return 0;
 }
