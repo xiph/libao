@@ -45,6 +45,7 @@ install: build
 
 	# Add here commands to install the package into debian/tmp.
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	install -d $(CURDIR)/debian/tmp/etc
 	install -m 0644 $(CURDIR)/debian/libao.conf $(CURDIR)/debian/tmp/etc
 
 # Build architecture-independent files here.
