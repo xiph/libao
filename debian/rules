@@ -44,9 +44,7 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp.
-	$(MAKE) install DESTDIR=`pwd`/debian/tmp
-	install -d $(CURDIR)/debian/tmp/usr/share/lintian/overrides
-	install -m 644 debian/libao0.override $(CURDIR)/debian/tmp/usr/share/lintian/overrides/libao0
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -56,8 +54,8 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-
 	dh_movefiles
+
 	dh_installdocs
 	dh_installexamples
 	dh_installman

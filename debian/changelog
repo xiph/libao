@@ -1,6 +1,7 @@
 libao (0.8.0-1) unstable; urgency=low
 
   * New upstream.
+  * soname changed to 2.
 
  -- Christopher L Cheney <ccheney@debian.org>  Sun, 12 Aug 2001 21:00:00 -0500
 
