@@ -1,5 +1,3 @@
 README
 TODO
-doc/*.html
-doc/ao_example.c
-doc/style.css
+debian/tmp/usr/share/doc/libao-*/*

@@ -14,4 +14,5 @@ debian/tmp/usr/lib/ao/plugins-2/liboss.la
 debian/tmp/usr/lib/libao.a
 debian/tmp/usr/lib/libao.la
 debian/tmp/usr/lib/libao.so
+debian/tmp/usr/lib/pkgconfig/ao.pc
 debian/tmp/usr/share/aclocal/ao.m4
