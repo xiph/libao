@@ -120,32 +120,32 @@ static driver_list *_get_plugin(char *plugin_file)
 		}
 
 		dt->functions->test = dlsym(dt->handle, "ao_plugin_test");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->test)) goto failed;
 
 		dt->functions->driver_info = 
 		  dlsym(dt->handle, "ao_plugin_driver_info");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->driver_info)) goto failed;
 
 		dt->functions->device_init = 
 		  dlsym(dt->handle, "ao_plugin_device_init");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->device_init )) goto failed;
 
 		dt->functions->set_option = 
 		  dlsym(dt->handle, "ao_plugin_set_option");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->set_option)) goto failed;
 
 		dt->functions->open = dlsym(dt->handle, "ao_plugin_open");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->open)) goto failed;
 
 		dt->functions->play = dlsym(dt->handle, "ao_plugin_play");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->play)) goto failed;
 
 		dt->functions->close = dlsym(dt->handle, "ao_plugin_close");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->close)) goto failed;
 
 		dt->functions->device_clear = 
 		  dlsym(dt->handle, "ao_plugin_device_clear");
-		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
+		if (!(dt->functions->device_clear)) goto failed;
 
 
 	} else {
@@ -153,6 +153,11 @@ static driver_list *_get_plugin(char *plugin_file)
 	}
 
 	return dt;
+
+ failed:
+	free(dt->functions);
+	free(dt);
+	return NULL;
 }
 
 
