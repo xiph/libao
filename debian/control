@@ -15,7 +15,7 @@ Description: Cross Platform Audio Output Library Development
 Package: libao0
 Architecture: any
 Depends: ${shlibs:Depends}
-Suggests: libasound1
+Suggests: libasound1, libesd0 | libesd-alsa0
 Description: Cross Platform Audio Output Library
  Libao is a cross platform audio output library.  It currently supports
  ESD, OSS, Solaris, and IRIX.
