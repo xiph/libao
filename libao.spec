@@ -14,6 +14,7 @@ Vendor:		Xiphophorus <team@xiph.org>
 Source:		ftp://ftp.xiph.org/pub/ao/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-root
 Requires:	esound >= 0.2.8
+Prefix:		%{_prefix}
 
 %description
 Libao is a cross platform audio output library.  It currently supports
@@ -32,9 +33,9 @@ needed to develop applications with libao.
 
 %build
 if [ ! -f configure ]; then
-  CFLAGS="$RPM_OPT_FLAGS" ./autogen.sh --prefix=/usr
+  CFLAGS="$RPM_OPT_FLAGS" ./autogen.sh --prefix=%{_prefix}
 else
-  CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=/usr
+  CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{_prefix}
 fi
 make
 
@@ -48,18 +49,18 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %doc CHANGES
 %doc COPYING
 %doc README
-/usr/lib/libao.so.*
-/usr/lib/ao/plugins-%{pluginver}/*.so
+%{_libdir}/libao.so.*
+%{_libdir}/ao/plugins-%{pluginver}/*.so
 
 %files devel
 %doc doc/*.html
 %doc doc/*.css
 %doc doc/ao_example.c
-/usr/include/ao/ao.h
-/usr/include/ao/os_types.h
-/usr/include/ao/plugin.h
-/usr/lib/libao.so
-/usr/share/aclocal/ao.m4
+%{_includedir}/ao/ao.h
+%{_includedir}/ao/os_types.h
+%{_includedir}/ao/plugin.h
+%{_libdir}/libao.so
+%{_datadir}/aclocal/ao.m4
 
 %clean 
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -71,6 +72,9 @@ make DESTDIR=$RPM_BUILD_ROOT install
 /sbin/ldconfig
 
 %changelog
+* Sun Oct 07 2001 Jack Moffitt <jack@xiph.org>
+- supports configurable prefixes
+
 * Sun Oct 07 2001 Stan Seibert <indigo@aztec.asu.edu>
 - devel packages look for correct documentation files
 - added ao/plugin.h include file to devel package
