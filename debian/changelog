@@ -2,6 +2,7 @@ libao (0.8.2-1) unstable; urgency=low
 
   * New upstream.
   * Changed to building alsa 0.9.x plugin instead of obsolete 0.5.x (Closes: #103787)
+  * added autotools target (config.* updater) to rules
 
  -- Christopher L Cheney <ccheney@debian.org>  Tue, 11 Dec 2001 23:00:00 -0600
 
@@ -58,5 +59,4 @@ libao (0.5.0-1) unstable; urgency=low
 
 Local variables:
 mode: debian-changelog
-add-log-mailing-address "ccheney@debian.org"
 End:
