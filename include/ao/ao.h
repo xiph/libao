@@ -31,7 +31,8 @@
 extern "C"
 {
 #endif /* __cplusplus */
-	
+
+#include <stdio.h>	
 #include <stdlib.h>
 #include <errno.h>
 #include "os_types.h"
