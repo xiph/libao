@@ -1,6 +1,5 @@
 README
 TODO
-doc/API
-doc/DRIVERS
-doc/USAGE
-doc/WANTED
+doc/*.html
+doc/ao_example.c
+doc/style.css
