@@ -7,15 +7,18 @@ AM_DISABLE_STATIC
 
 dnl Library versioning
 LIB_CURRENT=2
-LIB_REVISION=1
+LIB_REVISION=2
 LIB_AGE=0
 AC_SUBST(LIB_CURRENT)
 AC_SUBST(LIB_REVISION)
 AC_SUBST(LIB_AGE)
 
+dnl Plugin versioning.  We use an integer version number much like LIB_CURRENT.
+PLUGIN_VERSION=2
+
 AC_CANONICAL_HOST
 
-plugindir=$libdir/ao
+plugindir=$libdir/ao$PLUGIN_VERSION
 AC_SUBST(plugindir)
 
 dnl ====================================
