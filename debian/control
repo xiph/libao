@@ -1,4 +1,4 @@
-Source: ao
+Source: libao
 Section: devel
 Priority: optional
 Maintainer: Christopher L Cheney <ccheney@debian.org>
