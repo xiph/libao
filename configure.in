@@ -22,6 +22,7 @@ dnl Check for programs
 dnl ====================================
 
 AC_PROG_CC
+AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
 dnl ====================================
@@ -124,6 +125,11 @@ dnl Check for ALSA
 
 AC_CHECK_LIB(asound, snd_pcm_open, have_alsa=yes, have_alsa=no)
 AM_CONDITIONAL(HAVE_ALSA,test "x$have_alsa" = xyes)
+
+if test "x$have_alsa" = xyes; then
+	ALSA_LIBS="-lasound"
+	AC_SUBST(ALSA_LIBS)
+fi
 
 dnl Check for IRIX
 

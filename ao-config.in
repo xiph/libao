@@ -21,9 +21,6 @@ include_dir="@includedir@"
 ao_include_dir="@includedir@/@PACKAGE@"
 lib_dir="@libdir@"
 
-esd_cflags="@ESD_CFLAGS@"
-esd_libs="@ESD_LIBS@"
-
 plugin_dir="@plugindir@"
 
 usage()
@@ -92,15 +89,15 @@ if test "$echo_exec_prefix" = "yes"; then
 fi
 
 if test "$include_dir" != "/usr/include"; then
-    cflags="-I$include_dir $esd_cflags"
+    cflags="-I$include_dir"
 else
-    cflags="$esd_cflags"
+    cflags=""
 fi
 
 if test "$lib_dir" != "/usr/lib"; then
-    libs="-L$lib_dir $esd_libs -lao -ldl"
+    libs="-L$lib_dir -lao -ldl"
 else
-    libs="$esd_libs -lao -ldl"
+    libs="-lao -ldl"
 fi
 
 if test "$echo_cflags" = "yes"; then

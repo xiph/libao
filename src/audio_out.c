@@ -130,6 +130,7 @@ void ao_initialize(void)
 						if (plugin) {
 							driver->next = plugin;
 							plugin->next = NULL;
+							driver = driver->next;
 						}
 					}
 				}
