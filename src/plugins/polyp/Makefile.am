@@ -24,4 +24,4 @@ libpolyp_la_SOURCES=$(polypsources)
 libpolyp_la_LIBADD=$(AM_LIBADD) $(POLYP_LIBS)
 libpolyp_la_CFLAGS=$(AM_CFLAGS) $(POLYP_CFLAGS)
 
-EXTRA_DIST = ap_polyp.c
+EXTRA_DIST = ao_polyp.c
