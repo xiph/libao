@@ -83,7 +83,7 @@ fi
 %{_datadir}/aclocal/ao.m4
 
 %changelog
-* Fri Jul 19 2002 Michael Smith <msmith@labyrinth.net.au> 0.8.3-2
+* Fri Jul 19 2002 Michael Smith <msmith@xiph.org> 0.8.3-2
 - re-disable static libraries (they do not work - at all)
 
 * Sun Jul 14 2002 Thomas Vander Stichele <thomas@apestaart.org> 0.8.3-1
