@@ -1,3 +1,19 @@
+libao (0.8.4-1) unstable; urgency=low
+
+  * New upstream.
+
+ -- Christopher L Cheney <ccheney@debian.org>  Tue,  2 Sep 2003 22:30:00 -0500
+
+libao (0.8.3-1.1) unstable; urgency=low
+
+  * Non-maintainer upload sponsored by Joey Hess.
+  * Build-depend on libartsc0-dev and suggest libartsc0 instead of
+    libarts-dev and libarts (Closes: #189160).
+  * GNU config automated update: config.sub (20020621 to 20030509),
+    config.guess (20020529 to 20030519)
+
+ -- Dagfinn Ilmari Mannsaker <ilmari@ilmari.org>  Mon, 14 Jul 2003 15:55:31 +0200
+
 libao (0.8.3-1) unstable; urgency=low
 
   * New upstream. (Closes: #134520, #145785)
