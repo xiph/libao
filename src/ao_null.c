@@ -45,7 +45,7 @@ typedef struct ao_null_internal {
 } ao_null_internal;
 
 
-static int ao_null_test()
+static int ao_null_test(void)
 {
 	return 1; /* Null always works */
 }

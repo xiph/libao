@@ -49,7 +49,7 @@ typedef struct ao_raw_internal
 } ao_raw_internal;
 
 
-static int ao_raw_test()
+static int ao_raw_test(void)
 {
 	return 1; /* Always works */
 }
@@ -136,12 +136,6 @@ static void ao_raw_device_clear(ao_device *device)
 }
 
 
-static char *ao_raw_file_extension(void)
-{
-	return "raw";
-}
-
-
 ao_functions ao_raw = {
 	ao_raw_test,
 	ao_raw_driver_info,
@@ -150,6 +144,5 @@ ao_functions ao_raw = {
 	ao_raw_open,
 	ao_raw_play,
 	ao_raw_close,
-	ao_raw_device_clear,
-	ao_raw_file_extension	
+	ao_raw_device_clear
 };

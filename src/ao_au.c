@@ -29,7 +29,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <unistd.h>
+#ifndef _MSC_VER
+# include <unistd.h>
+#endif
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
@@ -81,7 +83,7 @@ typedef struct ao_au_internal
 } ao_au_internal;
 
 
-static int ao_au_test()
+static int ao_au_test(void)
 {
 	return 1; /* File driver always works */
 }
@@ -221,13 +223,6 @@ static void ao_au_device_clear(ao_device *device)
 	free(internal);
 }
 
-
-static char *ao_au_file_extension(void)
-{
-	return "au";
-}
-
-
 ao_functions ao_au = {
 	ao_au_test,
 	ao_au_driver_info,
@@ -236,6 +231,5 @@ ao_functions ao_au = {
 	ao_au_open,
 	ao_au_play,
 	ao_au_close,
-	ao_au_device_clear,
-	ao_au_file_extension
+	ao_au_device_clear
 };

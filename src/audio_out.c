@@ -30,14 +30,17 @@
 #include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#ifndef _MSC_VER
+# include <unistd.h>
+#endif
 #include <dirent.h>
+
 #include "ao/ao.h"
 #include "ao_private.h"
 
 /* These should have been set by the Makefile */
 #ifndef AO_PLUGIN_PATH
-#define AO_PLUGIN_PATH "/usr/local/lib/ao/plugins"
+#define AO_PLUGIN_PATH "/usr/local/lib/ao"
 #endif
 #ifndef SHARED_LIB_EXT
 #define SHARED_LIB_EXT ".so"
@@ -136,11 +139,6 @@ driver_list *_get_plugin(char *plugin_file)
 		dt->functions->device_clear = 
 		  dlsym(dt->handle, "ao_plugin_device_clear");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
-
-		/* Optional function */
-		dt->functions->file_extension = 
-		  dlsym(dt->handle, "ao_plugin_file_extension");
-		if (dlerror()) { dt->functions->file_extension = NULL; }
 
 
 	} else {
@@ -394,7 +392,7 @@ int _realloc_swap_buffer(ao_device *device, int min_size)
    the target buffer. */
 void _swap_samples(char *target_buffer, char* source_buffer, uint_32 num_bytes)
 {
-	int i;
+	uint_32 i;
 
 	for (i = 0; i < num_bytes; i += 2) {
 		target_buffer[i] = source_buffer[i+1];
@@ -701,18 +699,6 @@ ao_info **ao_driver_info_list(int *count)
 	*count = driver_count;
 	return info_table;
 }
-
-
-char *ao_file_extension(int driver_id)
-{
-	driver_list *driver;
-
-	if ( (driver = _get_driver(driver_id)) 
-	     && driver->functions->file_extension != NULL)
-		return driver->functions->file_extension();
-	else
-		return NULL;
-}  
 
 
 /* -- Miscellaneous -- */
