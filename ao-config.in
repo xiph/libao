@@ -98,9 +98,9 @@ else
 fi
 
 if test "$lib_dir" != "/usr/lib"; then
-    libs="-L$lib_dir $esd_libs -lao"
+    libs="-L$lib_dir $esd_libs -lao -ldl"
 else
-    libs="$esd_libs -lao"
+    libs="$esd_libs -lao -ldl"
 fi
 
 if test "$echo_cflags" = "yes"; then
