@@ -95,7 +95,6 @@ void ao_play(ao_device_t *device, void* output_samples, uint_32 num_bytes);
 void ao_close(ao_device_t *device);
 
 /* misc functions */
-int ao_get_driver_count(void);
 int ao_is_big_endian(void);
 
 #ifdef __cplusplus

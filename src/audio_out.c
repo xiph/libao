@@ -318,17 +318,3 @@ int ao_is_big_endian(void)
 	if (bytewise[0] == 0xba) return 1;
 	return 0;
 }
-
-int ao_get_driver_count(void)
-{
-	int i = 0;
-
-	driver_tree_t *driver = driver_head;
-
-	while (driver) {
-		i++;
-		driver = driver->next;
-	}
-
-	return i;
-}
