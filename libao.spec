@@ -47,6 +47,7 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %doc COPYING
 %doc README
 /usr/lib/libao.so.*
+/usr/lib/ao/*.so
 
 %files devel
 %doc doc/index.html
