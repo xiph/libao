@@ -2,7 +2,7 @@ ao (0.5.0-1) unstable; urgency=low
 
   * Initial Release.
 
- -- Chris Cheney <ccheney@debian.org>  Sun, 29 Oct 2000 00:39:24 -0500
+ -- Christopher L Cheney <ccheney@debian.org>  Sun, 29 Oct 2000 00:39:24 -0500
 
 Local variables:
 mode: debian-changelog
