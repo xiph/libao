@@ -33,7 +33,7 @@ Group: Development/Libraries
 Requires: libao = %{version}
 
 %description devel
-The libao-devel package contains the header files, static libraries and
+The libao-devel package contains the header files, libraries and
 documentation needed to develop applications with libao.
 
 %prep
@@ -44,7 +44,7 @@ perl -p -i -e "s/-ffast-math//" configure
 
 %build
 
-%configure --enable-static
+%configure
 
 make
 
@@ -83,6 +83,9 @@ fi
 %{_datadir}/aclocal/ao.m4
 
 %changelog
+* Fri Jul 19 2002 Michael Smith <msmith@labyrinth.net.au> 0.8.3-2
+- re-disable static libraries (they do not work - at all)
+
 * Sun Jul 14 2002 Thomas Vander Stichele <thomas@apestaart.org> 0.8.3-1
 - new release for vorbis 1.0
 - small cleanups
