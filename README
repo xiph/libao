@@ -1,8 +1,10 @@
-libao - A Cross-platform Audio Library, Version 0.8.5
+libao - A Cross-platform Audio Library, Version 0.8.6
 
 Originally Copyright (C) Aaron Holtzman - May 1999
+Changes Copyright (C) Jack Moffitt - October 2000
 Changes Copyright (C) Stan Seibert - July 2000-March 2004
-More Changes Copyright (C) Jack Moffitt - October 2000
+libao-poly Copyright (C) Lennart Poettering 2004
+Changes Copyright (C) 2004-2005 Xiph.org Foundation 
 
 libao is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +30,9 @@ supports:
    * Null output
    * WAV files
    * OSS (Open Sound System)
-   * ESD (ESounD or Enlighten Sound Daemon)
+   * ESD (ESounD or Enlightened Sound Daemon)
    * ALSA (Advanced Linux Sound Architecture)
+   * polypaudio (next generation GNOME sound server)
    * AIX
    * Solaris (untested)
    * IRIX (untested)
@@ -40,14 +43,14 @@ Libao began life as cross-platform audio library inside of ac3dec, an
 AC3 decoder by Aaron Holtzman that is part of the LiViD project.  When
 ogg123 (part of the command line vorbis tools) needed a way to play
 audio on multiple operating systems, someone on the vorbis-dev mailing
-list suggested the libao library as a possible way to add
-cross-platform support to ogg123.  I (Stan Seibert) downloaded the
-libao library, severely hacked it up in order to make the build
-process simpler and support multiple live-playback devices.  (The
-original code allowed one live playback driver, the wav driver, and a
-null driver to be compiled into the library.)  Jack Moffitt got it
-supporting dynamically loaded plugins so that binary versions of libao
-could be provided.  The API was revised for version 0.8.0.
+list suggested the libao library as a possible way to add cross-platform 
+support to ogg123. Stan Seibert downloaded the libao library, severely 
+hacked it up in order to make the build process simpler and support 
+multiple live-playback devices. (The original code allowed one live 
+playback driver, the wav driver, and a null driver to be compiled into 
+the library.) Jack Moffitt got it supporting dynamically loaded plugins 
+so that binary versions of libao could be provided. The API was revised 
+for version 0.8.0.
 
 This code is being maintained by Stan Seibert (volsung@xiph.org) 
 and various other individuals.  Please DO NOT annoy Aaron Holtzman about 

@@ -1,6 +1,9 @@
-svn - 2004
+0.8.6 - January 11, 2005
 - Added Polypaudio driver(libao-polyp 0.4) 
   from Lennart Poettering <mzyvonbcbylc (at) 0pointer (dot) de>
+- Use esd_close() in the esd driver
+- Broaden sample rate tolerance in the OSS driver for nForce 
+  compatibility
 
 0.8.5 - March 19, 2004
 - Support now for the ALSA 1.0 API

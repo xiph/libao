@@ -1,6 +1,6 @@
 Name:		libao
-Version:	0.8.5
-Release:	3
+Version:	0.8.6
+Release:	1
 Summary:	Cross-Platform Audio Output Library
 
 Group:		System Environment/Libraries
