@@ -30,7 +30,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include <sys/asoundlib.h>
+#include <alsa/asoundlib.h>
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
