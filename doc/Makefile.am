@@ -2,7 +2,7 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-docdir = $(prefix)/doc/$(PACKAGE)-$(VERSION)
+docdir = $(datadir)/$(PACKAGE)-$(VERSION)
 
 doc_DATA = API USAGE DRIVERS WANTED
 
