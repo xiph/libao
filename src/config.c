@@ -72,5 +72,7 @@ int read_config_file(ao_config *config, const char *config_file)
 		}
 	}
 
+	fclose(fp);
+
 	return 1;
 }
