@@ -59,9 +59,7 @@ static ao_info ao_alsa_info =
 typedef struct ao_alsa_internal
 {
 	snd_pcm_t *pcm_handle;
-	char *buf;
 	int buf_size;
-	int buf_end;
 	int sample_size;
 	int periods;
 	char *dev;
@@ -141,19 +139,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	int fmt;
 	char *cmd;
 
-	internal->buf = malloc(internal->buf_size);
-	internal->buf_end = 0;
-	if (internal->buf == NULL)
-	  return 0;  /* Could not alloc swap buffer */
-
 
 	/* Open the ALSA device */
 	err = snd_pcm_open(&(internal->pcm_handle), internal->dev,
 			   SND_PCM_STREAM_PLAYBACK, 0);
-	if (err < 0) {
-		free (internal->buf);
-		return 0;
-	}
 
 	snd_pcm_hw_params_alloca(&hwparams);
 
@@ -225,7 +214,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 error:
 	fprintf(stderr, "ALSA %s error: %s\n", cmd, snd_strerror(err));
 	snd_pcm_close(internal->pcm_handle);
-	free(internal->buf);
 	return 0;
 }
 
@@ -265,13 +253,10 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 int ao_plugin_close(ao_device *device)
 {
 	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
-	int result;
 
-	/* Clear buffer */
 	snd_pcm_close(internal->pcm_handle);
-	free(internal->buf);
 
-	return result;
+	return 1;
 }
 
 
