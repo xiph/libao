@@ -2,12 +2,13 @@ libao (0.8.3-1) unstable; urgency=low
 
   * New upstream.
 
- -- Christopher L Cheney <ccheney@debian.org>  Tue,  2 Jul 2002 22:00:00 -0500
+ -- Christopher L Cheney <ccheney@debian.org>  Thu, 11 Jul 2002 15:00:00 -0500
 
 libao (0.8.2-1) unstable; urgency=low
 
   * New upstream. (Closes: #110858)
-  * Changed to building alsa 0.9.x plugin instead of obsolete 0.5.x (Closes: #103787)
+  * Changed to building alsa 0.9.x plugin instead of obsolete 0.5.x (Closes:
+    #103787)
   * added autotools target (config.* updater) to rules
 
  -- Christopher L Cheney <ccheney@debian.org>  Mon, 24 Dec 2001 11:00:00 -0600
@@ -15,7 +16,8 @@ libao (0.8.2-1) unstable; urgency=low
 libao (0.8.1-1) unstable; urgency=high
 
   * New upstream.
-  * Plugin dir changed. (Closes: #109071, #109532, #108750, #108755, #108790, #109383, #109877, #109383)
+  * Plugin dir changed. (Closes: #109071, #109532, #108750, #108755, #108790,
+    #109383, #109877, #109383)
 
  -- Christopher L Cheney <ccheney@debian.org>  Wed, 22 Aug 2001 23:00:00 -0500
 
@@ -52,7 +54,8 @@ libao (0.5.0-3) unstable; urgency=low
 
 libao (0.5.0-2) unstable; urgency=low
 
-  *  Fixed Build-Depends for archs that do not have libasound1-dev (closes: #78097)
+  *  Fixed Build-Depends for archs that do not have libasound1-dev (closes:
+     #78097)
   *  Renamed development library package
  
  -- Christopher L Cheney <ccheney@debian.org>  Sat,  3 Feb 2001 12:30:52 -0600
