@@ -41,12 +41,12 @@
 
 #include <ao/ao.h>
 
-static ao_info_t ao_oss_info =
+ao_info_t ao_oss_info =
 {
 	"OSS audio driver output ",
 	"oss",
 	"Aaron Holtzman <aholtzma@ess.engr.uvic.ca>",
-	""
+	"Outputs audio to the Open Sound System driver."
 };
 
 
@@ -55,13 +55,11 @@ typedef struct ao_oss_internal_s {
 	int fd;
 } ao_oss_internal_t;
 
-static void
-ao_oss_parse_options(ao_oss_internal_t *state, ao_option_t *options)
+void ao_oss_parse_options(ao_oss_internal_t *state, ao_option_t *options)
 {
 	state->dev = NULL;
 
-	while (options)
-	{
+	while (options) {
 		if (!strcmp(options->key, "dsp"))
 			state->dev = strdup(options->value);
 		
@@ -75,8 +73,7 @@ ao_oss_parse_options(ao_oss_internal_t *state, ao_option_t *options)
 /*
  * open the audio device for writing to
  */
-static ao_internal_t*
-ao_oss_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 {
 	ao_oss_internal_t *state;
 	int tmp;
@@ -147,16 +144,13 @@ ao_oss_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 /*
  * play the sample to the already opened file descriptor
  */
-static void 
-ao_oss_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
+void plugin_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
 {
-	
 	write( ((ao_oss_internal_t *)state)->fd, output_samples, num_bytes);
 }
 
 
-static void
-ao_oss_close(ao_internal_t *state)
+void plugin_close(ao_internal_t *state)
 {
 	ao_oss_internal_t *s = (ao_oss_internal_t *) state;
 	close(s->fd);
@@ -165,16 +159,7 @@ ao_oss_close(ao_internal_t *state)
 }
 
 
-static ao_info_t*
-ao_oss_get_driver_info(void)
+ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_oss_info;
 }
-
-ao_functions_t ao_oss =
-{
-        ao_oss_get_driver_info,
-        ao_oss_open,
-        ao_oss_play,
-        ao_oss_close
-};

@@ -39,21 +39,19 @@ typedef struct ao_esd_internal_s
 	char *host;
 } ao_esd_internal_t;
 
-static ao_info_t ao_esd_info =
+ao_info_t ao_esd_info =
 {
 	"ESounD output",
 	"esd",
 	"Stan Seibert <volsung@asu.edu>",
-	""
+	"Outputs to the Enlighted Sound Daemon."
 };
 
-static void
-ao_esd_parse_options(ao_esd_internal_t *state, ao_option_t *options)
+void ao_esd_parse_options(ao_esd_internal_t *state, ao_option_t *options)
 {
 	state->host = NULL;
 
-	while (options)
-	{
+	while (options) {
 		if (!strcmp(options->key, "host"))
 			state->host = strdup(options->value);
 		
@@ -61,8 +59,7 @@ ao_esd_parse_options(ao_esd_internal_t *state, ao_option_t *options)
 	}
 }
 
-static ao_internal_t*
-ao_esd_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 {
 	ao_esd_internal_t *state;
 	int esd_bits;
@@ -109,8 +106,7 @@ ao_esd_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	return state;
 }
 
-static void
-ao_esd_close (ao_internal_t *state)
+void plugin_close(ao_internal_t *state)
 {
 	ao_esd_internal_t *s = (ao_esd_internal_t *) state;
 	close(s->sock);
@@ -118,29 +114,12 @@ ao_esd_close (ao_internal_t *state)
 	free(s);
 }
 
-static void
-ao_esd_play (ao_internal_t *state, void* output_samples, uint_32 num_bytes)
+void plugin_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
 {
-	write( ((ao_esd_internal_t *) state)->sock, output_samples, 
-	       num_bytes );
+	write(((ao_esd_internal_t *) state)->sock, output_samples, num_bytes);
 }
 
-static ao_info_t*
-ao_esd_get_driver_info (void)
+ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_esd_info;
 }
-
-ao_functions_t ao_esd = 
-{
-	ao_esd_get_driver_info,
-	ao_esd_open,
-	ao_esd_play,
-	ao_esd_close
-};
-
-
-
-
-
-

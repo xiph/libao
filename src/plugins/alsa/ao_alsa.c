@@ -45,23 +45,21 @@ typedef struct ao_alsa_internal_s
 	int dev;
 } ao_alsa_internal_t;
 
-static ao_info_t ao_alsa_info =
+ao_info_t ao_alsa_info =
 {
 	"Advanced Linux Sound Architecture (ALSA) output",
 	"alsa",
 	"Stan Seibert <volsung@asu.edu>",
-	""
+	"Otuputs to the Advanced Linux Sound Architecture."
 };
 
-static void
-ao_alsa_parse_options(ao_alsa_internal_t *state, ao_option_t *options)
+void ao_alsa_parse_options(ao_alsa_internal_t *state, ao_option_t *options)
 {
 	state->card = 0;
 	state->dev = 0;
 	state->buf_size = AO_ALSA_BUF_SIZE;
 
-	while (options)
-	{
+	while (options) {
 		if (!strcmp(options->key, "card"))
 			state->card = atoi(options->value);
 		else if (!strcmp(options->key, "dev"))
@@ -73,8 +71,7 @@ ao_alsa_parse_options(ao_alsa_internal_t *state, ao_option_t *options)
 	}
 }
 
-static ao_internal_t*
-ao_alsa_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 {
 	ao_alsa_internal_t *state;
 	snd_pcm_channel_params_t param;
@@ -87,8 +84,7 @@ ao_alsa_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options
 
 	param.format.interleave = 1;
 
-	switch (bits)
-	{
+	switch (bits) {
 	case 8  : param.format.format = SND_PCM_SFMT_S8;
 		  break;
         case 16 : param.format.format = ao_is_big_endian() ?
@@ -126,16 +122,14 @@ ao_alsa_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options
 			   state->card, 
 			   state->dev,
 			   SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
-	if ( err < 0 )
-	{
+	if (err < 0) {
 		free(state);
 		return NULL;
 	}
 
 	err = snd_pcm_channel_params(state->pcm_handle, &param);
 
-	if (err < 0 )
-	{
+	if (err < 0) {
 		snd_pcm_close(state->pcm_handle);
 		free(state);
 		return NULL;
@@ -150,16 +144,14 @@ ao_alsa_open (uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options
 	return state;
 }
 
-static void
-ao_alsa_close (ao_internal_t *state)
+void plugin_close(ao_internal_t *state)
 {
 	ao_alsa_internal_t *s = (ao_alsa_internal_t *) state;
 	snd_pcm_close(s->pcm_handle);
 	free(s);
 }
 
-static void
-ao_alsa_write_buffer (ao_alsa_internal_t *s)
+void ao_alsa_write_buffer(ao_alsa_internal_t *s)
 {
 	snd_pcm_channel_status_t status;
 	snd_pcm_t *pcm_handle = s->pcm_handle;
@@ -188,16 +180,14 @@ ao_alsa_write_buffer (ao_alsa_internal_t *s)
 	}
 }	
 
-static void
-ao_alsa_play (ao_internal_t *state, void* output_samples, uint_32 num_bytes)
+void plugin_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
 {
 	ao_alsa_internal_t *s = (ao_alsa_internal_t *) state;
 	int packed = 0;
 	int copy_len;
 	char *samples = (char *) output_samples;
 
-	while (packed < num_bytes)
-	{
+	while (packed < num_bytes) {
 		/* Pack the buffer */
 		if (num_bytes-packed < s->buf_size-s->buf_end)
 			copy_len = num_bytes - packed;
@@ -209,28 +199,11 @@ ao_alsa_play (ao_internal_t *state, void* output_samples, uint_32 num_bytes)
 		s->buf_end += copy_len;
 
 		if(s->buf_end == s->buf_size)
-		{
 			ao_alsa_write_buffer(s);
-		}
 	}
 }
 
-static ao_info_t*
-ao_alsa_get_driver_info (void)
+ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_alsa_info;
 }
-
-ao_functions_t ao_alsa = 
-{
-	ao_alsa_get_driver_info,
-	ao_alsa_open,
-	ao_alsa_play,
-	ao_alsa_close
-};
-
-
-
-
-
-

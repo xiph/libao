@@ -45,7 +45,7 @@ typedef struct ao_irix_internal_s {
 } ao_irix_internal_t;
 
 
-static ao_info_t ao_irix_info =
+ao_info_t ao_irix_info =
 {
 	"Irix audio output ",
 	"irix",
@@ -57,8 +57,7 @@ static ao_info_t ao_irix_info =
 /*
  * open the audio device for writing to
  */
-static ao_internal_t*
-ao_irix_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 {
 	ALpv params[2];
 	int  dev = AL_DEFAULT_OUTPUT;
@@ -75,29 +74,25 @@ ao_irix_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 
 	state->alconfig = alNewConfig();
 
-	if (alSetQueueSize(state->alconfig, BUFFER_SIZE) < 0) 
-	{
+	if (alSetQueueSize(state->alconfig, BUFFER_SIZE) < 0) {
 		fprintf(stderr, "alSetQueueSize failed: %s\n", 
 			alGetErrorString(oserror()));
 		return 0;
 	}
 
-	if (alSetChannels(state->alconfig, channels) < 0) 
-	{
+	if (alSetChannels(state->alconfig, channels) < 0) {
 		fprintf(stderr, "alSetChannels(%d) failed: %s\n", 
 			channels, alGetErrorString(oserror()));
 		return 0;
 	}
 	
-	if (alSetDevice(state->alconfig, dev) < 0) 
-	{
+	if (alSetDevice(state->alconfig, dev) < 0) {
 		fprintf(stderr, "alSetDevice failed: %s\n", 
 			alGetErrorString(oserror()));
 		return 0;
 	}
 	
-	if (alSetSampFmt(state->alconfig, AL_SAMPFMT_TWOSCOMP) < 0) 
-	{
+	if (alSetSampFmt(state->alconfig, AL_SAMPFMT_TWOSCOMP) < 0) {
 		fprintf(stderr, "alSetSampFmt failed: %s\n", 
 			alGetErrorString(oserror()));
 		return 0;
@@ -105,15 +100,13 @@ ao_irix_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 
 	state->alport = alOpenPort("AC3Decode", "w", 0);
 
-	if (!state->alport) 
-	{
+	if (!state->alport) {
 		fprintf(stderr, "alOpenPort failed: %s\n", 
 			alGetErrorString(oserror()));
 		return 0;
 	}
 
-	switch (bits) 
-	{
+	switch (bits) {
 	case 8:         
 		state->bytesPerWord = 1;
 		wsize = AL_SAMPLE_8;
@@ -134,8 +127,7 @@ ao_irix_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 		break;
 	}
 
-	if (alSetWidth(state->alconfig, wsize) < 0) 
-	{
+	if (alSetWidth(state->alconfig, wsize) < 0) {
 		fprintf(stderr, "alSetWidth failed: %s\n", alGetErrorString(oserror()));
 		return 0;
 	}
@@ -156,17 +148,14 @@ ao_irix_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
  * play the sample to the already opened file descriptor
  */
 
-static void 
-ao_irix_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
+void plugin_play(ao_internal_t *state, void* output_samples, uint_32 num_bytes)
 {
-	alWriteFrames( ((ao_irix_internal_t *) state)->alport, 
-		       output_samples, num_bytes); 
+	alWriteFrames(((ao_irix_internal_t *)state)->alport, output_samples, num_bytes); 
 }
 
-static void
-ao_irix_close(ao_internal_t *state)
+void plugin_close(ao_internal_t *state)
 {
-	ao_irix_internal_t *s = (ao_irix_internal_t *) state;
+	ao_irix_internal_t *s = (ao_irix_internal_t *)state;
 
 	alClosePort(s->alport);
 	alFreeConfig(s->alconfig);
@@ -174,16 +163,7 @@ ao_irix_close(ao_internal_t *state)
 	free(state);
 }
 
-static ao_info_t*
-ao_irix_get_driver_info(void)
+ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_irix_info;
 }
-
-ao_functions_t ao_irix =
-{
-        ao_irix_get_driver_info,
-        ao_irix_open,
-        ao_irix_play,
-        ao_irix_close
-};

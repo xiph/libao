@@ -76,13 +76,13 @@ driver_tree_t *_get_plugin(char *plugin_file)
 			return NULL;
 		}
 
-		dt->functions->get_driver_info = dlsym(dt->handle, "get_driver_info");
+		dt->functions->get_driver_info = dlsym(dt->handle, "plugin_get_driver_info");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
-		dt->functions->open = dlsym(dt->handle, "open");
+		dt->functions->open = dlsym(dt->handle, "plugin_open");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
-		dt->functions->play = dlsym(dt->handle, "play");
+		dt->functions->play = dlsym(dt->handle, "plugin_play");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
-		dt->functions->close = dlsym(dt->handle, "close");
+		dt->functions->close = dlsym(dt->handle, "plugin_close");
 		if (dlerror()) { free(dt->functions); free(dt); return NULL; }
 	} else {
 		return NULL;

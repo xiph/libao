@@ -41,9 +41,9 @@ int usleep(unsigned int useconds);
 #include <ao/ao.h>
 
 
-static ao_info_t ao_solaris_info =
+ao_info_t ao_solaris_info =
 {
-	"Solaris audio output ",
+	"Solaris audio output",
 	"solaris",
 	"Aaron Holtzman <aholtzma@ess.engr.uvic.ca>",
 	"WARNING: This driver is untested."
@@ -59,10 +59,8 @@ typedef struct ao_solaris_internal_s  {
 /*
  * open the audio device for writing to
  */
-static ao_internal_t*
-ao_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
+ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 {
-
 	ao_solaris_internal_t *state;
 
 	state = malloc(sizeof(ao_solaris_internal_t));
@@ -76,8 +74,7 @@ ao_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	 */
 
 	state->fd=open(state->dev,O_WRONLY);
-	if(state->fd < 0) 
-	{
+	if(state->fd < 0) {
 		fprintf(stderr,"%s: Opening audio device %s\n",
 				strerror(errno), state->dev);
 		goto ERR;
@@ -98,8 +95,7 @@ ao_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_option_t *options)
 	/* An implicit GETINFO is also performed so we can get
 	 * the buffer_size */
 
-	if(ioctl(state->fd, AUDIO_SETINFO, &(state->info)) < 0)
-	{
+	if(ioctl(state->fd, AUDIO_SETINFO, &(state->info)) < 0) {
 		fprintf(stderr, "%s: Writing audio config block\n",strerror(errno));
 		goto ERR;
 	}
@@ -114,32 +110,19 @@ ERR:
 /*
  * play the sample to the already opened file descriptor
  */
-static void 
-ao_solaris_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
+void plugin_play(ao_internal_t *state, void *output_samples, uint_32 num_bytes)
 {
-	write( ((ao_solaris_internal_t *) state)->fd,
-	       output_samples, num_bytes);
+	write(((ao_solaris_internal_t *)state)->fd, output_samples, num_bytes);
 }
 
 
-static void
-ao_solaris_close(ao_internal_t *state)
+void plugin_close(ao_internal_t *state)
 {
 	close(((ao_solaris_internal_t *) state)->fd);
 	free(state);
 }
 
-static const ao_info_t*
-ao_solaris_get_driver_info(void)
+const ao_info_t *plugin_get_driver_info(void)
 {
 	return &ao_solaris_info;
 }
-
-
-ao_functions_t ao_solaris =
-{
-        ao_solaris_get_driver_info,
-        ao_solaris_open,
-        ao_solaris_play,
-        ao_solaris_close
-};
