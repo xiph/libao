@@ -30,6 +30,7 @@ supports:
    * OSS (Open Sound System)
    * ESD (ESounD or Enlighten Sound Daemon)
    * ALSA (Advanced Linux Sound Architecture)
+   * AIX
    * Solaris (untested)
    * IRIX (untested)
 

@@ -1,3 +1,8 @@
+(Next release)
+- Added AIX sound driver from Stefan Tibus <sjti@gmx.net>
+- Committed some fixes from the Fink project to allow compiling on
+  OS X (still with all the dlcompat stuff)
+
 0.8.3 - July 2002
 - fix to ao.m4 macro
 - minor alsa09 plugin updates

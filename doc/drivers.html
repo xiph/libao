@@ -137,6 +137,23 @@ driver tries "/dev/audio".
 </ul>
 <p>
 
+<hr width="50%">
+
+<h3>aixs</h3>
+
+AIX sound driver.  According to the author, "tested on AIX 5.1 with the Crystal chipsets only (found as internal audio in the 7043-140 and on the MCA adapter DFE5 (7-6)), but it should work with other AIX releases and the ACPA also." 
+<p>
+
+<b>Option keys:</b>
+<ul>
+<li>"dev" - The audio device for the sound card.  By default, the
+driver tries "/dev/baud0/1" (device for MCA machines with the Crystal
+chipset).  Other possible devices are "/dev/paud0/1" for PCI machines
+with the Crystal chipset, and "/dev/acpa0/1" for MCA machines with the
+ACPA.
+</ul>
+<p>
+
 <hr>
 
 <h2>File Output Drivers</h2>
