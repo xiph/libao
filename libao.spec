@@ -1,5 +1,5 @@
 %define name	libao
-%define version	0.7.0
+%define version	0.8.0
 %define release 1
 
 Summary:	Cross Platform Audio Output Library
