@@ -42,7 +42,7 @@
  *
  * ALSA requires RTLD_GLOBAL.
  */
-#if defined(__OpenBSD__)	
+#if defined(__OpenBSD__) || defined(hpux)
 #define DLOPEN_FLAG (RTLD_LAZY)
 #else
 #define DLOPEN_FLAG (RTLD_NOW | RTLD_GLOBAL)
