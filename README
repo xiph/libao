@@ -1,4 +1,4 @@
-libao - A Cross-platform Audio Library, Version 0.6.0
+libao - A Cross-platform Audio Library, Version 0.8.0
 
 Originally Copyright (C) Aaron Holtzman - May 1999
 Changes Copyright (C) Stan Seibert - July 2000
@@ -44,12 +44,10 @@ cross-platform support to ogg123.  I (Stan Seibert) downloaded the
 libao library, severely hacked it up in order to make the build
 process simpler and support multiple live-playback devices.  (The
 original code allowed one live playback driver, the wav driver, and a
-null driver to be compiled into the library.)  
-
-Then Jack Moffitt got it supporting dynamicly loaded plugins so that 
-binary versions of libao could be provided.
+null driver to be compiled into the library.)  Jack Moffitt got it
+supporting dynamically loaded plugins so that binary versions of libao
+could be provided.  The API was revised after version 0.7.0.
 
 This code is being maintained by Stan Seibert (indigo@aztec.asu.edu) 
 and various other individuals.  Please DO NOT annoy Aaron Holtzman about 
 bugs, features, comments, etc. regarding this code.
-

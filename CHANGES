@@ -1,3 +1,11 @@
+0.8.0 - August 2000
+- Major API rewrite.  Old apps and plugins will not work with this library!
+- Default driver detection now works.
+- /etc/libao.conf and ~/.libao config files now supported
+
+0.7.0 - June 2000
+- minor build fixes for different platforms
+
 0.6.0 - December 2000
 - slight api modification with ao_append_option()
 - fixed an option leak
