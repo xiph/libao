@@ -32,8 +32,6 @@
 #include <math.h>
 #if defined(__OpenBSD__) || defined(__NetBSD__)
 #include <soundcard.h>
-#elif defined(__FreeBSD__)
-#include <machine/soundcard.h>
 #else
 #include <sys/soundcard.h>
 #endif
