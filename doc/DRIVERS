@@ -13,8 +13,8 @@ oss
 Open Sound System.  This is the audio driver system for
 Linux and Free/Net/OpenBSD as well as other UNIX-like systems.
     Option keys:
-        "dsp" - set the dsp device.  By default, this is
-                "/dev/dsp". 
+        "dsp" - set the dsp device.  By default, it tries
+                "/dev/sound/dsp", followed by "/dev/dsp". 
 
 irix
 ----
@@ -28,14 +28,6 @@ solaris
 Solaris audio driver.  This was also inherited from the
 original libao.  Same caveats apply.
     Option keys: None.
-
-esd
----
-ESounD audio driver.  This driver by default connects to the ESounD
-Daemon on the localhost.
-    Option keys:
-        "host" - The hostname where esd is running.  This can include
-                 a port number after a colon, as in "whizbang.com:555".
 
 alsa
 ----
@@ -52,11 +44,12 @@ it to the card.
  
 esd
 ---
-ESounD audio driver.  Uses libesd to communicate with the audio
-server.
+ESounD audio driver.  This driver by default connects to the ESounD
+Daemon on the localhost.
     Option keys:
-        "host" - Hostname where esd is running.  By default, this is
-                 the localhost.
+        "host" - The hostname where esd is running. by default sound
+		 is played on the local host. A port number can be
+		 specified after a colon, as in "whizbang.com:555".
 
 wav
 ---

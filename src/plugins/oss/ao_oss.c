@@ -75,8 +75,8 @@ void ao_oss_parse_options(ao_oss_internal_t *state, ao_option_t *options)
 		options = options->next;
 	}
 
-	if (state->dev == NULL)
-		state->dev = strdup("/dev/dsp");
+	/* otherwise, the NULL setting indicates the open()
+	   routine should choose something from hardwired defaults */
 }
 
 /*
@@ -102,12 +102,40 @@ ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_opti
 
 	/* Open the device driver */
 	
-	state->fd=open(state->dev,O_WRONLY);
-	if(state->fd < 0) 
-	{
-		fprintf(stderr,"libao - %s: Opening audio device %s\n",
-			strerror(errno), state->dev);
-		goto ERR;
+	if (state->dev != NULL) {
+		/* open the user-specified path */
+		state->fd=open(state->dev,O_WRONLY);
+		if(state->fd < 0) 
+		{
+			fprintf(stderr,"libao - %s: Opening audio device %s\n",
+				strerror(errno), state->dev);
+			goto ERR;
+		}
+	} else {
+		/* default: first try the devfs path */
+		state->dev = strdup("/dev/sound/dsp");
+		state->fd=open(state->dev,O_WRONLY);
+		if(state->fd < 0) 
+		{
+			/* no? then try the traditional path */
+			char *err = strdup(strerror(errno));
+			char *dev = strdup(state->dev);
+			free(state->dev);
+			state->dev = strdup("/dev/dsp");
+			state->fd=open(state->dev,O_WRONLY);
+			if(state->fd < 0) 
+			{
+				fprintf(stderr,
+					"libao - error: Could not open either default device:\n"
+					"  %s - %s\n"
+					"  %s - %s\n",
+					err, dev,
+					strerror(errno), state->dev);
+				free(err);
+				free(dev);
+				goto ERR;
+			}
+		}
 	}
 
 	switch (channels)
@@ -144,6 +172,7 @@ ao_internal_t *plugin_open(uint_32 bits, uint_32 rate, uint_32 channels, ao_opti
 	if(state != NULL)
 	{ 
 		if (state->fd >= 0) { close(state->fd); }
+		if (state->dev) { free(state->dev); }
 		free(state);
 	}
 
