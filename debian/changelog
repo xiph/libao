@@ -1,7 +1,7 @@
 libao (0.8.1-1) unstable; urgency=high
 
   * New upstream.
-  * Plugin dir changed. (Closes: #109071, #109532, #108750, #108755, #108790, #109383)
+  * Plugin dir changed. (Closes: #109071, #109532, #108750, #108755, #108790, #109383, #109877, #109383)
 
  -- Christopher L Cheney <ccheney@debian.org>  Wed, 22 Aug 2001 23:00:00 -0500
 
