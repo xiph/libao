@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include "audio_out.h"
+#include <ao/ao.h>
 
 #define WAVE_FORMAT_PCM  0x0001
 #define FORMAT_MULAW     0x0101

@@ -39,7 +39,7 @@
 #endif
 #include <sys/ioctl.h>
 
-#include "audio_out.h"
+#include <ao/ao.h>
 
 static ao_info_t ao_oss_info =
 {

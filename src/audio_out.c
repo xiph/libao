@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "audio_out.h"
+#include <ao/ao.h>
 
 /* --- Function Tables --- */
 

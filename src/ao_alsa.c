@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include <sys/asoundlib.h>
-#include "audio_out.h"
+#include <ao/ao.h>
 
 #define AO_ALSA_BUF_SIZE 32768
 

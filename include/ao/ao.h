@@ -26,6 +26,8 @@
 
 #include <stdlib.h>
 
+#include "os_types.h"
+
 // Type sizes
 #include "config.h"
 
