@@ -44,13 +44,13 @@ when the device is closed.  The option value is ignored.
 <h3>alsa</h3>
 
 Advanced Linux Sound Architecture.  This driver borrows some code from
-Jaroslav Kysela's <perex@suse.cz> GPLed aplay that is included with
+Jaroslav Kysela's &lt;perex@suse.cz&gt; GPLed aplay that is included with
 the alsa-util distribution.  It defaults to device 0 on card 0.
 Because of the way ALSA reads data, this driver packs sound from
 successive calls into a fixed size buffer (defaults to 32kB) and sends
-it to the card.  Note that this driver only works with ALSA 0.5.x.  It
-will be updated to the newer API once it stabilizes and is better
-documented.
+it to the card.  Note that this driver only works with ALSA 0.5.x.
+You should use the <tt>alsa09</tt> driver for the ALSA 0.9.x or 1.0.x
+series.
 <p>
 
 <b>Option keys:</b>
@@ -66,15 +66,16 @@ Experiment with this if the sound skips.  Default is 32768.
 
 <h3>alsa09</h3>
 
-Advanced Linux Sound Architecture, version 0.9.x API.  This is
-essentially the alsa driver modified to use the newer API.
+Advanced Linux Sound Architecture, version 0.9.x and 1.0.x API.  This 
+is essentially the alsa driver modified to use the newer API.
 <p>
 
 <b>Option keys:</b>
 <ul>
 <li>"dev" - Device name of sound card.  Defaults to "default".
-<li>"buf_size" - Override the internal buffer size (in bytes).  
-Experiment with this if the sound skips.  Default is 32768.
+<li>"buf_time" - Override the hardward buffer size (in milliseconds).  
+<li>"period_time" - Override the size of periods ALSA uses.
+<li>"use_mmap" - Set to "1" to enable the use of memory-mapped I/O API.
 </ul>
 <p>
 
@@ -217,7 +218,7 @@ The ranking system currently used is:
 <center>
 <table border="1">
   <tr><th>Priority</th><th>Drivers</th>              </tr>
-  <tr><td>30</td>      <td>alsa</td>                 </tr>
+  <tr><td>30</td>      <td>alsa, alsa09</td>         </tr>
   <tr><td>20</td>      <td>oss, irix, sun</td>       </tr>
   <tr><td>10</td>      <td>esd,arts</td>             </tr>
   <tr bgcolor="#888888"><td> 0</td>      <td>null, all file output</td></tr>
