@@ -221,7 +221,7 @@ static void ao_wav_play(ao_internal_t *state, void *output_samples, uint_32 num_
 
 		/* Swap the bytes into the swap buffer (so we don't
 		 mess up the output_samples buffer) */
-		for(i = 0; i < num_bytes/2; i+=2) {
+		for(i = 0; i < num_bytes; i+=2) {
 			s->swap_buffer[i]   = ((char *) output_samples)[i+1];
 			s->swap_buffer[i+1] = ((char *) output_samples)[i];
 		}
@@ -297,6 +297,9 @@ static void ao_wav_close(ao_internal_t *state)
 
 ERR:
 	close(s->fd);
+	free(s->output_file);
+	if (s->byte_swap)
+		free(s->swap_buffer);
 	free(s);
 }
 
