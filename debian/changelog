@@ -1,7 +1,6 @@
 libao (0.6.0-1) unstable; urgency=low
 
-  * Fixed Build-Depends for archs that do not have libasound1-dev (closes: #78097)
-  * Fixed library dev package name.
+  * New upstream.
 
  -- Christoper L Cheney <ccheney@debian.org>  Wed, 24 Jan 2001 21:39:41 -0600
 
@@ -11,7 +10,7 @@ libao (0.5.0-2) unstable; urgency=low
   *  Renamed development library package
  
  -- Christopher L Cheney <ccheney@debian.org>  Sat,  3 Feb 2001 12:30:52 -0600
-     
+
 libao (0.5.0-1) unstable; urgency=low
 
   * Initial Release.
