@@ -34,8 +34,8 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-#define AO_ALSA_BUF_SIZE 4096
-#define AO_ALSA_PERIODS  8
+#define AO_ALSA_BUF_SIZE 1024
+#define AO_ALSA_PERIODS  32
 
 static char *ao_alsa_options[] = {
 	"dev",
@@ -73,8 +73,7 @@ int ao_plugin_test()
 	snd_pcm_t *handle;
 	int err;
 
-	err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK,
-			   SND_PCM_NONBLOCK);
+	err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
 
 	if (err != 0)
 		return 0; /* Cannot use this plugin with default parameters */
@@ -150,7 +149,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Open the ALSA device */
 	err = snd_pcm_open(&(internal->pcm_handle), internal->dev,
-			SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK);
+			   SND_PCM_STREAM_PLAYBACK, 0);
 	if (err < 0) {
 		free (internal->buf);
 		return 0;
@@ -230,27 +229,25 @@ error:
 	return 0;
 }
 
-
-int _alsa_write_buffer(ao_alsa_internal *s)
+int ao_plugin_play(ao_device *device, const char *output_samples, 
+		uint_32 num_bytes)
 {
-	snd_pcm_t *pcm_handle = s->pcm_handle;
-	int len = s->buf_end / s->sample_size;
+	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
 	int res;
-	char *buf = s->buf;
-
-	s->buf_end = 0;
+	char *buf = (char *)output_samples;
+	int len = num_bytes / internal->sample_size;
 
 	do {
-		res = snd_pcm_writei (pcm_handle, buf, len);
+		res = snd_pcm_writei(internal->pcm_handle, buf, len);
 		if (res > 0) {
 			len -= res;
 			buf += res;
 		}
 	} while (len > 0 && (res > 0 || res == -EAGAIN));
 	if (res == -EPIPE) {
-		/* fprintf(stderr, "ALSA: underrun. resetting stream\n"); */
-		snd_pcm_prepare(pcm_handle);
-		res = snd_pcm_writei(pcm_handle, buf, len);
+		fprintf(stderr, "ALSA: underrun. resetting stream\n");
+		snd_pcm_prepare(internal->pcm_handle);
+		res = snd_pcm_writei(internal->pcm_handle, buf, len);
 		if (res != len) {
 			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(res));
 			return 0;
@@ -260,37 +257,8 @@ int _alsa_write_buffer(ao_alsa_internal *s)
 		}
 	}
 
+
 	return 1;
-}	
-
-
-int ao_plugin_play(ao_device *device, const char *output_samples, 
-		uint_32 num_bytes)
-{
-	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
-	
-	int packed = 0;
-	int copy_len;
-	char *samples = (char *) output_samples;
-	int ok = 1;
-
-	while (packed < num_bytes && ok) {
-		/* Pack the buffer */
-		if (num_bytes-packed < internal->buf_size - internal->buf_end)
-			copy_len = num_bytes - packed;
-		else
-			copy_len = internal->buf_size - internal->buf_end;
-
-		memcpy(internal->buf + internal->buf_end, samples + packed, 
-		       copy_len); 
-		packed += copy_len;
-		internal->buf_end += copy_len;
-
-		if(internal->buf_end == internal->buf_size)
-			ok = _alsa_write_buffer(internal);
-	}
-
-	return ok;
 }
 
 
@@ -300,7 +268,6 @@ int ao_plugin_close(ao_device *device)
 	int result;
 
 	/* Clear buffer */
-	result = _alsa_write_buffer(internal);
 	snd_pcm_close(internal->pcm_handle);
 	free(internal->buf);
 
