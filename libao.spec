@@ -52,7 +52,6 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %doc doc/index.html
 /usr/include/ao/ao.h
 /usr/include/ao/os_types.h
-/usr/lib/libao.a
 /usr/lib/libao.so
 /usr/bin/ao-config
 /usr/share/aclocal/ao.m4
