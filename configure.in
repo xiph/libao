@@ -70,7 +70,6 @@ else
                 CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char -mv8"
                 PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char -mv8" ;;
         *-darwin*)
-                LDFLAGS="-framework CoreAudio"
                 PLUGIN_LDFLAGS="-module -avoid-version"
                 DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"
                 CFLAGS="-D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"

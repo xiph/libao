@@ -14,12 +14,12 @@ macosxsources =
 
 endif
 
-INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include -framework CoreAudio
+INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(macosxltlibs)
 
-libmacosx_la_LDFLAGS = @PLUGIN_LDFLAGS@
+libmacosx_la_LDFLAGS = @PLUGIN_LDFLAGS@ -framework CoreAudio
 libmacosx_la_SOURCES = $(macosxsources)
 
 EXTRA_DIST = ao_macosx.c
