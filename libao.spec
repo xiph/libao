@@ -1,23 +1,31 @@
-Summary:	Cross Platform Audio Output Library
 Name:		libao
-Version:	0.8.2
-Release:	4
-Group:		Libraries/Multimedia
-Copyright:	GPL
+Version:	0.8.3
+Release:	1
+Summary:	Cross-Platform Audio Output Library
+
+Group:		System Environment/Libraries
+License:	GPL
 URL:		http://www.xiph.org/
 Vendor:		Xiph.org Foundation <team@xiph.org>
 Source:		http://www.xiph.org/ogg/vorbis/download/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
-BuildRequires: esound-devel >= 0.2.8
-BuildRequires: arts-devel
-# This is commented out because there don't seem to be good alsa RPMs on many
-# RPM-based platforms. It's recommended you build with it, though (to build the
-# alsa plugin)
-#BuildRequires: alsa-devel >= 0.5.0
+
+# glibc-devel is needed for oss plug-in build
+BuildRequires:  glibc-devel
+BuildRequires: 	esound-devel >= 0.2.8
+BuildRequires: 	arts-devel
+BuildRequires: 	alsa-lib-devel >= 0.9.0
+# FIXME: perl is needed for the dirty configure flag trick, which should be
+# solved differently
+BuildRequires:  perl
 
 %description
-Libao is a cross platform audio output library.  It currently supports
+Libao is a cross-platform audio output library.  It currently supports
 ESD, aRts, ALSA, OSS, *BSD and Solaris.
+
+This package provides plug-ins for OSS, ESD, aRts, and ALSA (0.9).  You will
+need to install the supporting libraries for any plug-ins you want to use
+in order for them to work.
 
 %package devel
 Summary: Cross Platform Audio Output Library Development
@@ -25,40 +33,26 @@ Group: Development/Libraries
 Requires: libao = %{version}
 
 %description devel
-The libao-devel package contains the header files and documentation
-needed to develop applications with libao.
+The libao-devel package contains the header files, static libraries and
+documentation needed to develop applications with libao.
 
 %prep
 %setup -q -n %{name}-%{version}
-if [ ! -f configure ]; then
-  aclocal
-  libtoolize --automake
-  automake --add-missing
-  autoconf 
-fi
+
 perl -p -i -e "s/-O20/$RPM_OPT_FLAGS/" configure
 perl -p -i -e "s/-ffast-math//" configure
 
 %build
-%configure
+
+%configure --enable-static
+
 make
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
+
+#FIXME: makeinstall breaks the plugin install location; they end up in /usr/lib
 make DESTDIR=$RPM_BUILD_ROOT install
-
-%files
-%defattr(-,root,root)
-%doc AUTHORS CHANGES COPYING README
-%{_libdir}/libao.so*
-%{_libdir}/ao
-%{_mandir}/man5/*
-
-%files devel
-%doc doc/*
-%{_includedir}/ao
-%{_libdir}/libao.so
-%{_datadir}/aclocal/ao.m4
 
 %clean 
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
@@ -70,7 +64,35 @@ if [ "$1" -ge "1" ]; then
   /sbin/ldconfig
 fi
 
+%files
+%defattr(-,root,root)
+%doc AUTHORS CHANGES COPYING README
+%{_libdir}/libao.so.*
+%{_libdir}/ao/*/liboss.so
+%{_libdir}/ao/*/libesd.so
+%{_libdir}/ao/*/libarts.so
+%{_libdir}/ao/*/libalsa09.so
+%{_mandir}/man5/*
+
+%files devel
+%doc doc/*
+%{_includedir}/ao
+%{_libdir}/libao.so
+%{_libdir}/libao.a
+%{_libdir}/ao/*/*.a
+%{_datadir}/aclocal/ao.m4
+
 %changelog
+* Sun Jul 14 2002 Thomas Vander Stichele <thomas@apestaart.org> 0.8.3-1
+- new release for vorbis 1.0
+- small cleanups
+- added better BuildRequires
+- added alsa-lib-devel 0.9.0 buildrequires
+- added static libraries to -devel
+- added info about plug-ins to description
+- listed plug-in so files explicitly to ensure package build fails when one
+  is missing
+
 * Mon Jan  7 2002 Peter Jones <pjones@redhat.com> 0.8.2-4
 - minor cleanups, even closer to RH .spec 
 - arts-devel needs a build dependancy to be sure the
