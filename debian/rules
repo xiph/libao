@@ -94,10 +94,10 @@ install: install-indep install-arch
 install-indep:
 	dh_testdir
 	dh_testroot
-	dh_clean -k -i
-	dh_installdirs -i
+#	dh_clean -k -i
+#	dh_installdirs -i
 
-	dh_install -i --list-missing
+#	dh_install -i --list-missing
 
 install-arch:
 	dh_testdir
@@ -144,7 +144,7 @@ binary-common:
 
 # Build architecture independant packages using the common target.
 binary-indep: build-indep install-indep
-	$(MAKE) -f debian/rules DH_OPTIONS=-i binary-common
+#	$(MAKE) -f debian/rules DH_OPTIONS=-i binary-common
 
 # Build architecture dependant packages using the common target.
 binary-arch: build-arch install-arch
