@@ -2,7 +2,7 @@ Source: libao
 Section: devel
 Priority: optional
 Maintainer: Christopher L Cheney <ccheney@debian.org>
-Build-Depends: debhelper, libasound1-dev [alpha i386 powerpc sparc], libesd0-dev
+Build-Depends: debhelper, libarts-dev, libasound1-dev [alpha i386 powerpc sparc], libesd0-dev
 Standards-Version: 3.1.1
 
 Package: libao-dev
@@ -15,7 +15,7 @@ Description: Cross Platform Audio Output Library Development
 Package: libao0
 Architecture: any
 Depends: ${shlibs:Depends}
-Suggests: libasound1, libesd0 | libesd-alsa0
+Suggests: libarts, libasound1, libesd0 | libesd-alsa0
 Description: Cross Platform Audio Output Library
  Libao is a cross platform audio output library.  It currently supports
  ESD, OSS, Solaris, and IRIX.
