@@ -72,6 +72,14 @@ headerless form using the byte order specified.
 		big-endian order, and "little" for little-endian order. By
 		default this is "native".
 
+au
+--
+Sun audio file output.  Writes an au file from the audio data you
+ouput.
+	Option keys:
+		"file" - Sets the output file.  Use '-' to write
+		to stdout.  By default this is "output.au"
+
 ADDING NEW DRIVERS
 
 [To be written. - Stan]

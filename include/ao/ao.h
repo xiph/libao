@@ -76,6 +76,7 @@ typedef struct ao_device_s {
 #define AO_NULL     0
 #define AO_WAV      1
 #define AO_RAW	    2
+#define AO_AU	    3
 
 /* --- Functions --- */
 

@@ -56,6 +56,7 @@ typedef struct driver_tree_s {
 extern ao_functions_t ao_null;
 extern ao_functions_t ao_wav;
 extern ao_functions_t ao_raw;
+extern ao_functions_t ao_au;
 
 driver_tree_t *driver_head = NULL;
 
@@ -99,6 +100,7 @@ void ao_initialize(void)
 	driver_tree_t *dnull;
 	driver_tree_t *dwav;
 	driver_tree_t *draw;
+	driver_tree_t *dau;
 	driver_tree_t *plugin;
 	driver_tree_t *driver;
 	DIR *plugindir;
@@ -109,7 +111,7 @@ void ao_initialize(void)
 	char fullpath[FILENAME_MAX];
 
 	if (driver_head == NULL) {
-		/* insert the null and wav drivers into the tree */
+		/* insert the null, wav, raw, and au drivers into the tree */
 		dnull = (driver_tree_t *)malloc(sizeof(driver_tree_t));
 		dnull->functions = &ao_null;
 		dnull->handle = NULL;
@@ -119,13 +121,17 @@ void ao_initialize(void)
 		draw = (driver_tree_t *)malloc(sizeof(driver_tree_t));
 		draw->functions = &ao_raw;
 		draw->handle = NULL;
+		dau = (driver_tree_t *)malloc(sizeof(driver_tree_t));
+		dau->functions = &ao_au;
+		dau->handle = NULL;
 		
 		dnull->next = dwav;
 		dwav->next = draw;
-		draw->next = NULL;
+		draw->next = dau;
+		dau->next = NULL;
 
 		driver_head = dnull;		
-		driver = draw;
+		driver = dau;
 
 		/* now insert any plugins we find */
 		plugindir = opendir(AO_PLUGIN_PATH);
@@ -157,7 +163,7 @@ void ao_shutdown(void)
 	if (!driver_head) return;
 
 	/* unload and free all the plugins */
-	driver = driver->next->next->next;  /* Skip null, wav, and raw driver */
+	driver = driver->next->next->next->next;  /* Skip null, wav, raw, and au driver */
 	while (driver) {
 		if (driver->functions) free(driver->functions);
 		if (driver->handle) dlclose(driver->handle);
