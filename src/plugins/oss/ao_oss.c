@@ -68,39 +68,57 @@ typedef struct ao_oss_internal {
  * open either the devfs device or the traditional device and return a
  * file handle.  Also strdup() path to the selected device into
  * *dev_path.  Assumes that *dev_path does not need to be free()'ed
- * initially.  The extra_open_flags allows additional flags to be
- * passed to open() if needed.
+ * initially.
+ *
+ * This opens the device in non-blocking mode at first in order to prevent
+ * deadlock caused by ALSA's OSS emulation and some OSS drivers if the
+ * device is already in use.  If blocking is non-zero, we remove the blocking
+ * flag if possible so that the device can be used for actual output.
  */
-int _open_default_oss_device (char **dev_path, int extra_open_flags)
+int _open_default_oss_device (char **dev_path, int blocking)
 {
 	int fd;
+	char *err = NULL;
+	char *dev = NULL;
 
 	/* default: first try the devfs path */
 	*dev_path = strdup("/dev/sound/dsp");
-	fd = open(*dev_path, O_WRONLY | extra_open_flags);
+	fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
 
+	/* then try the original dsp path */
 	if(fd < 0) 
 	{
 		/* no? then try the traditional path */
-		char *err = strdup(strerror(errno));
-		char *dev = strdup(*dev_path);
+		err = strdup(strerror(errno));
+		dev = strdup(*dev_path);
 		free(*dev_path);
 		*dev_path = strdup("/dev/dsp");
-		fd = open(*dev_path, O_WRONLY | extra_open_flags);
+		fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
+	}
 
-		if(fd < 0) 
-		{
-		  /*			fprintf(stderr,
+	/* Now have to remove the O_NONBLOCK flag if so instructed. */
+	if (fd > 0 && blocking) {
+		if (fcntl(fd, F_SETFL, 0) < 0) { /* Remove O_NONBLOCK */
+			/* If we can't go to blocking mode, we can't use
+			   this device */
+			close(fd);
+			fd = -1;
+		}
+	}
+
+	/* Deal with error cases */
+	if(fd < 0) 
+	{
+	  /*			fprintf(stderr,
 				"libao - error: Could not open either default device:\n"
 				"  %s - %s\n"
 				"  %s - %s\n",
 				err, dev,
 				strerror(errno), *dev_path); */
-			free(err);
-			free(dev);
-			free(*dev_path);
-			*dev_path = NULL;
-		}
+		free(err);
+		free(dev);
+		free(*dev_path);
+		*dev_path = NULL;
 	}
 
 	return fd;
@@ -117,7 +135,7 @@ int ao_plugin_test()
 	   driver detection unless the O_NONBLOCK flag is passed to 
 	   open().  We cannot use this flag when we actually open the
 	   device for writing because then we will overflow the buffer. */
-	if ( (fd = _open_default_oss_device(&dev_path, O_NONBLOCK)) < 0 )
+	if ( (fd = _open_default_oss_device(&dev_path, 0)) < 0 )
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
 		free(dev_path);
@@ -185,7 +203,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		}
 
 	} else {
-		internal->fd = _open_default_oss_device(&internal->dev, 0);
+		internal->fd = _open_default_oss_device(&internal->dev, 1);
 		if (internal->fd < 0)
 			return 0;  /* Cannot open default device */
 	}
