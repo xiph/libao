@@ -161,7 +161,6 @@ static int _find_default_driver_id (const char *name)
 {
 	int def_id;
 	int id;
-	int priority;
 	ao_info *info;
 	driver_list *driver = driver_head;
 
@@ -170,16 +169,15 @@ static int _find_default_driver_id (const char *name)
 		def_id = -1;
 		
 		id = 0;
-		priority = 0; /* This forces the null driver to be skipped */ 
 		while (driver != NULL) {
 
 			info = driver->functions->driver_info();
 
 			if ( info->type == AO_TYPE_LIVE && 
-			     info->priority > priority &&
+			     info->priority > 0 && /* Skip static drivers */
 			     driver->functions->test() ) {
-				priority = info->priority;
 				def_id = id; /* Found a usable driver */
+				break;
 			}
 
 			driver = driver->next;
@@ -264,15 +262,29 @@ static void _append_dynamic_drivers(driver_list *end)
 }
 
 
+/* Compare two drivers based on priority 
+   Used as compar function for qsort() in _make_info_table() */
+static int _compar_driver_priority (const driver_list **a, 
+				    const driver_list **b)
+{
+	return memcmp(&((*b)->functions->driver_info()->priority),
+		      &((*a)->functions->driver_info()->priority),
+		      sizeof(int));
+}
+
+
 /* Make a table of driver info structures for ao_driver_info_list(). */
-static ao_info ** _make_info_table (driver_list *head, int *driver_count)
+static ao_info ** _make_info_table (driver_list **head, int *driver_count)
 {
 	driver_list *list;
 	int i;
 	ao_info **table;
+	driver_list **drivers_table;
+
+	*driver_count = 0;
 
 	/* Count drivers */
-	list = head;
+	list = *head;
 	i = 0;
 	while (list != NULL) {
 		i++;
@@ -280,15 +292,29 @@ static ao_info ** _make_info_table (driver_list *head, int *driver_count)
 	}
 
 	
+	/* Sort driver_list */
+	drivers_table = (driver_list **) calloc(i, sizeof(driver_list *));
+	if (drivers_table == NULL)
+		return (ao_info **) NULL;
+	list = *head;
+	*driver_count = i;
+	for (i = 0; i < *driver_count; i++, list = list->next)
+		drivers_table[i] = list;
+	qsort(drivers_table, i, sizeof(driver_list *), _compar_driver_priority);
+	*head = drivers_table[0];
+	for (i = 1; i < *driver_count; i++)
+		drivers_table[i-1]->next = drivers_table[i];
+	drivers_table[i-1]->next = NULL;
+
+
 	/* Alloc table */
 	table = (ao_info **) calloc(i, sizeof(ao_info *));
 	if (table != NULL) {
-		*driver_count = i;
-		list = head;
-		for (i = 0; i < *driver_count; i++, list = list->next)
-			table[i] = list->functions->driver_info();
-	} else
-		*driver_count = 0;
+		for (i = 0; i < *driver_count; i++)
+			table[i] = drivers_table[i]->functions->driver_info();
+	}
+
+	free(drivers_table);
 
 	return table;
 }
@@ -515,7 +541,7 @@ void ao_initialize(void)
 	}
 
 	/* Create the table of driver info structs */
-	info_table = _make_info_table(driver_head, &driver_count);
+	info_table = _make_info_table(&driver_head, &driver_count);
 }
 
 

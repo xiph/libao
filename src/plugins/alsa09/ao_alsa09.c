@@ -50,7 +50,7 @@ static ao_info ao_alsa_info =
 	"Bill Currie <bill@taniwha.org>",
 	"Outputs to the Advanced Linux Sound Architecture version 0.9.x.",
 	AO_FMT_NATIVE,
-	30,
+	35,
 	ao_alsa_options,
 	3
 };

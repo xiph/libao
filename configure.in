@@ -248,6 +248,10 @@ if test "$BUILD_ARTS" = "yes"; then
   then
 	ARTS_CFLAGS=`$ac_cv_path_ARTSC_CONFIG --cflags`
 	ARTS_LIBS=`$ac_cv_path_ARTSC_CONFIG --libs`
+	SAVELIBS=$LIBS
+	LIBS="$LIBS $ARTS_LIBS"
+	AC_CHECK_FUNCS(arts_suspended)
+	LIBS=$SAVELIBS
   fi
 fi
 AM_CONDITIONAL(HAVE_ARTS,test "x$ac_cv_path_ARTSC_CONFIG" != x)
