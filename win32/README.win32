@@ -1,4 +1,4 @@
-$Id: README.win32,v 1.1 2001/09/05 19:09:57 cwolf Exp $
+$Id: README.win32,v 1.2 2001/09/05 20:25:20 cwolf Exp $
 $Name:  $
 
 Win32 port of libao, September 2001,  Chris Wolf <cwolf@starclass.com>
@@ -25,6 +25,10 @@ BUILDING
   the dependent project files.  To perform a build, from the "build"
   menu, select the "build" menu item.
 
+INSTALLING
+  The script "install.bat" can be edited to reflect your environment.
+  It will copy the DLLs to the designated directory.  Also, it will copy
+  the plugins to a designated directory.
   
 
 DIRECTORIES
