@@ -139,6 +139,7 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 {
 	ao_wav_internal *internal = (ao_wav_internal *) device->internal;
 	unsigned char buf[WAV_HEADER_LEN];
+	int size = 0x7fffffff; /* Use a bogus size initially */
 
 	/* Store information */
 	internal->wave.common.wChannels = format->channels;
@@ -146,52 +147,8 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	internal->wave.common.dwSamplesPerSec = format->rate;
 
 	memset(buf, 0, WAV_HEADER_LEN);
-	if (fwrite(buf, sizeof(char), WAV_HEADER_LEN, device->file) 
-	    != WAV_HEADER_LEN) {
-		return 0; /* Could not write wav header */
-	}
-
-	device->driver_byte_format = AO_FMT_LITTLE;
-
-	return 1;
-}
-
-
-/*
- * play the sample to the already opened file descriptor
- */
-static int ao_wav_play(ao_device *device, const char *output_samples, 
-			uint_32 num_bytes)
-{
-	if (fwrite(output_samples, sizeof(char), num_bytes, 
-		   device->file) < num_bytes)
-		return 0;
-	else
-		return 1;
-	
-}
-
-static int ao_wav_close(ao_device *device)
-{
-	ao_wav_internal *internal = (ao_wav_internal *) device->internal;
-	unsigned char buf[WAV_HEADER_LEN];
-
-	long size;
-
-	/* Find how long our file is in total, including header */
-	size = ftell(device->file);
-
-	if (size < 0) {
-		return 0;  /* Wav header corrupt */
-	}
-
-	/* Rewind file */
-	if (fseek(device->file, 0, SEEK_SET) < 0) {
-		return 0; /* Wav header corrupt */
-	}
 
 	/* Fill out our wav-header with some information. */
-
 	strncpy(internal->wave.riff.id, "RIFF",4);
 	internal->wave.riff.len = size - 8;
 	strncpy(internal->wave.riff.wave_id, "WAVE",4);
@@ -228,10 +185,68 @@ static int ao_wav_close(ao_device *device)
 	WRITE_U32(buf+40, internal->wave.data.len);
 
 	if (fwrite(buf, sizeof(char), WAV_HEADER_LEN, device->file) 
-	    < WAV_HEADER_LEN)
-	  return 0;
+	    != WAV_HEADER_LEN) {
+		return 0; /* Could not write wav header */
+	}
+
+	device->driver_byte_format = AO_FMT_LITTLE;
 
 	return 1;
+}
+
+
+/*
+ * play the sample to the already opened file descriptor
+ */
+static int ao_wav_play(ao_device *device, const char *output_samples, 
+			uint_32 num_bytes)
+{
+	if (fwrite(output_samples, sizeof(char), num_bytes, 
+		   device->file) < num_bytes)
+		return 0;
+	else
+		return 1;
+	
+}
+
+static int ao_wav_close(ao_device *device)
+{
+	ao_wav_internal *internal = (ao_wav_internal *) device->internal;
+	unsigned char buf[4];  /* For holding length values */
+
+	long size;
+
+	/* Find how long our file is in total, including header */
+	size = ftell(device->file);
+
+	if (size < 0) {
+		return 0;  /* Wav header corrupt */
+	}
+
+	/* Go back and set correct length info */
+
+	internal->wave.riff.len = size - 8;
+	internal->wave.data.len = size - 44;
+
+	/* Rewind to riff len and write it */
+	if (fseek(device->file, 4, SEEK_SET) < 0)
+		return 0; /* Wav header corrupt */
+	
+	WRITE_U32(buf, internal->wave.riff.len);
+	if (fwrite(buf, sizeof(char), 4, device->file) < 4)
+	  return 0; /* Wav header corrupt */
+
+
+	/* Rewind to data len and write it */
+	if (fseek(device->file, 40, SEEK_SET) < 0)
+		return 0; /* Wav header corrupt */
+	
+	WRITE_U32(buf, internal->wave.data.len);
+	if (fwrite(buf, sizeof(char), 4, device->file) < 4)
+	  return 0; /* Wav header corrupt */
+
+       
+	return 1; /* Wav header correct */
 }
 
 static void ao_wav_device_clear(ao_device *device)
