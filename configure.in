@@ -151,7 +151,7 @@ AC_ARG_ENABLE(alsa, [  --enable-alsa           include alsa 0.5 output plugin ],
 [ BUILD_ALSA="$enableval" ],[ BUILD_ALSA="yes" ])
 
 if test "$BUILD_ALSA" = "yes"; then
-   AC_CHECK_LIB(asound, snd_pcm_open, have_alsa=yes, have_alsa=no)
+   AC_CHECK_LIB(asound, snd_pcm_channel_params, have_alsa=yes, have_alsa=no)
    AC_CHECK_HEADER(sys/asoundlib.h, , have_alsa=no)
    AM_CONDITIONAL(HAVE_ALSA,test "x$have_alsa" = xyes)
 fi
