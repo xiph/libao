@@ -69,7 +69,7 @@ int ao_plugin_test()
 {
 	int fd;
 
-	if ( (fd = open(AO_SUN_DEFAULT_DEV, O_WRONLY)) < 0 )
+	if ( (fd = open(AO_SUN_DEFAULT_DEV, O_WRONLY | O_NONBLOCK)) < 0 )
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
 		close(fd);
