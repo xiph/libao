@@ -5,7 +5,7 @@ Maintainer: Christopher L Cheney <ccheney@debian.org>
 Build-Depends: debhelper, libasound1-dev [alpha i386 powerpc sparc], libesd0-dev
 Standards-Version: 3.1.1
 
-Package: libao0-dev
+Package: libao-dev
 Architecture: any
 Depends: libao0 (= ${Source-Version}), libc6-dev
 Description: Cross Platform Audio Output Library Development
