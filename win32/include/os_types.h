@@ -1,7 +1,7 @@
 #ifndef __OS_TYPES_H__
 #define __OS_TYPES_H__
 /*
- * $Id: os_types.h,v 1.1 2001/09/05 19:10:00 cwolf Exp $
+ * $Id: os_types.h,v 1.2 2002/07/19 08:34:43 msmith Exp $
  * $Name:  $
  * 
  * win32 types 
@@ -20,7 +20,7 @@ typedef signed   int			sint_8;
 #define DLLENTRY __declspec(dllexport)
 
   // Temporarily hardcode this location
-#define AO_PLUGIN_PATH "c:\\Program Files\\Common Files\\Xiphophorus\\ao"
+#define AO_PLUGIN_PATH "c:\\Program Files\\Common Files\\Xiph\\ao"
 
 #define SHARED_LIB_EXT ".dll"
 
