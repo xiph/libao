@@ -34,8 +34,8 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-#define AO_ALSA_BUF_SIZE 1024
-#define AO_ALSA_PERIODS  16
+#define AO_ALSA_BUF_SIZE 4096
+#define AO_ALSA_PERIODS  4
 
 static char *ao_alsa_options[] = {
 	"dev",
@@ -172,12 +172,15 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	if (err < 0)
 		goto error;
 
+	printf("Setting channels to %d\n", format->channels);
 	cmd = "snd_pcm_hw_params_set_channels";
 	if (format->channels == 1 || format->channels == 2)
 		err = snd_pcm_hw_params_set_channels(internal->pcm_handle,
 				hwparams, format->channels);
 	else
 		return 0;
+
+	printf("Error for channels was %d\n", err);
 	if (err < 0)
 		goto error;
 	internal->sample_size = format->bits * format->channels / 8;
