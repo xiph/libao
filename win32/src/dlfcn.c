@@ -1,5 +1,5 @@
 /*
- * $Id: dlfcn.c,v 1.1 2001/09/05 19:10:01 cwolf Exp $
+ * $Id: dlfcn.c,v 1.2 2001/09/07 21:10:55 cwolf Exp $
  * $Name:  $
  * 
  * Adopted from Apache DSO code.
@@ -39,10 +39,13 @@ void *dlopen(const char *module_name, int mode)
      */
     em = SetErrorMode(SEM_FAILCRITICALERRORS);
     dsoh = LoadLibraryEx(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-    if (!dsoh) {
+    if (!dsoh) 
+    {
+        SetLastError(0); // clear the last error
         dsoh = LoadLibraryEx(path, NULL, 0);
     }
     SetErrorMode(em);
+    SetLastError(0); // clear the last error
     return (void *)dsoh;
 }
 
