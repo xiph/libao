@@ -2,7 +2,7 @@ Source: libao
 Section: libs
 Priority: optional
 Maintainer: Christopher L Cheney <ccheney@debian.org>
-Build-Depends: autotools-dev, debhelper (>> 4.0.18), devscripts, gawk, libartsc0-dev, libasound2-dev, libesd0-dev
+Build-Depends: autotools-dev, debhelper (>> 4.0.18), devscripts, gawk, libartsc0-dev, libasound2-dev, libaudio-dev, libesd0-dev, xlibs-dev
 Standards-Version: 3.6.1.0
 
 Package: libao2

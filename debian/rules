@@ -8,9 +8,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This is the debhelper compatibility version to use.
-export DH_COMPAT=4
-
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
