@@ -59,6 +59,7 @@ static ao_info ao_oss_info =
 typedef struct ao_oss_internal {
 	char *dev;
 	int fd;
+	int buf_size;
 } ao_oss_internal;
 
 
@@ -219,6 +220,16 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Now set all of the parameters */
 
+	internal->buf_size = -1;
+	if ((ioctl(internal->fd,SNDCTL_DSP_GETBLKSIZE,
+				&(internal->buf_size)) < 0) ||
+			internal->buf_size<=0 )
+	{
+		fprintf(stderr, "libao - OSS cannot get buffer size for "
+				" devince\n");
+		goto ERR;
+	}
+
 	switch (format->channels)
 	{
 	case 1: tmp = 0;
@@ -281,12 +292,23 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 int ao_plugin_play(ao_device *device, const char *output_samples, 
 		uint_32 num_bytes)
 {
+	int ret;
+	int send;
 	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
 
-	if (write(internal->fd, output_samples, num_bytes) < 0)
-		return 0;
-	else
-		return 1;
+	while(num_bytes > 0) {
+		send = num_bytes>internal->buf_size?
+			internal->buf_size:num_bytes;
+		ret = write(internal->fd, output_samples, send);
+
+		if (ret <= 0)
+			return 0;
+
+		num_bytes-=ret;
+		output_samples+=ret;
+	}
+
+	return 1;
 }
 
 
