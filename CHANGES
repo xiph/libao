@@ -1,7 +1,15 @@
-(Next release)
+0.8.4 - October 2003
 - Added AIX sound driver from Stefan Tibus <sjti@gmx.net>
 - Committed some fixes from the Fink project to allow compiling on
   OS X (still with all the dlcompat stuff)
+- Improvements in plugin detection code by David Walser, especially
+  when ESD or aRts are present.
+- NAS plugin from Antoine Mathys.
+- Portability fixes for various platforms (including dlopen() bugs) 
+  including HP-UX and *BSD.
+- Memory/resource leak fixes
+- Significant fixes to ALSA 0.9.x plugin by Kevin Cody, Jr.  This
+  should fix stuttering audio for mpg321 users.
 
 0.8.3 - July 2002
 - fix to ao.m4 macro
