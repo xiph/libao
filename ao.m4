@@ -18,7 +18,7 @@ AC_ARG_ENABLE(aotest, [  --disable-aotest       Do not try to compile and run a 
     AO_LIBS="-L$ao_prefix/lib"
   fi
 
-  AO_LIBS="$AO_LIBS -lao"
+  AO_LIBS="$AO_LIBS -lao -ldl"
 
   AC_MSG_CHECKING(for ao)
   no_ao=""
