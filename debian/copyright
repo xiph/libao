@@ -1,0 +1,16 @@
+This package was debianized by Chris Cheney <ccheney@debian.org> on
+Sun, 29 Oct 2000 00:39:24 -0500.
+
+It was downloaded from http://www.xiph.org/ogg/vorbis/download/
+
+Upstream Author(s): Stan Seibert <indigo@aztec.asu.edu>
+
+Copyright:
+
+Originally Copyright (C) Aaron Holtzman - May 1999
+Changes Copyright (C) Stan Seibert - July 2000
+
+You are free to distribute this software under the terms of the GNU
+General Public License.  On Debian systems, the complete text of the
+GNU General Public License can be found in
+/usr/share/common-licenses/GPL file.
