@@ -68,7 +68,7 @@ binary-arch: build install
 	dh_fixperms
 	dh_makeshlibs -V
 	dh_installdeb
-	dh_shlibdeps --exclude=/usr/lib/ao
+	dh_shlibdeps --exclude=/usr/lib/ao/plugins-2
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb
