@@ -1,20 +1,15 @@
-%define name		libao
-%define version		0.8.2
-%define release 	1
-%define pluginver 	2
-
 Summary:	Cross Platform Audio Output Library
-Name:		%{name}
-Version:	%{version}
-Release:	%{release}
+Name:		libao
+Version:	0.8.2
+Release:	2
 Group:		Libraries/Multimedia
 Copyright:	GPL
 URL:		http://www.xiph.org/
 Vendor:		Xiphophorus <team@xiph.org>
-Source:		ftp://ftp.xiph.org/pub/ao/%{name}-%{version}.tar.gz
-BuildRoot:	%{_tmppath}/%{name}-root
+Source:		http://www.xiph.org/ogg/vorbis/download/%{name}-%{version}.tar.gz
+BuildRoot:	%{_tmppath}/%{name}-%{version}-root
+BuildPrereq:	esound-devel >= 0.2.8
 Requires:	esound >= 0.2.8
-Prefix:		%{_prefix}
 
 %description
 Libao is a cross platform audio output library.  It currently supports
@@ -23,6 +18,7 @@ ESD, aRts, ALSA, OSS, *BSD and Solaris.
 %package devel
 Summary: Cross Platform Audio Output Library Development
 Group: Development/Libraries
+Requires: libao = %{version}
 
 %description devel
 The libao-devel package contains the header files and documentation
@@ -30,13 +26,16 @@ needed to develop applications with libao.
 
 %prep
 %setup -q -n %{name}-%{version}
+if [ ! -f configure ]; then
+  aclocal
+  libtoolize --automake
+  automake --add-missing
+  autoconf 
+fi
+perl -p -i -e "s/-O20 -ffast-math/$RPM_OPT_FLAGS/" configure
 
 %build
-if [ ! -f configure ]; then
-  CFLAGS="$RPM_OPT_FLAGS" ./autogen.sh --prefix=%{_prefix}
-else
-  CFLAGS="$RPM_OPT_FLAGS" ./configure --prefix=%{_prefix}
-fi
+%configure
 make
 
 %install
@@ -50,15 +49,13 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %doc COPYING
 %doc README
 %{_libdir}/libao.so.*
-%{_libdir}/ao/plugins-%{pluginver}/*.so
+%{_libdir}/ao
 
 %files devel
 %doc doc/*.html
 %doc doc/*.css
 %doc doc/ao_example.c
-%{_includedir}/ao/ao.h
-%{_includedir}/ao/os_types.h
-%{_includedir}/ao/plugin.h
+%{_includedir}/ao
 %{_libdir}/libao.so
 %{_datadir}/aclocal/ao.m4
 
@@ -69,9 +66,14 @@ make DESTDIR=$RPM_BUILD_ROOT install
 /sbin/ldconfig
 
 %postun
-/sbin/ldconfig
+if [ "$1" -ge "1" ]; then
+  /sbin/ldconfig
+fi
 
 %changelog
+* Wed Jan  2 2002 Peter Jones <pjones@redhat.com>
+- merge RH and Xiphophorous packages
+
 * Tue Dec 18 2001 Jack Moffitt <jack@xiph.org>
 - Update for 0.8.2 release.
 
