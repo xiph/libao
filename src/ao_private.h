@@ -38,13 +38,13 @@
 #endif
 
 /* RTLD_NOW is the preferred symbol resolution behavior, but
- * some platforms do not support it. 
+ * some platforms do not support it.  The autoconf script will have
+ * already defined DLOPEN_FLAG if the default is unacceptable on the
+ * current platform.
  *
  * ALSA requires RTLD_GLOBAL.
  */
-#if defined(__OpenBSD__) || defined(hpux)
-#define DLOPEN_FLAG (RTLD_LAZY)
-#else
+#if !defined(DLOPEN_FLAG)
 #define DLOPEN_FLAG (RTLD_NOW | RTLD_GLOBAL)
 #endif
 

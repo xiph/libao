@@ -102,6 +102,20 @@ dnl ==============================
 dnl Checks for header files
 dnl ==============================
 
+dnl ==============================
+dnl Select proper dlopen flags
+dnl ==============================
+case $host in
+    
+    *openbsd* | *netbsd* | *hpux* | *solaris2.7)
+	DLOPEN_FLAG='(RTLD_LAZY)'
+	;;
+    *)
+	DLOPEN_FLAG='(RTLD_NOW | RTLD_GLOBAL)'
+	;;
+esac
+AC_DEFINE_UNQUOTED(DLOPEN_FLAG, $DLOPEN_FLAG)
+
 dnl --------------------------------------------------
 dnl Work around FHS stupidity
 dnl --------------------------------------------------
