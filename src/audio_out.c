@@ -662,6 +662,9 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
 {
 	char *playback_buffer;
 
+	if (device == NULL)
+	  return 0;
+
 	if (device->swap_buffer != NULL) {
 		if (_realloc_swap_buffer(device, num_bytes)) {
 			_swap_samples(device->swap_buffer, 
@@ -680,9 +683,22 @@ int ao_close(ao_device *device)
 {
 	int result;
 
-	result = device->funcs->close(device);
-	device->funcs->device_clear(device);
-	free(device);
+	if (device == NULL)
+		result = 0;
+	else {
+		result = device->funcs->close(device);
+		device->funcs->device_clear(device);
+
+		if (device->file) {
+			fclose(device->file);
+			device->file = NULL;
+		}
+
+		if (device->swap_buffer != NULL)
+			free(device->swap_buffer);
+
+		free(device);
+	}
 
 	return result;
 }
