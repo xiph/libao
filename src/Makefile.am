@@ -3,7 +3,7 @@
 AUTOMAKE_OPTIONS = foreign
 SUBDIRS = plugins
 
-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include
+INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/include -DAO_PLUGIN_PATH=\"@plugindir@\"
 
 lib_LTLIBRARIES = libao.la
 
