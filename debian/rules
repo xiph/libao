@@ -53,9 +53,13 @@ build: build-arch build-indep
 build-arch: build-arch-stamp
 build-arch-stamp: configure-stamp
 
-	cd $(objdir) && \
-	$(MAKE)
-
+ifneq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
+		cd $(objdir) && \
+		$(MAKE) debug
+else
+		cd $(objdir) && \
+		$(MAKE)
+endif
 	touch build-arch-stamp
 
 build-indep: build-indep-stamp
