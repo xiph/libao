@@ -34,11 +34,13 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-#define AO_ALSA_BUF_SIZE 32768
+#define AO_ALSA_BUF_SIZE 4096
+#define AO_ALSA_PERIODS  16
 
 static char *ao_alsa_options[] = {
 	"dev",
 	"buf_size"
+        "periods"
 };
 static ao_info ao_alsa_info =
 {
@@ -50,7 +52,7 @@ static ao_info ao_alsa_info =
 	AO_FMT_NATIVE,
 	30,
 	ao_alsa_options,
-	2
+	3
 };
 
 
@@ -61,6 +63,7 @@ typedef struct ao_alsa_internal
 	int buf_size;
 	int buf_end;
 	int sample_size;
+	int periods;
 	char *dev;
 } ao_alsa_internal;
 
@@ -98,6 +101,7 @@ int ao_plugin_device_init(ao_device *device)
 		return 0; /* Could not initialize device memory */
 	
 	internal->buf_size = AO_ALSA_BUF_SIZE;
+	internal->periods = AO_ALSA_PERIODS;
 	internal->dev = strdup ("default");
 	if (!internal->dev) {
 		free (internal);
@@ -123,6 +127,8 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	}
 	else if (!strcmp(key, "buf_size"))
 		internal->buf_size = atoi(value);
+	else if (!strcmp(key, "periods"))
+		internal->periods = atoi(value);
 
 	return 1;
 }
@@ -202,7 +208,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	cmd = "snd_pcm_hw_params_set_periods";
 	err = snd_pcm_hw_params_set_periods(internal->pcm_handle, hwparams,
-			2, 0);
+			internal->periods, 0);
 	if (err < 0)
 		goto error;
 
@@ -229,25 +235,27 @@ int _alsa_write_buffer(ao_alsa_internal *s)
 {
 	snd_pcm_t *pcm_handle = s->pcm_handle;
 	int len = s->buf_end / s->sample_size;
-	int err;
+	int res;
 	char *buf = s->buf;
 
 	s->buf_end = 0;
 
 	do {
-		err = snd_pcm_writei (pcm_handle, buf, len);
-		if (err == -EAGAIN)
-			snd_pcm_wait (pcm_handle, 1000);
-	} while (err == -EAGAIN);
-	if (err == -EPIPE) {
+		res = snd_pcm_writei (pcm_handle, buf, len);
+		if (res > 0) {
+			len -= res;
+			buf += res;
+		}
+	} while (len > 0 && (res > 0 || res == -EAGAIN));
+	if (res == -EPIPE) {
 		/* fprintf(stderr, "ALSA: underrun. resetting stream\n"); */
 		snd_pcm_prepare(pcm_handle);
-		err = snd_pcm_writei(pcm_handle, buf, len);
-		if (err != len) {
-			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(err));
+		res = snd_pcm_writei(pcm_handle, buf, len);
+		if (res != len) {
+			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(res));
 			return 0;
-		} else if (err < 0) {
-			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(err));
+		} else if (res < 0) {
+			fprintf(stderr, "ALSA write error: %s\n", snd_strerror(res));
 			return 0;
 		}
 	}
