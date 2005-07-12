@@ -44,7 +44,7 @@
 
 /* the period time is calculated if not given as an option
  * note, playback starts after four of these are in the buffer */
-#define AO_ALSA_PERIOD_TIME 0
+#define AO_ALSA_PERIOD_TIME 50
 
 /* number of samples between interrupts
  * supplying a period_time to ao overrides the use of this  */
@@ -75,7 +75,7 @@ static ao_info ao_alsa_info =
 {
 	AO_TYPE_LIVE,
 	"Advanced Linux Sound Architecture (ALSA) output",
-	"alsa09",
+	"alsa",
 	"Bill Currie <bill@taniwha.org>/Kevin Cody, Jr. <kevinc@wuff.dhs.org>",
 	"Outputs to the Advanced Linux Sound Architecture version 0.9.x.",
 	AO_FMT_NATIVE,
@@ -455,8 +455,8 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 		/* try to write the entire buffer at once */
 		err = internal->writei(internal->pcm_handle, ptr, len);
 
-		/* it's possible that no data was transferred */
-		if (err == -EAGAIN) {
+		/* no data transferred or interrupt signal */
+		if (err == -EAGAIN || err == -EINTR) {
 			continue;
 		}
 

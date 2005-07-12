@@ -42,7 +42,7 @@ static ao_info ao_alsa_info =
 {
 	AO_TYPE_LIVE,
 	"Advanced Linux Sound Architecture (ALSA) output",
-	"alsa",
+	"alsa05",
 	"Stan Seibert <volsung@asu.edu>",
 	"Outputs to the Advanced Linux Sound Architecture version 0.5.x.",
 	AO_FMT_NATIVE,
