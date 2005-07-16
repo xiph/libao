@@ -125,11 +125,12 @@ int _open_default_oss_device (char **dev_path, int blocking)
 				"  %s - %s\n",
 				err, dev,
 				strerror(errno), *dev_path); */
-		free(err);
-		free(dev);
 		free(*dev_path);
 		*dev_path = NULL;
 	}
+
+	if (err) free(err);
+	if (dev) free(dev);
 
 	return fd;
 }
