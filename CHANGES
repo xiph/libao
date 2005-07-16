@@ -1,5 +1,7 @@
 0.8.7 - unreleased snapshot
-- No changes noted as of yet
+- obsolete alsa device renamed to alsa05
+- the 'alsa' device now uses the 0.9/1.0 API
+- ALSA driver fixes
 
 0.8.6 - January 11, 2005
 - Added Polypaudio driver(libao-polyp 0.4) 
