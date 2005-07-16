@@ -42,9 +42,8 @@
 /* default 500 millisecond buffer */
 #define AO_ALSA_BUFFER_TIME 500000
 
-/* the period time is calculated if not given as an option
- * note, playback starts after four of these are in the buffer */
-#define AO_ALSA_PERIOD_TIME 50
+/* the period time is calculated if not given as an option */
+#define AO_ALSA_PERIOD_TIME 0
 
 /* number of samples between interrupts
  * supplying a period_time to ao overrides the use of this  */
@@ -214,29 +213,22 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 		ao_sample_format *format)
 {
 	snd_pcm_hw_params_t   *params;
-	snd_pcm_access_mask_t *access;
 	int err;
 	unsigned int rate = format->rate;
 
 	/* allocate the hardware parameter structure */
 	snd_pcm_hw_params_alloca(&params);
-	snd_pcm_access_mask_alloca(&access);
 
-	/* fetch the current hardware parameters */
+	/* fetch all possible hardware parameters */
 	internal->cmd = "snd_pcm_hw_params_any";
 	err = snd_pcm_hw_params_any(internal->pcm_handle, params);
 	if (err < 0)
 		return err;
 
-	/* create a null access mask */
-	snd_pcm_access_mask_none(access);
-
-	snd_pcm_access_mask_set(access, internal->access_mask);
-
-	/* commit the access value to params structure */
+	/* set the access type */
 	internal->cmd = "snd_pcm_hw_params_set_access";
-	err = snd_pcm_hw_params_set_access_mask(internal->pcm_handle,
-			params, access);
+	err = snd_pcm_hw_params_set_access(internal->pcm_handle,
+			params, internal->access_mask);
 	if (err < 0)
 		return err;
 
@@ -263,16 +255,17 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 			params, &rate, 0);
 	if (err < 0)
 		return err;
+	if (rate > 1.05 * format->rate || rate < 0.95 * format->rate) {
+		fprintf(stderr, "warning: sample rate %i not supported "
+			"by the hardware, using %u\n", format->rate, rate);
+	}
 
-	/* set the length of the hardware sample buffer in milliseconds */
+	/* set the length of the hardware sample buffer in microseconds */
 	internal->cmd = "snd_pcm_hw_params_set_buffer_time_near";
 	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
 			params, &(internal->buffer_time), 0);
 	if (err < 0)
 		return err;
-
-	/* save the buffer time in case alsa overrode it */
-	/*internal->buffer_time = err;*/
 
 	/* calculate a period time of one half sample time */
 	if ((internal->period_time == 0) && (rate > 0))
@@ -292,14 +285,14 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 	if (err < 0)
 		return err;
 
-	/* save the period size in bytes for posterity */
+	/* save the period size in frames for posterity */
 	internal->cmd = "snd_pcm_hw_get_period_size";
 	err = snd_pcm_hw_params_get_period_size(params, 
 						&(internal->period_size), 0);
 	if (err < 0)
 		return err;
 
-	/* save the buffer size in bytes for posterity */
+	/* save the buffer size in frames for posterity */
 	internal->cmd = "snd_pcm_hw_get_period_size";
 	err = snd_pcm_hw_params_get_buffer_size(params, 
 						&(internal->buffer_size)); 
@@ -325,14 +318,10 @@ static inline int alsa_set_swparams(ao_alsa_internal *internal)
 	if (err < 0)
 		return err;
 
-	/* allow transfers to start when there are four periods */
-	/* setting the threshold to a very big values seems to cause a
-	   deadlock for dmix in a pol().  So here we just set it to 0,
-	   I'm not sure why we need to set a threshold > 0 anyway, maybe 
-	   someone could enlighten me. - shank */
+	/* allow transfers to start when there is one period */
 	internal->cmd = "snd_pcm_sw_params_set_start_threshold";
 	err = snd_pcm_sw_params_set_start_threshold(internal->pcm_handle,
-			params, /*internal->period_size << 2*/0);
+			params, internal->period_size);
 	if (err < 0)
 		return err;
 
@@ -419,7 +408,7 @@ static inline int alsa_error_recovery(ao_alsa_internal *internal, int err)
 		internal->cmd = "underrun recovery: snd_pcm_prepare";
 		err = snd_pcm_prepare(internal->pcm_handle);
 		if (err < 0)
-			return -1;
+			return err;
 	} else if (err == -ESTRPIPE) {
 		/* application was suspended, wait until suspend flag clears */
 		internal->cmd = "suspend recovery: snd_pcm_prepare";
