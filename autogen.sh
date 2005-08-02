@@ -73,7 +73,7 @@ fi
 
 echo -n "checking for libtool... "
 for LIBTOOLIZE in libtoolize glibtoolize nope; do
-  (which $LIBTOOLIZE) > /dev/null 2>&1 && break
+  ($LIBTOOLIZE --version) < /dev/null > /dev/null 2>&1 && break
 done
 if test x$LIBTOOLIZE = xnope; then
   echo "nope."
@@ -102,15 +102,20 @@ fi
 echo "Generating configuration files for $package, please wait...."
 
 echo "  $ACLOCAL $ACLOCAL_FLAGS"
-$ACLOCAL $ACLOCAL_FLAGS
-#echo "  autoheader"
-#autoheader
+$ACLOCAL $ACLOCAL_FLAGS || exit 1
 echo "  $LIBTOOLIZE --automake"
-$LIBTOOLIZE --automake
+$LIBTOOLIZE --automake || exit 1
 echo "  $AUTOMAKE --add-missing $AUTOMAKE_FLAGS"
-$AUTOMAKE --add-missing $AUTOMAKE_FLAGS 
+$AUTOMAKE --add-missing $AUTOMAKE_FLAGS || exit 1
+#echo "  autoheader"
+#autoheader || exit 1
 echo "  autoconf"
-autoconf
+autoconf || exit 1
+
+# this search and replace hack is specifically for MacOSX where automake
+# picks up changelog in debian/ because of filesystem
+# case-not-quite-sensitivity breaking make distcheck
+perl -i -p -e 's/DIST_COMMON = ChangeLog/DIST_COMMON =/g' debian/Makefile.in
 
 cd $olddir
-$srcdir/configure "$@" && echo
+$srcdir/configure --enable-maintainer-mode "$@" && echo
