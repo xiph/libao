@@ -2,7 +2,7 @@
 
 AUTOMAKE_OPTIONS = foreign 1.6 dist-zip
 
-SUBDIRS = src include doc debian
+SUBDIRS = src include doc
 
 m4datadir = $(datadir)/aclocal
 m4data_DATA = ao.m4
