@@ -66,9 +66,9 @@ else
                 PROFILE="-pg -g -O20 -ffast-math -D_REENTRANT -fsigned-char";;
         sparc-sun-*)
                 PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -mv8"
-                CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char -mv8"
-                PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char -mv8" ;;
+                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
+                CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char"
+                PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char" ;;
         *-darwin*)
                 PLUGIN_LDFLAGS="-module -avoid-version"
                 DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"
