@@ -121,17 +121,6 @@ esac
 AC_DEFINE_UNQUOTED(DLOPEN_FLAG, $DLOPEN_FLAG)
 AC_DEFINE_UNQUOTED(SHARED_LIB_EXT, "$SHARED_LIB_EXT")
 
-dnl --------------------------------------------------
-dnl Work around FHS stupidity
-dnl --------------------------------------------------
-
-if test "$prefix" = "/usr"; then
-    MANDIR='$(datadir)/man'
-else
-    MANDIR='$(prefix)/man'
-fi
-AC_SUBST(MANDIR)
-
 dnl ==============================
 dnl Checks for types
 dnl ==============================
