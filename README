@@ -3,7 +3,7 @@ libao - A Cross-platform Audio Library, Version 0.8.6
 Originally Copyright (C) Aaron Holtzman - May 1999
 Changes Copyright (C) Jack Moffitt - October 2000
 Changes Copyright (C) Stan Seibert - July 2000-March 2004
-libao-poly Copyright (C) Lennart Poettering 2004
+libao-pulse Copyright (C) Lennart Poettering 2004-2006
 Changes Copyright (C) 2004-2005 Xiph.org Foundation 
 
 libao is free software; you can redistribute it and/or modify
@@ -32,7 +32,7 @@ supports:
    * OSS (Open Sound System)
    * ESD (ESounD or Enlightened Sound Daemon)
    * ALSA (Advanced Linux Sound Architecture)
-   * polypaudio (next generation GNOME sound server)
+   * PulseAudio (next generation GNOME sound server)
    * AIX
    * Solaris (untested)
    * IRIX (untested)

@@ -2,26 +2,26 @@
 
 AUTOMAKE_OPTIONS = foreign
 
-if HAVE_POLYP
+if HAVE_PULSE
 
-polypltlibs = libpolyp.la
-polypsources = ao_polyp.c
+pulseltlibs = libpulse.la
+pulsesources = ao_pulse.c
 
 else
 
-polypltlibs =
-polypsources =
+pulseltlibs =
+pulsesources =
 
 endif
 
 INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 
 libdir = $(plugindir)
-lib_LTLIBRARIES = $(polypltlibs)
+lib_LTLIBRARIES = $(pulseltlibs)
 
-libpolyp_la_LDFLAGS= @PLUGIN_LDFLAGS@
-libpolyp_la_SOURCES=$(polypsources)
-libpolyp_la_LIBADD=$(AM_LIBADD) $(POLYP_LIBS)
-libpolyp_la_CFLAGS=$(AM_CFLAGS) $(POLYP_CFLAGS)
+libpulse_la_LDFLAGS= @PLUGIN_LDFLAGS@
+libpulse_la_SOURCES=$(pulsesources)
+libpulse_la_LIBADD=$(AM_LIBADD) $(pulse_LIBS)
+libpulse_la_CFLAGS=$(AM_CFLAGS) $(pulse_CFLAGS)
 
-EXTRA_DIST = ao_polyp.c
+EXTRA_DIST = ao_pulse.c

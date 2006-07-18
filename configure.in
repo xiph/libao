@@ -331,20 +331,20 @@ fi
 AC_SUBST(NAS_CFLAGS)
 AC_SUBST(NAS_LIBS)
 
-dnl Check for polyp
+dnl Check for pulse
 
-AC_ARG_ENABLE(polyp, [  --enable-polyp       include Polypaudio output plugin ],
-[ BUILD_POLYP="$enableval" ],[ BUILD_POLYP="yes" ])
+AC_ARG_ENABLE(pulse, [  --enable-pulse       include PulseAudio output plugin ],
+[ BUILD_PULSE="$enableval" ],[ BUILD_PULSE="yes" ])
 
-have_polyp=no
-if test "x$BUILD_POLYP" = "xyes" ; then
-    PKG_CHECK_MODULES(POLYP, [ polyplib-simple >= 0.6 ],
-	[have_polyp=yes],[have_polyp=no])
-    AC_SUBST(POLYP_LIBS)
-    AC_SUBST(POLYP_CFLAGS)
+have_pulse=no
+if test "x$BUILD_PULSE" = "xyes" ; then
+    PKG_CHECK_MODULES(PULSE, [ libpulse-simple >= 0.9 ],
+	[have_pulse=yes],[have_pulse=no])
+    AC_SUBST(PULSE_LIBS)
+    AC_SUBST(PULSE_CFLAGS)
 fi
 
-AM_CONDITIONAL(HAVE_POLYP,test "x$have_polyp" = xyes)
+AM_CONDITIONAL(HAVE_PULSE,test "x$have_pulse" = xyes)
 
 dnl Orphaned driver.  We'll probably dump it soon.
 AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
@@ -353,4 +353,4 @@ dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/alsa09/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/polyp/Makefile ao.pc)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/alsa09/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile ao.pc)

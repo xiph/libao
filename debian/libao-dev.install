@@ -11,7 +11,7 @@ debian/tmp/usr/lib/ao/plugins-2/libnas.a
 debian/tmp/usr/lib/ao/plugins-2/libnas.la
 debian/tmp/usr/lib/ao/plugins-2/liboss.a
 debian/tmp/usr/lib/ao/plugins-2/liboss.la
-debian/tmp/usr/lib/ao/plugins-2/libpolyp.la
+debian/tmp/usr/lib/ao/plugins-2/libpulse.la
 debian/tmp/usr/lib/libao.a
 debian/tmp/usr/lib/libao.la
 debian/tmp/usr/lib/libao.so
