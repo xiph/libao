@@ -14,9 +14,9 @@ Yes, there are details left out.
 There are generally four steps necessary when building from CVS (i.e.,
 a developer's copy):
 
-1. cvs checkout of the sources, or cvs update.  RTFM from your
-   favorite flavor of CVS documentation; information on the xiph.org
-   CVS repository can be found at http://www.xiph.org/cvs.html.
+1. svn checkout of the sources, or svn update.  RTFM from your
+   favorite flavor of SVN documentation; information on the xiph.org
+   code repository can be found at http://www.xiph.org/svn.
 
 2. [re-]generate files such as "configure" and "Makefile.in" with the
    GNU autoconf/automake tools.  Run the "autogen.sh" script to
