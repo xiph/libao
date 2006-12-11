@@ -732,7 +732,7 @@ int ao_driver_id(const char *short_name)
 }
 
 
-int ao_default_driver_id ()
+int ao_default_driver_id (void)
 {
 	/* Find the default driver in the list of loaded drivers */
   
