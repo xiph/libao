@@ -1,3 +1,7 @@
+0.8.8 - Thu May 24
+ - New win32 driver
+ - Few fixes and changes in autotools and configuration files.
+
 0.8.7 - unreleased snapshot
 - obsolete alsa device renamed to alsa05
 - the 'alsa' device now uses the 0.9/1.0 API
