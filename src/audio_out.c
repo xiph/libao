@@ -28,7 +28,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include <dlfcn.h>
+#if defined HAVE_DLFCN_H && defined HAVE_DLOPEN
+# include <dlfcn.h>
+#else
+static void *dlopen(const char *filename, int flag) {return 0;}
+static char *dlerror(void) { return "dlopen: unsupported"; }
+static void *dlsym(void *handle, const char *symbol) { return 0; }
+static int dlclose(void *handle) { return 0; }
+#undef DLOPEN_FLAG
+#define DLOPEN_FLAG 0
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifndef _MSC_VER
@@ -66,7 +75,9 @@ extern ao_functions ao_au;
 #ifdef HAVE_SYS_AUDIO_H
 extern ao_functions ao_aixs;
 #endif
-
+#ifdef HAVE_WMM
+extern ao_functions ao_wmm;
+#endif
 static ao_functions *static_drivers[] = {
 	&ao_null, /* Must have at least one static driver! */
 	&ao_wav,
@@ -75,6 +86,10 @@ static ao_functions *static_drivers[] = {
 #ifdef HAVE_SYS_AUDIO_H
 	&ao_aixs,
 #endif
+#ifdef HAVE_WMM
+	&ao_wmm,
+#endif
+
 	NULL /* End of list */
 };
 
@@ -99,7 +114,6 @@ static void _clear_config()
 
 /* Load a plugin from disk and put the function table into a driver_list
    struct. */
-
 static driver_list *_get_plugin(char *plugin_file)
 {
 	driver_list *dt;
@@ -235,6 +249,7 @@ static driver_list* _load_static_drivers(driver_list **end)
    driver list.  end points the driver_list node to append to. */
 static void _append_dynamic_drivers(driver_list *end)
 {
+#ifdef HAVE_DLOPEN
 	struct dirent *plugin_dirent;
 	char *ext;
 	struct stat statbuf;
@@ -265,6 +280,7 @@ static void _append_dynamic_drivers(driver_list *end)
 		
 		closedir(plugindir);
 	}
+#endif
 }
 
 
@@ -514,6 +530,14 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	/* Only create swap buffer for 16 bit samples if needed */
 	if (format->bits == 16 &&
 	    device->client_byte_format != device->driver_byte_format) {
+
+	  fprintf(stderr,
+		  "n\n\n\n-------------------------\n"
+		  "big : %d\n"
+		  "device->client_byte_format:%d\n"
+		  "device->driver_byte_format:%d\n"
+		  "--------------------------\n",
+		  ao_is_big_endian(),device->client_byte_format,device->driver_byte_format);
 		
 		result = _realloc_swap_buffer(device, DEF_SWAP_BUF_SIZE);
 		
@@ -563,6 +587,7 @@ void ao_shutdown(void)
 	/* unload and free all the drivers */
 	while (driver) {
 		if (driver->handle) {
+
 		  dlclose(driver->handle);
 		  free(driver->functions); /* DON'T FREE STATIC FUNC TABLES */
 		}
@@ -673,6 +698,7 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
 	if (device == NULL)
 	  return 0;
 
+#if 1
 	if (device->swap_buffer != NULL) {
 		if (_realloc_swap_buffer(device, num_bytes)) {
 			_swap_samples(device->swap_buffer, 
@@ -681,6 +707,7 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
 		} else
 			return 0; /* Could not expand swap buffer */
 	} else
+#endif
 		playback_buffer = output_samples;
 
 	return device->funcs->play(device, playback_buffer, num_bytes);
@@ -763,9 +790,6 @@ ao_info **ao_driver_info_list(int *count)
 /* Stolen from Vorbis' lib/vorbisfile.c */
 int ao_is_big_endian(void) 
 {
-	uint_16 pattern = 0xbabe;
-	unsigned char *bytewise = (unsigned char *)&pattern;
-
-	if (bytewise[0] == 0xba) return 1;
-	return 0;
+	static uint_16 pattern = 0xbabe;
+	return 0[(volatile unsigned char *)&pattern] == 0xba;
 }
