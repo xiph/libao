@@ -10,5 +10,6 @@ Description: ao is a cross-platform audio output library
 Version: @VERSION@
 Requires:
 Conflicts:
-Libs: -L${libdir} -lao
+Libs: -L${libdir} -lao @LIBS@
 Cflags: -I${includedir}
+

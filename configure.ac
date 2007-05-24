@@ -1,9 +1,11 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(src/audio_out.c)
+AC_INIT([liba0],[0.8.8],[benjihan@users.sourceforge.net])
+AM_INIT_AUTOMAKE([gnu 1.6])
 
-AM_INIT_AUTOMAKE(libao,0.8.6)
 AM_MAINTAINER_MODE
+
+dnl $$$ben: Is that neccessary ? And why ?
 AM_DISABLE_STATIC
 
 dnl Library versioning
@@ -17,6 +19,7 @@ AC_SUBST(LIB_AGE)
 dnl Plugin versioning.  We use an integer version number much like LIB_CURRENT.
 PLUGIN_VERSION=2
 
+AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
 plugindir=$libdir/ao/plugins-$PLUGIN_VERSION
@@ -27,8 +30,19 @@ dnl Check for programs
 dnl ====================================
 
 AC_PROG_CC
+AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
+
+dnl ====================================
+dnl Check dlopen 
+dnl ====================================
+
+dnl Currently use this to disable plugin support dlfcn.h
+AC_CHECK_HEADERS([dlfcn.h],
+	[AC_SEARCH_LIBS([dlopen],[dl],
+		[AC_DEFINE([HAVE_DLOPEN],[1],
+			[support dynamic linking loader])])])
 
 dnl ====================================
 dnl Set some general compile options
@@ -88,6 +102,21 @@ PROFILE="$PROFILE $cflags_save"
 
 AC_SUBST(DEBUG)
 AC_SUBST(PROFILE)
+
+dnl =========================================
+dnl Need -no-undefined for building win32 dll
+dnl =========================================
+dnl Should we do that for cygwin too ???
+dnl I guess so but it needs to be tested.
+case $host in
+    *-mingw*|*-cygwin*)
+	LIBAO_LA_LDFLAGS="-no-undefined"
+	;;
+    *)	
+	LIBAO_LA_LDFLAGS=""
+	;;
+esac
+AC_SUBST(LIBAO_LA_LDFLAGS)
 
 dnl ==============================
 dnl Check for libraries
@@ -154,6 +183,39 @@ dnl ======================================
 dnl Detect possible output devices 
 dnl ======================================
 
+dnl Check for WMM
+
+[has_wmm="no"]
+AC_ARG_ENABLE([wmm],
+    [AS_HELP_STRING(
+	[--enable-wmm],
+	[include WMM output plugin @<:@default=check@:>@])],
+	[],[enable_wmm="check"]
+)
+AS_IF([test "x$enable_wmm" != "xno"],
+[AC_CHECK_HEADERS([mmsystem.h],
+   [
+   AC_MSG_CHECKING([waveOut family functions])
+   waveout_old_LIBS="$LIBS"; LIBS="$LIBS -lwinmm"
+dnl Can't use AC_SEARCH_LIBS because symbols are decorated
+   AC_LINK_IFELSE([
+#include <windows.h>
+#include <mmsystem.h>
+int main(int na, char ** a) {
+    return waveOutOpen(0,0,0,0,0,0);
+}
+],[
+has_wmm="yes";
+AC_MSG_RESULT([yes])
+AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
+],[
+AC_MSG_RESULT([no])
+LIBS="$waveout_old_LIBS"
+])
+],[],[#include <windows.h>])])
+AM_CONDITIONAL([HAVE_WMM],[test "x$has_wmm" = "xyes"])
+AS_IF([test "x${has_wmm}" = "xyes"],[WMM_LIBS="-lwinmm"],[WMM_LIBS=""])
+AC_SUBST([WMM_LIBS])
 
 dnl Check for ESD
 
