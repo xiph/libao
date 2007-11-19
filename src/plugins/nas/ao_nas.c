@@ -34,6 +34,10 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
+/*
+* Buffer size must be greater than 2.
+*/
+
 #define AO_NAS_BUF_SIZE 4096
 
 static char *ao_nas_options[] = {
@@ -61,8 +65,8 @@ typedef struct ao_nas_internal
   AuFlowID flow;
   AuDeviceID dev;
   char *host;
-  int buf_size;
-  int buf_free;
+  AuUint32 buf_size;
+  AuUint32 buf_free;
 } ao_nas_internal;
 
 int ao_plugin_test()
@@ -96,7 +100,7 @@ int ao_plugin_device_init(ao_device *device)
 	
 	internal->host = NULL;
 	internal->buf_size = AO_NAS_BUF_SIZE;
-	internal->buf_free = -1;
+	internal->buf_free = 0;
 
 	device->internal = internal;
 	return 1; /* Memory alloc successful */
@@ -107,18 +111,17 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	ao_nas_internal *internal = (ao_nas_internal *) device->internal;
 
 	if (!strcmp(key, "host")) {
-	  if (internal->host)
-	    free(internal->host);
-	  internal->host = strdup(value);
-	  if (!internal->host)
-	    return 0;
+          char *tmp = strdup (value);
+ 	  if (!tmp) return 0;
+ 	  if (internal->host) free (internal->host);
+ 	  internal->host = tmp;
 	}
 	else if (!strcmp(key, "buf_size")) {
-	  internal->buf_size = atoi(value);
-	  if (internal->buf_size <= 2)
-	    return 0;
+          int tmp = atoi (value);
+ 	  if (tmp <= 2) return 0;
+ 	  internal->buf_size = tmp;
 	}
-		 
+
 	return 1;
 }
 
@@ -189,7 +192,7 @@ int ao_plugin_play(ao_device *device, const char* output_samples,
 
 	while (num_bytes > 0) {
 	  /* Wait for room in buffer */
-	  while (internal->buf_free <= 0) {
+	  while (internal->buf_free == 0) {
 	    AuEvent ev;
 	    AuNextEvent(internal->aud, AuTrue, &ev);
 	    if (ev.type == AuEventTypeElementNotify) {
@@ -202,11 +205,11 @@ int ao_plugin_play(ao_device *device, const char* output_samples,
 		internal->buf_free = event->num_bytes;
 	    }
 	  }
-	  
+
 	  /* Partial transfer */
 	  if (num_bytes > internal->buf_free) {
 	    AuWriteElement(internal->aud, internal->flow, 0, internal->buf_free,
-			   output_samples, AuFalse, 0);
+			   (AuPointer)output_samples, AuFalse, 0);
 	    num_bytes -= internal->buf_free;
 	    output_samples += internal->buf_free;
 	    internal->buf_free = 0;
@@ -215,7 +218,7 @@ int ao_plugin_play(ao_device *device, const char* output_samples,
 	  /* Final transfer */
 	  else {
 	    AuWriteElement(internal->aud, internal->flow, 0, num_bytes,
-			   output_samples, AuFalse, 0);
+			   (AuPointer)output_samples, AuFalse, 0);
 	    internal->buf_free -= num_bytes;
 	    break;
 	  }
