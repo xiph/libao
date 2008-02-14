@@ -47,7 +47,7 @@ static ao_info ao_pulse_info = {
     PACKAGE_BUGREPORT,
     "Outputs to the PulseAudio Sound Server",
     AO_FMT_NATIVE,
-    41,
+    50,
     ao_pulse_options,
     2
 };
