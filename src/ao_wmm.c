@@ -496,7 +496,7 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
   wavefmt.nChannels       = format->channels;
   wavefmt.wBitsPerSample  = format->bits;
   wavefmt.nSamplesPerSec  = format->rate;
-  wavefmt.nBlockAlign     = (wavefmt.wBitsPerSample>>3)*wavefmt.nChannels;
+  wavefmt.nBlockAlign     = ((wavefmt.wBitsPerSample+7)>>3)*wavefmt.nChannels;
   wavefmt.nAvgBytesPerSec = wavefmt.nSamplesPerSec*wavefmt.nBlockAlign;
   wavefmt.cbSize          = 0;
   internal->wavefmt       = wavefmt;
