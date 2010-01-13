@@ -293,7 +293,7 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 		return err;
 
 	/* save the buffer size in frames for posterity */
-	internal->cmd = "snd_pcm_hw_get_period_size";
+	internal->cmd = "snd_pcm_hw_get_buffer_size";
 	err = snd_pcm_hw_params_get_buffer_size(params, 
 						&(internal->buffer_size)); 
 	if (err < 0)
