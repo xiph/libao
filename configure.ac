@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libao],[0.8.8],[benjihan@users.sourceforge.net])
+AC_INIT([libao],[0.8.9svn],[monty@xiph.org])
 AM_INIT_AUTOMAKE([gnu 1.6])
 
 AM_MAINTAINER_MODE
@@ -10,8 +10,8 @@ AM_DISABLE_STATIC
 
 dnl Library versioning
 LIB_CURRENT=3
-LIB_REVISION=3
-LIB_AGE=1
+LIB_REVISION=4
+LIB_AGE=2
 AC_SUBST(LIB_CURRENT)
 AC_SUBST(LIB_REVISION)
 AC_SUBST(LIB_AGE)
@@ -192,6 +192,12 @@ AC_ARG_ENABLE([wmm],
 	[include WMM output plugin @<:@default=check@:>@])],
 	[],[enable_wmm="check"]
 )
+AC_ARG_ENABLE([wmm_debug],
+    [AS_HELP_STRING(
+	[--enable-wmm-debug],
+	[enable WMM debugging output @<:@default=no@:>@])],
+	[enable_wmm_debug="yes"]
+)
 AS_IF([test "x$enable_wmm" != "xno"],
 [AC_CHECK_HEADERS([mmsystem.h],
    [
@@ -215,6 +221,7 @@ LIBS="$waveout_old_LIBS"
 ],[],[#include <windows.h>])])
 AM_CONDITIONAL([HAVE_WMM],[test "x$has_wmm" = "xyes"])
 AS_IF([test "x${has_wmm}" = "xyes"],[WMM_LIBS="-lwinmm"],[WMM_LIBS=""])
+AS_IF([test "x${has_wmm}" = "xyes" && test "x$enable_wmm_debug"],[CFLAGS="$CFLAGS -DAO_WMM_DEBUG=1"],[])
 AC_SUBST([WMM_LIBS])
 
 dnl Check for ESD

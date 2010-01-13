@@ -42,7 +42,9 @@
 #define GALLOC_WVHD_TYPE (GHND)
 #define GALLOC_DATA_TYPE (GHND)
 
-static int debug_flag = 1;
+#ifndef AO_WMM_DEBUG
+  #define AO_WMM_DEBUG 0
+static int debug_flat = AO_WMM_DEBUG;
 
 static void debug(const char * fmt, ...)
 {
@@ -65,7 +67,7 @@ static const char * mmerror(MMRESULT mmrError)
   return mmbuffer;
 }
 
-static char * ao_wmm_options[] = {"dev","id"};
+static char * ao_wmm_options[] = {"debug", "dev","id"};
 static ao_info ao_wmm_info =
   {
     /* type             */ AO_TYPE_LIVE,
@@ -130,6 +132,17 @@ int ao_wmm_set_option(ao_device *device,
   int res = 0;
 
   debug("ao_wmm_set_option(%s,%s) {\n", key, value);
+
+  if(!strcmp("debug")) {
+    if(!strcmp("yes")) {
+      debug_flag = 1; res = 1;
+    } else if(!strcmp("no")) {
+      debug_flag = 0; res = 1;
+    } else {
+      res = 0;
+    } goto finish;
+  }
+
   if (!strcmp(key, "dev")) {
     if (!strcmp(value,"default")) {
       key = "id";
