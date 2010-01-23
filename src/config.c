@@ -23,7 +23,7 @@
  *
  */
 
-#include "ao_private.h"
+#include "ao.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

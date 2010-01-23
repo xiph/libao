@@ -152,7 +152,7 @@ SOURCE=..\include\ao\ao.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\src\ao_private.h
+SOURCE=..\include\ao\ao_private.h
 # End Source File
 # Begin Source File
 

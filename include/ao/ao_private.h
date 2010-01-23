@@ -63,6 +63,35 @@ typedef struct ao_config {
 	char *default_driver;
 } ao_config;
 
+struct ao_device {
+	int  type; /* live output or file output? */
+	int  driver_id;
+	ao_functions *funcs;
+	FILE *file; /* File for output if this is a file driver */
+	int  client_byte_format;
+	int  machine_byte_format;
+	int  driver_byte_format;
+	char *swap_buffer;
+	int  swap_buffer_size; /* Bytes allocated to swap_buffer */
+        int  *output_channels;
+        int  *permute_channels;
+	void *internal; /* Pointer to driver-specific data */
+};
+
+struct ao_functions {
+	int (*test)(void);
+	ao_info* (*driver_info)(void);
+	int (*device_init)(ao_device *device);
+	int (*set_option)(ao_device *device, const char *key,
+			  const char *value);
+	int (*open)(ao_device *device, ao_sample_format *format);
+	int (*play)(ao_device *device, const char *output_samples,
+			   uint_32 num_bytes);
+	int (*close)(ao_device *device);
+	void (*device_clear)(ao_device *device);
+	char* (*file_extension)(void);
+};
+
 /* --- Functions --- */
 
 void read_config_files (ao_config *config);

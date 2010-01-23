@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libao],[0.8.9svn],[monty@xiph.org])
+AC_INIT([libao],[0.9.0svn],[monty@xiph.org])
 AM_INIT_AUTOMAKE([gnu 1.6])
 
 AM_MAINTAINER_MODE
@@ -9,9 +9,9 @@ dnl $$$ben: Is that neccessary ? And why ?
 AM_DISABLE_STATIC
 
 dnl Library versioning
-LIB_CURRENT=3
-LIB_REVISION=4
-LIB_AGE=2
+LIB_CURRENT=4
+LIB_REVISION=0
+LIB_AGE=0
 AC_SUBST(LIB_CURRENT)
 AC_SUBST(LIB_REVISION)
 AC_SUBST(LIB_AGE)
@@ -95,10 +95,9 @@ else
                 PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
         esac
 fi
-CFLAGS="$CFLAGS $cflags_save"
-DEBUG="$DEBUG $cflags_save"
-PROFILE="$PROFILE $cflags_save"
-
+CFLAGS="$CFLAGS $cflags_save -DAO_BUILDING_LIBAO"
+DEBUG="$DEBUG $cflags_save -DAO_BUILDING_LIBAO"
+PROFILE="$PROFILE $cflags_save -DAO_BUILDING_LIBAO"
 
 AC_SUBST(DEBUG)
 AC_SUBST(PROFILE)

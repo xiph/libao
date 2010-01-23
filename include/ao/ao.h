@@ -1,7 +1,7 @@
 /*
  *
  *  ao.h 
- *    
+ *
  *	Original Copyright (C) Aaron Holtzman - May 1999
  *      Modifications Copyright (C) Stan Seibert - July 2000, July 2001
  *      More Modifications Copyright (C) Jack Moffitt - October 2000
@@ -21,7 +21,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.	
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #ifndef __AO_H__
@@ -32,7 +32,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-#include <stdio.h>	
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include "os_types.h"
@@ -58,6 +58,124 @@ extern "C"
 #define AO_FMT_BIG    2
 #define AO_FMT_NATIVE 4
 
+/* Specify the ordering channels will appear in the stream; not
+   functionally necessary, but saves the application having to
+   byte-twiddle streams into a single supported input order when AO
+   will likelyhave to re-twiddle for specific hardware interfaces */
+
+/* the native channel ordering used by OSS/ALSA/PULSE [L R BL BR C LFE SL SR] */
+#define AO_CHANORDER_LINUX            0x00000100U
+/* FLAC, WAV and WMA use Windows ordering [L R C LFE BL BR SL SR] */
+#define AO_CHANORDER_WIN              0x00000200U
+/* AC3, Vorbis use the classic 8-track theater order [L C R BL BR SL SR LFE] */
+#define AO_CHANORDER_THEATER          0x00000300U
+/* AAC and DTS use variant theater order [C LC RC L R BL BR LFE] */
+#define AO_CHANORDER_AAC              0x00000400U
+/* AIFF[-C] is yet different [L BL C R BR LFE [SL SR?]] */
+#define AO_CHANORDER_AIF              0x00000500U
+
+/* input channel masks; mark which channels are present */
+
+/* not an exhaustive list, but what we will support for now */
+#define AO_CHAN_LEFT                    0x00001000U
+#define AO_CHAN_RIGHT                   0x00002000U
+#define AO_CHAN_CENTER                  0x00004000U
+
+#define AO_CHAN_REAR_SURROUND_LEFT      0x00008000U
+#define AO_CHAN_REAR_SURROUND_RIGHT     0x00010000U
+#define AO_CHAN_REAR_SURROUND_CENTER    0x00020000U
+
+#define AO_CHAN_SIDE_SURROUND_LEFT      0x00040000U
+#define AO_CHAN_SIDE_SURROUND_RIGHT     0x00080000U
+
+#define AO_CHAN_LEFT_OF_CENTER          0x00100000U
+#define AO_CHAN_RIGHT_OF_CENTER         0x00200000U
+
+#define AO_CHAN_LFE                     0x40000000U
+
+
+/* shortcuts */
+
+#define AO_CHANMAP_2_1_STEREO         (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_LFE)
+
+#define AO_CHANMAP_3_0_WIDESTEREO     (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_CENTER)
+
+#define AO_CHANMAP_3_0_SURROUND_DOLBY (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_CENTER)
+
+#define AO_CHANMAP_4_0_QUAD           (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT)
+
+#define AO_CHANMAP_4_0_SURROUND_DOLBY (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_REAR_SURROUND_CENTER)
+
+#define AO_CHANMAP_4_1_QUAD           (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT |\
+                                       AO_CHAN_LFE)
+
+#define AO_CHANMAP_4_1_SURROUND_DOLBY (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_REAR_SURROUND_CENTER |\
+                                       AO_CHAN_LFE)
+
+#define AO_CHANMAP_5_0_SURROUND       (AO_CHAN_LEFT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT)
+
+#define AO_CHANMAP_5_1_SURROUND       (AO_CHAN_LEFT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT |\
+                                       AO_CHAN_LFE)
+
+#define AO_CHANMAP_6_0_SURROUND_HEX   (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_SIDE_SURROUND_LEFT |\
+                                       AO_CHAN_SIDE_SURROUND_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT)
+
+#define AO_CHANMAP_6_1_SURROUND       (AO_CHAN_LEFT |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_SIDE_SURROUND_LEFT |\
+                                       AO_CHAN_SIDE_SURROUND_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_CENTER |\
+                                       AO_CHAN_LFE)
+
+#define AO_CHANMAP_7_1_SURROUND       (AO_CHAN_LEFT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT |\
+                                       AO_CHAN_SIDE_SURROUND_LEFT |\
+                                       AO_CHAN_SIDE_SURROUND_RIGHT |\
+                                       AO_CHAN_LFE)
+
+#define AO_CHANMAP_7_1_WIDEDTS        (AO_CHAN_LEFT |\
+                                       AO_CHAN_CENTER |\
+                                       AO_CHAN_RIGHT |\
+                                       AO_CHAN_LEFT_OF_CENTER |\
+                                       AO_CHAN_RIGHT_OF_CENTER |\
+                                       AO_CHAN_REAR_SURROUND_LEFT |\
+                                       AO_CHAN_REAR_SURROUND_RIGHT |\
+                                       AO_CHAN_LFE)
+
 /* --- Structures --- */
 
 typedef struct ao_info {
@@ -72,20 +190,8 @@ typedef struct ao_info {
 	int  option_count;
 } ao_info;
 
-typedef struct ao_functions ao_functions; /* Forward decl to make C happy */
-
-typedef struct ao_device {
-	int  type; /* live output or file output? */
-	int  driver_id;
-	ao_functions *funcs;
-	FILE *file; /* File for output if this is a file driver */
-	int  client_byte_format;
-	int  machine_byte_format;
-	int  driver_byte_format;
-	char *swap_buffer;
-	int  swap_buffer_size; /* Bytes allocated to swap_buffer */
-	void *internal; /* Pointer to driver-specific data */
-} ao_device;
+typedef struct ao_functions ao_functions;
+typedef struct ao_device ao_device;
 
 typedef struct ao_sample_format {
 	int bits; /* bits per sample */
@@ -94,25 +200,15 @@ typedef struct ao_sample_format {
 	int byte_format; /* Byte ordering in sample, see constants below */
 } ao_sample_format;
 
-struct ao_functions {
-	int (*test)(void);
-	ao_info* (*driver_info)(void);
-	int (*device_init)(ao_device *device);
-	int (*set_option)(ao_device *device, const char *key, 
-			  const char *value);
-	int (*open)(ao_device *device, ao_sample_format *format);
-	int (*play)(ao_device *device, const char *output_samples,
-			   uint_32 num_bytes);
-	int (*close)(ao_device *device);
-	void (*device_clear)(ao_device *device);
-	char* (*file_extension)(void);
-};
-
 typedef struct ao_option {
 	char *key;
 	char *value;
 	struct ao_option *next;
-} ao_option;		
+} ao_option;
+
+#if defined(AO_BUILDING_LIBAO)
+#include "ao_private.h"
+#endif
 
 /* --- Functions --- */
 
