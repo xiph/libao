@@ -504,14 +504,22 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
 	/* Load options */
 	while (options != NULL) {
-		if (!funcs->set_option(device, options->key, options->value)) {
-			/* Problem setting options */
-			free(device);
-			errno = AO_EOPENDEVICE;
-			return NULL;
-		}
+          /* The output matrix option is handled for the drivers here */
+          if(!strcmp(options->key,"matrix")){
+            /* explicitly set the output matrix to the requested
+               string; devices must not override. */
+            _sanitize_matrix(options->value);
+            device->output_matrix = strdup(options->value);
+          }else{
+            if (!funcs->set_option(device, options->key, options->value)) {
+              /* Problem setting options */
+              free(device);
+              errno = AO_EOPENDEVICE;
+              return NULL;
+            }
+          }
 
-		options = options->next;
+          options = options->next;
 	}
 
 	/* Open the device */
@@ -522,6 +530,10 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 		errno = AO_EOPENDEVICE;
 		return NULL; /* Couldn't open device */
 	}
+
+        /* set permuatation vector */
+
+
 
 	/* Resolve actual driver byte format */
 	device->driver_byte_format =

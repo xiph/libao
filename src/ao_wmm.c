@@ -44,7 +44,8 @@
 
 #ifndef AO_WMM_DEBUG
   #define AO_WMM_DEBUG 0
-static int debug_flat = AO_WMM_DEBUG;
+#endif
+static int debug_flag = AO_WMM_DEBUG;
 
 static void debug(const char * fmt, ...)
 {
@@ -133,10 +134,10 @@ int ao_wmm_set_option(ao_device *device,
 
   debug("ao_wmm_set_option(%s,%s) {\n", key, value);
 
-  if(!strcmp("debug")) {
-    if(!strcmp("yes")) {
+  if(!strcmp(key,"debug")) {
+    if(!strcmp(value,"yes")) {
       debug_flag = 1; res = 1;
-    } else if(!strcmp("no")) {
+    } else if(!strcmp(value,"no")) {
       debug_flag = 0; res = 1;
     } else {
       res = 0;
