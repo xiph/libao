@@ -1,6 +1,0 @@
-# Microsoft Developer Studio Generated Dependency File, included by example.mak
-
-..\doc\ao_example.c : \
-	"..\include\ao\ao.h"\
-	".\include\os_types.h"\
-	
