@@ -58,124 +58,6 @@ extern "C"
 #define AO_FMT_BIG    2
 #define AO_FMT_NATIVE 4
 
-/* Specify the ordering channels will appear in the stream; not
-   functionally necessary, but saves the application having to
-   byte-twiddle streams into a single supported input order when AO
-   will likelyhave to re-twiddle for specific hardware interfaces */
-
-/* the native channel ordering used by OSS/ALSA/PULSE [L R BL BR C LFE SL SR] */
-#define AO_CHANORDER_LINUX            0x00000100U
-/* FLAC, WAV and WMA use Windows ordering [L R C LFE BL BR SL SR] */
-#define AO_CHANORDER_WIN              0x00000200U
-/* AC3, Vorbis use the classic 8-track theater order [L C R BL BR SL SR LFE] */
-#define AO_CHANORDER_THEATER          0x00000300U
-/* AAC and DTS use variant theater order [C LC RC L R BL BR LFE] */
-#define AO_CHANORDER_AAC              0x00000400U
-/* AIFF[-C] is yet different [L BL C R BR LFE [SL SR?]] */
-#define AO_CHANORDER_AIF              0x00000500U
-
-/* input channel masks; mark which channels are present */
-
-/* not an exhaustive list, but what we will support for now */
-#define AO_CHAN_LEFT                    0x00001000U
-#define AO_CHAN_RIGHT                   0x00002000U
-#define AO_CHAN_CENTER                  0x00004000U
-
-#define AO_CHAN_REAR_SURROUND_LEFT      0x00008000U
-#define AO_CHAN_REAR_SURROUND_RIGHT     0x00010000U
-#define AO_CHAN_REAR_SURROUND_CENTER    0x00020000U
-
-#define AO_CHAN_SIDE_SURROUND_LEFT      0x00040000U
-#define AO_CHAN_SIDE_SURROUND_RIGHT     0x00080000U
-
-#define AO_CHAN_LEFT_OF_CENTER          0x00100000U
-#define AO_CHAN_RIGHT_OF_CENTER         0x00200000U
-
-#define AO_CHAN_LFE                     0x40000000U
-
-
-/* shortcuts */
-
-#define AO_CHANMAP_2_1_STEREO         (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_LFE)
-
-#define AO_CHANMAP_3_0_WIDESTEREO     (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_CENTER)
-
-#define AO_CHANMAP_3_0_SURROUND_DOLBY (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_CENTER)
-
-#define AO_CHANMAP_4_0_QUAD           (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT)
-
-#define AO_CHANMAP_4_0_SURROUND_DOLBY (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_REAR_SURROUND_CENTER)
-
-#define AO_CHANMAP_4_1_QUAD           (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT |\
-                                       AO_CHAN_LFE)
-
-#define AO_CHANMAP_4_1_SURROUND_DOLBY (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_REAR_SURROUND_CENTER |\
-                                       AO_CHAN_LFE)
-
-#define AO_CHANMAP_5_0_SURROUND       (AO_CHAN_LEFT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT)
-
-#define AO_CHANMAP_5_1_SURROUND       (AO_CHAN_LEFT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT |\
-                                       AO_CHAN_LFE)
-
-#define AO_CHANMAP_6_0_SURROUND_HEX   (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_SIDE_SURROUND_LEFT |\
-                                       AO_CHAN_SIDE_SURROUND_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT)
-
-#define AO_CHANMAP_6_1_SURROUND       (AO_CHAN_LEFT |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_SIDE_SURROUND_LEFT |\
-                                       AO_CHAN_SIDE_SURROUND_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_CENTER |\
-                                       AO_CHAN_LFE)
-
-#define AO_CHANMAP_7_1_SURROUND       (AO_CHAN_LEFT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT |\
-                                       AO_CHAN_SIDE_SURROUND_LEFT |\
-                                       AO_CHAN_SIDE_SURROUND_RIGHT |\
-                                       AO_CHAN_LFE)
-
-#define AO_CHANMAP_7_1_WIDEDTS        (AO_CHAN_LEFT |\
-                                       AO_CHAN_CENTER |\
-                                       AO_CHAN_RIGHT |\
-                                       AO_CHAN_LEFT_OF_CENTER |\
-                                       AO_CHAN_RIGHT_OF_CENTER |\
-                                       AO_CHAN_REAR_SURROUND_LEFT |\
-                                       AO_CHAN_REAR_SURROUND_RIGHT |\
-                                       AO_CHAN_LFE)
-
 /* --- Structures --- */
 
 typedef struct ao_info {
@@ -194,10 +76,11 @@ typedef struct ao_functions ao_functions;
 typedef struct ao_device ao_device;
 
 typedef struct ao_sample_format {
-	int bits; /* bits per sample */
-	int rate; /* samples per second (in a single channel) */
-	int channels; /* number of audio channels */
-	int byte_format; /* Byte ordering in sample, see constants below */
+	int  bits; /* bits per sample */
+	int  rate; /* samples per second (in a single channel) */
+	int  channels; /* number of audio channels */
+	int  byte_format; /* Byte ordering in sample, see constants below */
+        char *matrix; /* input channel location/ordering */
 } ao_sample_format;
 
 typedef struct ao_option {

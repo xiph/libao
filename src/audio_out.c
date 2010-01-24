@@ -126,7 +126,7 @@ static driver_list *_get_plugin(char *plugin_file)
 		if (!dt) return NULL;
 
 		dt->handle = handle;
-		
+
 		dt->functions = (ao_functions *)malloc(sizeof(ao_functions));
 		if (!(dt->functions)) {
 			free(dt);
@@ -136,15 +136,15 @@ static driver_list *_get_plugin(char *plugin_file)
 		dt->functions->test = dlsym(dt->handle, "ao_plugin_test");
 		if (!(dt->functions->test)) goto failed;
 
-		dt->functions->driver_info = 
+		dt->functions->driver_info =
 		  dlsym(dt->handle, "ao_plugin_driver_info");
 		if (!(dt->functions->driver_info)) goto failed;
 
-		dt->functions->device_init = 
+		dt->functions->device_init =
 		  dlsym(dt->handle, "ao_plugin_device_init");
 		if (!(dt->functions->device_init )) goto failed;
 
-		dt->functions->set_option = 
+		dt->functions->set_option =
 		  dlsym(dt->handle, "ao_plugin_set_option");
 		if (!(dt->functions->set_option)) goto failed;
 
@@ -157,7 +157,7 @@ static driver_list *_get_plugin(char *plugin_file)
 		dt->functions->close = dlsym(dt->handle, "ao_plugin_close");
 		if (!(dt->functions->close)) goto failed;
 
-		dt->functions->device_clear = 
+		dt->functions->device_clear =
 		  dlsym(dt->handle, "ao_plugin_device_clear");
 		if (!(dt->functions->device_clear)) goto failed;
 
@@ -187,13 +187,13 @@ static int _find_default_driver_id (const char *name)
 	if ( name == NULL || (def_id = ao_driver_id(name)) < 0 ) {
 		/* No default specified. Find one among available drivers. */
 		def_id = -1;
-		
+
 		id = 0;
 		while (driver != NULL) {
 
 			info = driver->functions->driver_info();
 
-			if ( info->type == AO_TYPE_LIVE && 
+			if ( info->type == AO_TYPE_LIVE &&
 			     info->priority > 0 && /* Skip static drivers */
 			     driver->functions->test() ) {
 				def_id = id; /* Found a usable driver */
@@ -209,13 +209,13 @@ static int _find_default_driver_id (const char *name)
 }
 
 
-/* Convert the static drivers table into a linked list of drivers. */ 
+/* Convert the static drivers table into a linked list of drivers. */
 static driver_list* _load_static_drivers(driver_list **end)
 {
 	driver_list *head;
 	driver_list *driver;
 	int i;
-       
+
 	/* insert first driver */
 	head = driver = malloc(sizeof(driver_list));
 	if (driver != NULL) {
@@ -232,7 +232,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 			driver->next->functions = static_drivers[i];
 			driver->next->handle = NULL;
 			driver->next->next = NULL;
-			
+
 			driver = driver->next;
 			i++;
 		}
@@ -262,10 +262,10 @@ static void _append_dynamic_drivers(driver_list *end)
 	plugindir = opendir(AO_PLUGIN_PATH);
 	if (plugindir != NULL) {
 		while ((plugin_dirent = readdir(plugindir)) != NULL) {
-			snprintf(fullpath, PATH_MAX, "%s/%s", 
+			snprintf(fullpath, PATH_MAX, "%s/%s",
 				 AO_PLUGIN_PATH, plugin_dirent->d_name);
-			if (!stat(fullpath, &statbuf) && 
-			    S_ISREG(statbuf.st_mode) && 
+			if (!stat(fullpath, &statbuf) &&
+			    S_ISREG(statbuf.st_mode) &&
 			 (ext = strrchr(plugin_dirent->d_name, '.')) != NULL) {
 				if (strcmp(ext, SHARED_LIB_EXT) == 0) {
 					plugin = _get_plugin(fullpath);
@@ -277,16 +277,16 @@ static void _append_dynamic_drivers(driver_list *end)
 				}
 			}
 		}
-		
+
 		closedir(plugindir);
 	}
 #endif
 }
 
 
-/* Compare two drivers based on priority 
+/* Compare two drivers based on priority
    Used as compar function for qsort() in _make_info_table() */
-static int _compar_driver_priority (const driver_list **a, 
+static int _compar_driver_priority (const driver_list **a,
 				    const driver_list **b)
 {
 	return memcmp(&((*b)->functions->driver_info()->priority),
@@ -313,7 +313,7 @@ static ao_info ** _make_info_table (driver_list **head, int *driver_count)
 		list = list->next;
 	}
 
-	
+
 	/* Sort driver_list */
 	drivers_table = (driver_list **) calloc(i, sizeof(driver_list *));
 	if (drivers_table == NULL)
@@ -322,7 +322,7 @@ static ao_info ** _make_info_table (driver_list **head, int *driver_count)
 	*driver_count = i;
 	for (i = 0; i < *driver_count; i++, list = list->next)
 		drivers_table[i] = list;
-	qsort(drivers_table, i, sizeof(driver_list *), 
+	qsort(drivers_table, i, sizeof(driver_list *),
 			(int(*)(const void *, const void *))
 			_compar_driver_priority);
 	*head = drivers_table[0];
@@ -357,7 +357,7 @@ static driver_list *_get_driver(int driver_id) {
 		driver = driver->next;
 	}
 
-	if (i == driver_id) 
+	if (i == driver_id)
 		return driver;
 
 	return NULL;
@@ -376,12 +376,12 @@ static int _check_driver_id(int driver_id)
 		driver = driver->next;
 		i++;
 	}
-	
+
 	if (i == (driver_id + 1))
 		return 1;
 
 	return 0;
-}	
+}
 
 
 /* helper function to convert a byte_format of AO_FMT_NATIVE to the
@@ -404,15 +404,15 @@ static ao_device* _create_device(int driver_id, driver_list *driver,
 				 ao_sample_format *format, FILE *file)
 {
 	ao_device *device;
-	
+
 	device = malloc(sizeof(ao_device));
-	
-	if (device != NULL) {		
+
+	if (device != NULL) {
 		device->type = driver->functions->driver_info()->type;
 		device->driver_id = driver_id;
 		device->funcs = driver->functions;
 		device->file = file;
-		device->machine_byte_format = 
+		device->machine_byte_format =
 		  ao_is_big_endian() ? AO_FMT_BIG : AO_FMT_LITTLE;
 		device->client_byte_format =
 		  _real_byte_format(format->byte_format);
@@ -456,17 +456,17 @@ static void _swap_samples(char *target_buffer, char* source_buffer,
 		target_buffer[i+1] = source_buffer[i];
 	}
 }
-		
+
 
 /* Open a device.  If this is a live device, file == NULL. */
-static ao_device* _open_device(int driver_id, ao_sample_format *format, 
+static ao_device* _open_device(int driver_id, ao_sample_format *format,
 			       ao_option *options, FILE *file)
 {
 	ao_functions *funcs;
 	driver_list *driver;
 	ao_device *device;
 	int result;
-	
+
 	/* Get driver id */
 	if ( (driver = _get_driver(driver_id)) == NULL ) {
 		errno = AO_ENODRIVER;
@@ -476,32 +476,32 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	funcs = driver->functions;
 
 	/* Check the driver type */
-	if (file == NULL && 
+	if (file == NULL &&
 	    funcs->driver_info()->type != AO_TYPE_LIVE) {
 
 		errno = AO_ENOTLIVE;
 		return NULL;
-	} else if (file != NULL && 
+	} else if (file != NULL &&
 		   funcs->driver_info()->type != AO_TYPE_FILE) {
 
 		errno = AO_ENOTFILE;
 		return NULL;
 	}
-	
+
 	/* Make a new device structure */
-	if ( (device = _create_device(driver_id, driver, 
+	if ( (device = _create_device(driver_id, driver,
 				      format, file)) == NULL ) {
 		errno = AO_EFAIL;
 		return NULL; /* Couldn't alloc device */
 	}
-		
+
 	/* Initialize the device memory */
 	if (!funcs->device_init(device)) {
 		free(device);
 		errno = AO_EFAIL;
 		return NULL; /* Couldn't init internal memory */
 	}
-	
+
 	/* Load options */
 	while (options != NULL) {
 		if (!funcs->set_option(device, options->key, options->value)) {
@@ -510,7 +510,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 			errno = AO_EOPENDEVICE;
 			return NULL;
 		}
-			
+
 		options = options->next;
 	}
 
@@ -522,11 +522,11 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 		errno = AO_EOPENDEVICE;
 		return NULL; /* Couldn't open device */
 	}
-		
+
 	/* Resolve actual driver byte format */
-	device->driver_byte_format = 
+	device->driver_byte_format =
 		_real_byte_format(device->driver_byte_format);
-	
+
 	/* Only create swap buffer for 16 bit samples if needed */
 	if (format->bits == 16 &&
 	    device->client_byte_format != device->driver_byte_format) {
@@ -538,11 +538,11 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 		  "device->driver_byte_format:%d\n"
 		  "--------------------------\n",
 		  ao_is_big_endian(),device->client_byte_format,device->driver_byte_format);
-		
+
 		result = _realloc_swap_buffer(device, DEF_SWAP_BUF_SIZE);
-		
+
 		if (!result) {
-			
+
 			device->funcs->close(device);
 			device->funcs->device_clear(device);
 			free(device);
@@ -550,9 +550,9 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 			return NULL; /* Couldn't alloc swap buffer */
 		}
 	}
-	
+
 	/* If we made it this far, everything is OK. */
-	return device; 
+	return device;
 }
 
 
@@ -642,14 +642,14 @@ void ao_free_options(ao_option *options)
 }
 
 
-ao_device *ao_open_live (int driver_id, ao_sample_format *format, 
+ao_device *ao_open_live (int driver_id, ao_sample_format *format,
 			ao_option *options)
 {
-	return _open_device(driver_id, format, options, NULL);		
+	return _open_device(driver_id, format, options, NULL);
 }
 
 
-ao_device *ao_open_file (int driver_id, const char *filename, int overwrite, 
+ao_device *ao_open_file (int driver_id, const char *filename, int overwrite,
 			 ao_sample_format *format, ao_option *options)
 {
 	FILE *file;
@@ -678,9 +678,9 @@ ao_device *ao_open_file (int driver_id, const char *filename, int overwrite,
 		errno = AO_EOPENFILE;
 		return NULL;
 	}
-		
+
 	device = _open_device(driver_id, format, options, file);
-	
+
 	if (device == NULL) {
 		fclose(file);
 		/* errno already set by _open_device() */
@@ -701,7 +701,7 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
 #if 1
 	if (device->swap_buffer != NULL) {
 		if (_realloc_swap_buffer(device, num_bytes)) {
-			_swap_samples(device->swap_buffer, 
+			_swap_samples(device->swap_buffer,
 				      output_samples, num_bytes);
 			playback_buffer = device->swap_buffer;
 		} else
@@ -748,13 +748,13 @@ int ao_driver_id(const char *short_name)
 
 	i = 0;
 	while (driver) {
-		if (strcmp(short_name, 
+		if (strcmp(short_name,
 			   driver->functions->driver_info()->short_name) == 0)
 			return i;
 		driver = driver->next;
 		i++;
 	}
-	
+
 	return -1; /* No driver by that name */
 }
 
@@ -762,7 +762,7 @@ int ao_driver_id(const char *short_name)
 int ao_default_driver_id (void)
 {
 	/* Find the default driver in the list of loaded drivers */
-  
+
 	return _find_default_driver_id(config.default_driver);
 }
 
@@ -788,7 +788,7 @@ ao_info **ao_driver_info_list(int *count)
 /* -- Miscellaneous -- */
 
 /* Stolen from Vorbis' lib/vorbisfile.c */
-int ao_is_big_endian(void) 
+int ao_is_big_endian(void)
 {
 	static uint_16 pattern = 0xbabe;
 	return 0[(volatile unsigned char *)&pattern] == 0xba;
