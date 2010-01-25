@@ -68,13 +68,19 @@ struct ao_device {
 	int  driver_id;
 	ao_functions *funcs;
 	FILE *file; /* File for output if this is a file driver */
+
+  /* input not necessarily == output. Right now, byte order and
+     channel mappings may be altered. */
+
 	int  client_byte_format;
 	int  machine_byte_format;
 	int  driver_byte_format;
 	char *swap_buffer;
 	int  swap_buffer_size; /* Bytes allocated to swap_buffer */
 
+        int input_channels;
         int output_channels;
+        int bytewidth;
         char *output_matrix;
         int  *permute_channels;
 	void *internal; /* Pointer to driver-specific data */

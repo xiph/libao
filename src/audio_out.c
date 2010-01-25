@@ -406,7 +406,7 @@ static ao_device* _create_device(int driver_id, driver_list *driver,
 {
 	ao_device *device;
 
-	device = malloc(sizeof(ao_device));
+	device = calloc(1,sizeof(ao_device));
 
 	if (device != NULL) {
 		device->type = driver->functions->driver_info()->type;
@@ -448,6 +448,125 @@ static int _realloc_swap_buffer(ao_device *device, int min_size)
 }
 
 
+static void _buffer_zero(char *target,int och,int bytewidth,int ochannels,int bytes){
+  int i = och*bytewidth;
+  int stride = bytewidth*ochannels;
+  switch(bytewidth){
+  case 1:
+    while(i<bytes){
+      ((unsigned char *)target)[i] = 128; /* 8 bit PCM is unsigned in libao */
+      i+=stride;
+    }
+    break;
+  case 2:
+    while(i<bytes){
+      target[i] = 0;
+      target[i+1] = 0;
+      i+=stride;
+    }
+    break;
+  case 3:
+    while(i<bytes){
+      target[i] = 0;
+      target[i+1] = 0;
+      target[i+2] = 0;
+      i+=stride;
+    }
+    break;
+  case 4:
+    while(i<bytes){
+      target[i] = 0;
+      target[i+1] = 0;
+      target[i+2] = 0;
+      target[i+3] = 0;
+      i+=stride;
+    }
+    break;
+  }
+}
+
+static void _buffer_permute_swap(char *target,int och,int bytewidth,int ochannels,int bytes,
+                                 char *source,int ich, int ichannels){
+  int o = och*bytewidth;
+  int i = ich*bytewidth;
+  int ostride = bytewidth*ochannels;
+  int istride = bytewidth*ichannels;
+  switch(bytewidth){
+  case 2:
+    while(o<bytes){
+      target[o] = source[i+1];
+      target[o+1] = source[i];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  case 3:
+    while(o<bytes){
+      target[o] = source[i+2];
+      target[o+1] = source[i+1];
+      target[o+2] = source[i];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  case 4:
+    while(o<bytes){
+      target[o] = source[i+3];
+      target[o+1] = source[i+2];
+      target[o+2] = source[i+1];
+      target[o+3] = source[i];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  }
+}
+
+static void _buffer_permute(char *target,int och,int bytewidth,int ochannels,int bytes,
+                            char *source,int ich, int ichannels){
+  int o = och*bytewidth;
+  int i = ich*bytewidth;
+  int ostride = bytewidth*ochannels;
+  int istride = bytewidth*ichannels;
+  switch(bytewidth){
+  case 1:
+    while(o<bytes){
+      target[o] = source[i];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  case 2:
+    while(o<bytes){
+      target[o] = source[i];
+      target[o+1] = source[i+1];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  case 3:
+    while(o<bytes){
+      target[o] = source[i];
+      target[o+1] = source[i+1];
+      target[o+2] = source[i+2];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  case 4:
+    while(o<bytes){
+      target[o] = source[i];
+      target[o+1] = source[i+1];
+      target[o+2] = source[i+2];
+      target[o+3] = source[i+3];
+      o+=ostride;
+      i+=istride;
+    }
+    break;
+  }
+}
+
+
 /* Swap and copy the byte order of samples from the source buffer to
    the target buffer. */
 static void _swap_samples(char *target_buffer, char* source_buffer,
@@ -461,9 +580,9 @@ static void _swap_samples(char *target_buffer, char* source_buffer,
 	}
 }
 
-/* the channel locations we know right now. code below assumes M is in slot 0 */
+/* the channel locations we know right now. code below assumes U is in slot 0, M in slot 1 */
 static char *mnemonics[]={
-  "M","L","C","R","CL","CR","SL","SR","BL","BC","BR","LFE","U",
+  "U","M","L","C","R","CL","CR","SL","SR","BL","BC","BR","LFE",
   "A1","A2","A3","A4","A5","A6","A7","A8","A9",NULL
 };
 
@@ -619,6 +738,10 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
             fprintf(stderr,"Input channel matrix invalid; ignoring.\n");
         }
 
+        /* set up any other housekeeping */
+        device->input_channels = sformat.channels;
+        device->bytewidth = (sformat.bits+7)>>3;
+
 	/* Open the device */
 	result = funcs->open(device, &sformat);
 	if (!result) {
@@ -650,7 +773,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
               int m=0,mm;
               char *h=op;
 
-              if(op){
+              if(*op){
                 /* find mnemonic offset of output channel */
                 while(*h && *h!=',')h++;
                 while(mnemonics[m]){
@@ -663,14 +786,14 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                 /* find match in input if any */
                 device->permute_channels[count] = _find_channel(m,sformat.matrix);
                 if(device->permute_channels[count] == -1 && sformat.channels == 1){
-                  device->permute_channels[count] = _find_channel(0,sformat.matrix);
+                  device->permute_channels[count] = _find_channel(1,sformat.matrix);
                   mm=0;
                 }
               }else
                 device->permute_channels[count] = -1;
 
               /* display resulting mapping for now */
-              if(device->verbose>0)
+              if(device->verbose>0){
                 if(device->permute_channels[count]>=0){
                   fprintf(stderr,"Output %d (%s)\t <- input %d (%s)\n",
                           count,mnemonics[m],device->permute_channels[count],
@@ -679,12 +802,25 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                   fprintf(stderr,"Output %d (%s)\t <- none\n",
                           count,mnemonics[m]);
                 }
+              }
               count++;
-              if(!h)
-                op=NULL;
-              else
-                op=h+1;
+              op=h;
+              if(*h)op++;
             }
+            if(device->verbose>0)
+              fprintf(stderr,"\n");
+
+          }
+        }
+
+        /* if there's no actual permutation to do, release the permutation vector */
+        if(device->permute_channels && device->output_channels == device->input_channels){
+          int i;
+          for(i=0;i<device->output_channels;i++)
+            if(device->permute_channels[i]!=i)break;
+          if(i==device->output_channels){
+            free(device->permute_channels);
+            device->permute_channels=NULL;
           }
         }
 
@@ -692,30 +828,33 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	device->driver_byte_format =
 		_real_byte_format(device->driver_byte_format);
 
-	/* Only create swap buffer for 16 bit samples if needed */
-	if (format->bits == 16 &&
-	    device->client_byte_format != device->driver_byte_format) {
+	/* Only create swap buffer if needed */
+        if (device->bytewidth>1 &&
+            device->client_byte_format != device->driver_byte_format &&
+            device->verbose>0)
+          fprintf(stderr,
+                  "n\n\n\n-------------------------\n"
+                  "machine endianness: %d\n"
+                  "device->client_byte_format:%d\n"
+                  "device->driver_byte_format:%d\n"
+                  "--------------------------\n",
+                  ao_is_big_endian(),device->client_byte_format,device->driver_byte_format);
 
-          if(device->verbose>0)
-            fprintf(stderr,
-                    "n\n\n\n-------------------------\n"
-                    "big : %d\n"
-                    "device->client_byte_format:%d\n"
-                    "device->driver_byte_format:%d\n"
-                    "--------------------------\n",
-                    ao_is_big_endian(),device->client_byte_format,device->driver_byte_format);
+	if ( (device->bytewidth>1 &&
+              device->client_byte_format != device->driver_byte_format) ||
+             device->permute_channels){
 
-		result = _realloc_swap_buffer(device, DEF_SWAP_BUF_SIZE);
+          result = _realloc_swap_buffer(device, DEF_SWAP_BUF_SIZE);
 
-		if (!result) {
+          if (!result) {
 
-			if(sformat.matrix)free(sformat.matrix);
-                        device->funcs->close(device);
-			device->funcs->device_clear(device);
-			free(device);
-			errno = AO_EFAIL;
-			return NULL; /* Couldn't alloc swap buffer */
-		}
+            if(sformat.matrix)free(sformat.matrix);
+            device->funcs->close(device);
+            device->funcs->device_clear(device);
+            free(device);
+            errno = AO_EFAIL;
+            return NULL; /* Couldn't alloc swap buffer */
+          }
 	}
 
 	/* If we made it this far, everything is OK. */
@@ -866,17 +1005,31 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
 	if (device == NULL)
 	  return 0;
 
-#if 1
 	if (device->swap_buffer != NULL) {
-		if (_realloc_swap_buffer(device, num_bytes)) {
-			_swap_samples(device->swap_buffer,
-				      output_samples, num_bytes);
-			playback_buffer = device->swap_buffer;
-		} else
-			return 0; /* Could not expand swap buffer */
+          int out_bytes = num_bytes*device->output_channels/device->input_channels;
+          if (_realloc_swap_buffer(device, out_bytes)) {
+            int i;
+            int swap = (device->bytewidth>1 &&
+                        device->client_byte_format != device->driver_byte_format);
+            for(i=0;i<device->output_channels;i++){
+              int ic = device->permute_channels[i];
+              if(ic==-1){
+                _buffer_zero(device->swap_buffer,i,device->bytewidth,device->output_channels,
+                             out_bytes);
+              }else if(swap){
+                _buffer_permute_swap(device->swap_buffer,i,device->bytewidth,device->output_channels,
+                                     out_bytes, output_samples, ic, device->input_channels);
+              }else{
+                _buffer_permute(device->swap_buffer,i,device->bytewidth,device->output_channels,
+                                out_bytes, output_samples, ic, device->input_channels);
+              }
+            }
+            playback_buffer = device->swap_buffer;
+            num_bytes = out_bytes;
+          } else
+            return 0; /* Could not expand swap buffer */
 	} else
-#endif
-		playback_buffer = output_samples;
+          playback_buffer = output_samples;
 
 	return device->funcs->play(device, playback_buffer, num_bytes);
 }
