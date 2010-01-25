@@ -385,6 +385,9 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	if (format->bits > 8)
 		device->driver_byte_format = device->client_byte_format;
 
+        if(!device->output_matrix)
+          device->output_matrix=strdup("L,R,BL,BR,C,LFE,SL,SR");
+
 	return 1;
 
 error:

@@ -73,9 +73,13 @@ struct ao_device {
 	int  driver_byte_format;
 	char *swap_buffer;
 	int  swap_buffer_size; /* Bytes allocated to swap_buffer */
+
+        int output_channels;
         char *output_matrix;
         int  *permute_channels;
 	void *internal; /* Pointer to driver-specific data */
+
+        int verbose;
 };
 
 struct ao_functions {
