@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libao],[0.9.0svn],[monty@xiph.org])
+AC_INIT([libao],[1.0.0svn],[monty@xiph.org])
 AM_INIT_AUTOMAKE([gnu 1.6])
 
 AM_MAINTAINER_MODE
