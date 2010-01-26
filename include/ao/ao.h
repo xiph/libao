@@ -100,7 +100,7 @@ void ao_initialize(void);
 void ao_shutdown(void);
 
 /* device setup/playback/teardown */
-int ao_append_option(ao_option **options, const char *key, 
+int ao_append_option(ao_option **options, const char *key,
 		     const char *value);
 void ao_free_options(ao_option *options);
 ao_device* ao_open_live(int driver_id, ao_sample_format *format,

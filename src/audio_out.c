@@ -580,9 +580,10 @@ static void _swap_samples(char *target_buffer, char* source_buffer,
 	}
 }
 
-/* the channel locations we know right now. code below assumes U is in slot 0, M in slot 1 */
+/* the channel locations we know right now. code below assumes U is in slot 0, X in 1, M in 2 */
 static char *mnemonics[]={
-  "U","M","L","C","R","CL","CR","SL","SR","BL","BC","BR","LFE",
+  "U","X","M",
+  "L","C","R","CL","CR","SL","SR","BL","BC","BR","LFE",
   "A1","A2","A3","A4","A5","A6","A7","A8","A9",NULL
 };
 
@@ -608,7 +609,8 @@ static char *_sanitize_matrix(char *matrix,int quiet){
       while(t>p && isspace(*(t-1)))t--;
 
       while(mnemonics[m]){
-        if(t-p && !strncmp(mnemonics[m],p,t-p)){
+        if(t-p && !strncmp(mnemonics[m],p,t-p) &&
+           strlen(mnemonics[m])==t-p){
           if(count)strcat(ret,",");
           strcat(ret,mnemonics[m]);
           break;
@@ -647,7 +649,8 @@ static int _find_channel(int needle, char *haystack){
     while(*h && *h!=',')h++;
 
     while(mnemonics[m]){
-      if(!strncmp(mnemonics[needle],p,h-p))break;
+      if(!strncmp(mnemonics[needle],p,h-p) &&
+         strlen(mnemonics[needle])==h-p)break;
       m++;
     }
     if(mnemonics[m])
@@ -786,8 +789,8 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                 /* find match in input if any */
                 device->permute_channels[count] = _find_channel(m,sformat.matrix);
                 if(device->permute_channels[count] == -1 && sformat.channels == 1){
-                  device->permute_channels[count] = _find_channel(1,sformat.matrix);
-                  mm=0;
+                  device->permute_channels[count] = _find_channel(2,sformat.matrix);
+                  mm=2;
                 }
               }else
                 device->permute_channels[count] = -1;
@@ -799,8 +802,8 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                           count,mnemonics[m],device->permute_channels[count],
                           mnemonics[mm]);
                 }else{
-                  fprintf(stderr,"Output %d (%s)\t <- none\n",
-                          count,mnemonics[m]);
+                  fprintf(stderr,"Output %d (%s)\t <- %s\n",
+                          count,mnemonics[m],(m==1?"unavailable":"none"));
                 }
               }
               count++;

@@ -107,10 +107,9 @@ int ao_plugin_test()
 	int err;
 
 	/* Use nonblock flag when testing to avoid getting stuck if the device
-	   is in use. */
+	   is in use. Try several devices, as 'default' usually means 'stereo only'. */
 	err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK,
 			   SND_PCM_NONBLOCK);
-
 	if (err != 0)
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
@@ -132,21 +131,16 @@ int ao_plugin_device_init(ao_device *device)
 {
 	ao_alsa_internal *internal;
 
-	internal = (ao_alsa_internal *) malloc(sizeof(ao_alsa_internal));
+	internal = (ao_alsa_internal *) calloc(1,sizeof(ao_alsa_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0;
-	
+
 	internal->buffer_time = AO_ALSA_BUFFER_TIME;
 	internal->period_time = AO_ALSA_PERIOD_TIME;
 	internal->writei = AO_ALSA_WRITEI;
 	internal->access_mask = AO_ALSA_ACCESS_MASK;
 
-	if (!(internal->dev = strdup("default"))) {
-		free (internal);
-		return 0;
-	}
-	
 	device->internal = internal;
 
 	return 1;
@@ -364,8 +358,42 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Open the ALSA device */
 	internal->cmd = "snd_pcm_open";
-	err = snd_pcm_open(&(internal->pcm_handle), internal->dev,
-			   SND_PCM_STREAM_PLAYBACK, 0);
+        if(!internal->dev){
+          char *tmp=NULL;
+          /* we don't try just 'default' as it's a plug device that
+             will accept any number of channels but usually plays back
+             everything as stereo. */
+          switch(format->channels){
+          default:
+          case 8:
+          case 7:
+            err = snd_pcm_open(&(internal->pcm_handle), tmp="surround71",
+                               SND_PCM_STREAM_PLAYBACK, 0);
+            if(err==0)break;
+            /* fall through */
+          case 6:
+          case 5:
+          case 4:
+          case 3:
+            err = snd_pcm_open(&(internal->pcm_handle), tmp="surround51",
+                               SND_PCM_STREAM_PLAYBACK, 0);
+            if(err==0)break;
+            err = snd_pcm_open(&(internal->pcm_handle), tmp="surround40",
+                               SND_PCM_STREAM_PLAYBACK, 0);
+            if(err==0)break;
+            /* fall through */
+          case 2:
+          case 1:
+            err = snd_pcm_open(&(internal->pcm_handle), tmp="default",
+                               SND_PCM_STREAM_PLAYBACK, 0);
+            if(err==0)break;
+            err = snd_pcm_open(&(internal->pcm_handle), tmp="hw:0",
+                               SND_PCM_STREAM_PLAYBACK, 0);
+          }
+          if(err==0)internal->dev=strdup(tmp);
+        }else
+          err = snd_pcm_open(&(internal->pcm_handle), internal->dev,
+                             SND_PCM_STREAM_PLAYBACK, 0);
 	if (err < 0) {
 		internal->pcm_handle = NULL;
 		goto error;
@@ -385,8 +413,21 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	if (format->bits > 8)
 		device->driver_byte_format = device->client_byte_format;
 
-        if(!device->output_matrix)
-          device->output_matrix=strdup("L,R,BL,BR,C,LFE,SL,SR");
+        if(device->verbose>0)
+          fprintf(stderr,"Using alsa device '%s'\n", internal->dev);
+
+        if(!device->output_matrix){
+          if(!strncasecmp(internal->dev,"plug:",5))
+            if(format->channels>2 && device->verbose>=0)
+              fprintf(stderr,"\nWARNING: No way to determine hardware channel mapping of\n"
+                      "ALSA 'plug:' devices.\n");
+          if(!strcasecmp(internal->dev,"default")){
+            if(format->channels>2 && device->verbose>=0)
+              fprintf(stderr,"\nWARNING: ALSA 'default' device plays only L,R channels.\n");
+            device->output_matrix=strdup("L,R,X,X,X,X,X,X,X,X,X");
+          }else
+            device->output_matrix=strdup("L,R,BL,BR,C,LFE,SL,SR");
+        }
 
 	return 1;
 
