@@ -17,7 +17,7 @@ AC_SUBST(LIB_REVISION)
 AC_SUBST(LIB_AGE)
 
 dnl Plugin versioning.  We use an integer version number much like LIB_CURRENT.
-PLUGIN_VERSION=2
+PLUGIN_VERSION=4
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
