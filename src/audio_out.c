@@ -123,12 +123,12 @@ static driver_list *_get_plugin(char *plugin_file)
 	handle = dlopen(plugin_file, DLOPEN_FLAG /* See ao_private.h */);
 
 	if (handle) {
-		dt = (driver_list *)malloc(sizeof(driver_list));
+                dt = (driver_list *)calloc(1,sizeof(driver_list));
 		if (!dt) return NULL;
 
 		dt->handle = handle;
 
-		dt->functions = (ao_functions *)malloc(sizeof(ao_functions));
+		dt->functions = (ao_functions *)calloc(1,sizeof(ao_functions));
 		if (!(dt->functions)) {
 			free(dt);
 			return NULL;
@@ -218,7 +218,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 	int i;
 
 	/* insert first driver */
-	head = driver = malloc(sizeof(driver_list));
+	head = driver = calloc(1,sizeof(driver_list));
 	if (driver != NULL) {
 		driver->functions = static_drivers[0];
 		driver->handle = NULL;
@@ -226,7 +226,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 
 		i = 1;
 		while (static_drivers[i] != NULL) {
-			driver->next = malloc(sizeof(driver_list));
+                  driver->next = calloc(1,sizeof(driver_list));
 			if (driver->next == NULL)
 				break;
 
@@ -918,7 +918,7 @@ int ao_append_option(ao_option **options, const char *key, const char *value)
 {
 	ao_option *op, *list;
 
-	op = malloc(sizeof(ao_option));
+	op = calloc(1,sizeof(ao_option));
 	if (op == NULL) return 0;
 
 	op->key = strdup(key);

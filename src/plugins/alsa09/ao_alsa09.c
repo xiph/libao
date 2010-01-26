@@ -447,7 +447,7 @@ static inline int alsa_error_recovery(ao_alsa_internal *internal, int err)
 {
 	if (err == -EPIPE) {
 		/* FIXME: underrun length detection */
-		fprintf(stderr,"ALSA: underrun, at least %dms.\n", 0);
+		//fprintf(stderr,"ALSA: underrun, at least %dms.\n", 0);
 		/* output buffer underrun */
 		internal->cmd = "underrun recovery: snd_pcm_prepare";
 		err = snd_pcm_prepare(internal->pcm_handle);
@@ -500,10 +500,8 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 				fprintf(stderr,"ALSA write error: %s\n",
 						snd_strerror(err));
 				return 0;
-			}
-
-			/* abandon the rest of the buffer */
-			break;
+			}else /* recovered, continue */
+                          continue;
 		}
 
 		/* decrement the sample counter */
