@@ -241,58 +241,39 @@ AC_CHECK_HEADERS(machine/soundcard.h)
 AM_CONDITIONAL(HAVE_OSS,test "${ac_cv_header_sys_soundcard_h}" = "yes" || test "${ac_cv_header_machine_soundcard_h}" = "yes")
 
 
-dnl Check for ALSA 0.5.x
+dnl Check for ALSA 0.9/1.0
 
-AC_ARG_ENABLE(alsa, [  --enable-alsa           include alsa 0.5 output plugin ],
+AC_ARG_ENABLE(alsa, [  --enable-alsa         include alsa 0.9/1.0 output plugin ],
 [ BUILD_ALSA="$enableval" ],[ BUILD_ALSA="yes" ])
+AC_ARG_ENABLE(alsa-mmap,
+   [  --enable-alsa-mmap          use mmio with alsa ],
+   [ BUILD_ALSAMMIO="$enableval" ],[ BUILD_ALSAMMIO="no" ])
 
 if test "$BUILD_ALSA" = "yes"; then
-   AC_CHECK_LIB(asound, snd_pcm_channel_params, have_alsa=yes, have_alsa=no)
-   AC_CHECK_HEADER(sys/asoundlib.h, , have_alsa=no)
+   AC_CHECK_LIB(asound, snd_pcm_open, have_alsa=yes, have_alsa=no)
+   AC_CHECK_HEADER(alsa/asoundlib.h, , have_alsa=no)
+   if test "$BUILD_ALSAMMIO" = "yes" ; then
+      AC_CHECK_HEADER(sys/mman.h, have_alsammio=yes, have_alsammio=no)
+   fi
+
 fi
 
 if test "x$have_alsa" = xyes; then
 	ALSA_LIBS="-lasound"
+	if test "x$have_alsammio" = xyes; then
+		AC_DEFINE(USE_ALSA_MMIO)
+	fi
 else
 	ALSA_LIBS=""
 fi
 AM_CONDITIONAL(HAVE_ALSA,test "x$have_alsa" = xyes)
 AC_SUBST(ALSA_LIBS)
 
-
-dnl Check for ALSA 0.9.x
-
-AC_ARG_ENABLE(alsa09, [  --enable-alsa09         include alsa 0.9 output plugin ],
-[ BUILD_ALSA09="$enableval" ],[ BUILD_ALSA09="yes" ])
-AC_ARG_ENABLE(alsa09-mmap,
-   [  --enable-alsa09-mmap          use mmio with alsa 0.9 (experimental!) ],
-   [ BUILD_ALSA09MMIO="$enableval" ],[ BUILD_ALSA09MMIO="no" ])
-
-if test "$BUILD_ALSA09" = "yes"; then
-   AC_CHECK_LIB(asound, snd_pcm_open, have_alsa09=yes, have_alsa09=no)
-   AC_CHECK_HEADER(alsa/asoundlib.h, , have_alsa09=no)
-   if test "$BUILD_ALSA09MMIO" = "yes" ; then
-      AC_CHECK_HEADER(sys/mman.h, have_alsa09mmio=yes, have_alsa09mmio=no)
-   fi
-
-fi
-
-if test "x$have_alsa09" = xyes; then
-	ALSA09_LIBS="-lasound"
-	if test "x$have_alsa09mmio" = xyes; then
-		AC_DEFINE(USE_ALSA_MMIO)
-	fi
-else
-	ALSA09_LIBS=""
-fi
-AM_CONDITIONAL(HAVE_ALSA09,test "x$have_alsa09" = xyes)
-AC_SUBST(ALSA09_LIBS)
-
 dnl Decide whether we need to enable the workaround for broken OSS APIs
 dnl such as the OSS emulation in ALSA.
 
 AC_ARG_ENABLE(broken-oss, [  --enable-broken-oss           workaround for some OSS drivers (see README for details)],,
-if test "x$have_alsa" = "xyes" -o "x$have_alsa09" = "xyes"; then
+if test "x$have_alsa" = "xyes" -o "x$have_alsa" = "xyes"; then
    enable_broken_oss="yes"
 fi)
 
@@ -421,4 +402,4 @@ dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa05/Makefile src/plugins/alsa09/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile ao.pc)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile ao.pc)

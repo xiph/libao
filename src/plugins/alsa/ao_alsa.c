@@ -1,8 +1,9 @@
 /*
  *
- *  ao_alsa09.c
+ *  ao_alsa.c
  *
  *      Copyright (C) Stan Seibert - July 2000, July 2001
+ *      Modifications Copyright (C) Monty - January 2010
  *
  *  This file is part of libao, a cross-platform library.  See
  *  README for a history of this source code.
@@ -66,7 +67,10 @@ static char *ao_alsa_options[] = {
 	"dev",
 	"buffer_time",
         "period_time",
-	"use_mmap"
+	"use_mmap",
+        "matrix",
+        "verbose",
+        "quiet"
 };
 
 
@@ -76,11 +80,11 @@ static ao_info ao_alsa_info =
 	"Advanced Linux Sound Architecture (ALSA) output",
 	"alsa",
 	"Bill Currie <bill@taniwha.org>/Kevin Cody, Jr. <kevinc@wuff.dhs.org>",
-	"Outputs to the Advanced Linux Sound Architecture version 0.9.x.",
+	"Outputs to the Advanced Linux Sound Architecture version 0.9.x/1.x.x.",
 	AO_FMT_NATIVE,
 	35,
 	ao_alsa_options,
-	3
+	7
 };
 
 
