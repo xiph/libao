@@ -42,7 +42,7 @@
 #define IBM_FORMAT_ADPCM        0x0103
 #define WAVE_FORMAT_EXTENSIBLE  0xfffe
 
-#define WAV_HEADER_MAXLEN 68
+#define WAV_HEADER_LEN 68
 
 #define WRITE_U32(buf, x) *(buf)     = (unsigned char)(x&0xff);\
 						  *((buf)+1) = (unsigned char)((x>>8)&0xff);\
@@ -76,6 +76,7 @@ struct common_struct
 	unsigned short wBlockAlign;
 	unsigned short wBitsPerSample;
         unsigned short cbSize;
+	unsigned short wValidBitsPerSample;
         unsigned int   dwChannelMask;
         unsigned short subFormat;
 };
@@ -143,6 +144,50 @@ static int ao_wav_set_option(ao_device *device, const char *key,
 	return 1; /* No options! */
 }
 
+static char *map[]={
+  "L","R","C","LFE","BL","BR","CL","CR","BC","SL","SR",NULL
+};
+#define SPEAKER_RESERVED               0x80000000
+
+static unsigned int _matrix_to_channelmask(char *matrix){
+  unsigned int ret=0;
+  char *p=matrix;
+  while(1){
+    char *h=p;
+    int m=0;
+
+    /* search for seperator */
+    while(*h && *h!=',')h++;
+
+    while(map[m]){
+      if(h-p && !strncmp(map[m],p,h-p) &&
+         strlen(map[m])==h-p)
+        break;
+      m++;
+    }
+    if(map[m])
+      ret |= (1<<m);
+    if(!*h)break;
+    p=h+1;
+  }
+  return ret;
+}
+
+static char *_channelmask_to_matrix(unsigned int mask){
+  int m=0;
+  int count=0;
+  char buffer[80]={0};
+  while(map[m]){
+    if(mask & (1<<m)){
+      if(count)
+        strcat(buffer,",");
+      strcat(buffer,map[m]);
+      count++;
+    }
+    m++;
+  }
+  return strdup(buffer);
+}
 
 static int ao_wav_open(ao_device *device, ao_sample_format *format)
 {
@@ -152,7 +197,8 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 
 	/* Store information */
 	internal->wave.common.wChannels = format->channels;
-	internal->wave.common.wBitsPerSample = format->bits;
+	internal->wave.common.wBitsPerSample = ((format->bits+7)>>3)<<3;
+	internal->wave.common.wValidBitsPerSample = format->bits;
 	internal->wave.common.dwSamplesPerSec = format->rate;
 
 	memset(buf, 0, WAV_HEADER_LEN);
@@ -163,9 +209,9 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	strncpy(internal->wave.riff.wave_id, "WAVE",4);
 
 	strncpy(internal->wave.format.id, "fmt ",4);
-	internal->wave.format.len = 16;
+	internal->wave.format.len = 40;
 
-	internal->wave.common.wFormatTag = WAVE_FORMAT_PCM;
+	internal->wave.common.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
 	internal->wave.common.dwAvgBytesPerSec =
 		internal->wave.common.wChannels *
 		internal->wave.common.dwSamplesPerSec *
@@ -174,10 +220,25 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	internal->wave.common.wBlockAlign =
 		internal->wave.common.wChannels *
 		(internal->wave.common.wBitsPerSample >> 3);
+	internal->wave.common.cbSize = 22;
+	internal->wave.common.subFormat = WAVE_FORMAT_PCM;
+
+        /* contruct channel mask; WAV is capable of expressing any
+           channel format currently representable in libao */
+        if(format->matrix){
+          if(device->output_matrix){
+            internal->wave.common.dwChannelMask=_matrix_to_channelmask(device->output_matrix);
+          }else{
+            internal->wave.common.dwChannelMask=_matrix_to_channelmask(format->matrix);
+            device->output_matrix = _channelmask_to_matrix(internal->wave.common.dwChannelMask);
+          }
+        }else{
+          internal->wave.common.dwChannelMask=0;
+        }
 
 	strncpy(internal->wave.data.id, "data",4);
 
-	internal->wave.data.len = size - 44;
+	internal->wave.data.len = size - WAV_HEADER_LEN;
 
 	strncpy(buf, internal->wave.riff.id, 4);
 	WRITE_U32(buf+4, internal->wave.riff.len);
@@ -190,8 +251,13 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	WRITE_U32(buf+28, internal->wave.common.dwAvgBytesPerSec);
 	WRITE_U16(buf+32, internal->wave.common.wBlockAlign);
 	WRITE_U16(buf+34, internal->wave.common.wBitsPerSample);
-	strncpy(buf+36, internal->wave.data.id, 4);
-	WRITE_U32(buf+40, internal->wave.data.len);
+	WRITE_U16(buf+36, internal->wave.common.cbSize);
+	WRITE_U16(buf+38, internal->wave.common.wValidBitsPerSample);
+	WRITE_U32(buf+40, internal->wave.common.dwChannelMask);
+	WRITE_U16(buf+44, internal->wave.common.subFormat);
+        memcpy(buf+46,"\x00\x00\x00\x00\x10\x00\x80\x00\x00\xAA\x00\x38\x9B\x71",14);
+	strncpy(buf+60, internal->wave.data.id, 4);
+	WRITE_U32(buf+64, internal->wave.data.len);
 
 	if (fwrite(buf, sizeof(char), WAV_HEADER_LEN, device->file)
 	    != WAV_HEADER_LEN) {
@@ -235,7 +301,7 @@ static int ao_wav_close(ao_device *device)
 	/* Go back and set correct length info */
 
 	internal->wave.riff.len = size - 8;
-	internal->wave.data.len = size - 44;
+	internal->wave.data.len = size - WAV_HEADER_LEN;
 
 	/* Rewind to riff len and write it */
 	if (fseek(device->file, 4, SEEK_SET) < 0)
@@ -247,7 +313,7 @@ static int ao_wav_close(ao_device *device)
 
 
 	/* Rewind to data len and write it */
-	if (fseek(device->file, 40, SEEK_SET) < 0)
+	if (fseek(device->file, 64, SEEK_SET) < 0)
 		return 0; /* Wav header corrupt */
 
 	WRITE_U32(buf, internal->wave.data.len);
