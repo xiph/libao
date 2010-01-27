@@ -68,6 +68,7 @@ typedef struct Audio_filehdr {
 	char info[4]; /* optional text information */
 } Audio_filehdr;
 
+static char *ao_au_options[] = {"matrix","verbose","quiet"};
 static ao_info ao_au_info =
 {
 	AO_TYPE_FILE,
@@ -77,8 +78,8 @@ static ao_info ao_au_info =
 	"Sends output to a .au file",
 	AO_FMT_BIG,
 	0,
-	NULL, /* No options */
-	0
+	ao_au_options,
+	3
 };
 
 typedef struct ao_au_internal

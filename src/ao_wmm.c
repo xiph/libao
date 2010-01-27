@@ -72,7 +72,7 @@ static const char * mmerror(MMRESULT mmrError)
   return mmbuffer;
 }
 
-static char * ao_wmm_options[] = {"debug", "dev","id"};
+static char * ao_wmm_options[] = {"debug", "dev", "id", "matrix","verbose","quiet"};
 static ao_info ao_wmm_info =
   {
     /* type             */ AO_TYPE_LIVE,

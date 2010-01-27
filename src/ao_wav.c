@@ -90,6 +90,7 @@ struct wave_header
 };
 
 
+static char *ao_wav_options[] = {"matrix","verbose","quiet"};
 static ao_info ao_wav_info =
 {
 	AO_TYPE_FILE,
@@ -99,8 +100,8 @@ static ao_info ao_wav_info =
 	"Sends output to a .wav file",
 	AO_FMT_LITTLE,
 	0,
-	NULL, /* No options */
-	0
+	ao_wav_options,
+        3
 };
 
 typedef struct ao_wav_internal
