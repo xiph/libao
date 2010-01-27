@@ -1,4 +1,4 @@
-/* $Id: ao_pulse.c 36 2006-07-14 00:05:13Z lennart $ */
+/* $Id$ */
 
 /***
   This file is part of libao-pulse.

@@ -21,7 +21,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 //#define PREPARE_EACH
 #define _CRT_SECURE_NO_DEPRECATE

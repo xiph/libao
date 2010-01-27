@@ -4,6 +4,7 @@
  *
  *      Original Copyright (C) Aaron Holtzman - May 1999
  *      Modifications Copyright (C) Stan Seibert - July 2000, July 2001
+ *                    Copyright (C) Monty - January 2010
  *
  *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
@@ -22,7 +23,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 
 #include <stdio.h>
@@ -31,12 +36,13 @@
 #include <signal.h>
 #include <ao/ao.h>
 
-#define WAVE_FORMAT_PCM  0x0001
-#define FORMAT_MULAW     0x0101
-#define IBM_FORMAT_ALAW  0x0102
-#define IBM_FORMAT_ADPCM 0x0103
+#define WAVE_FORMAT_PCM         0x0001
+#define FORMAT_MULAW            0x0101
+#define IBM_FORMAT_ALAW         0x0102
+#define IBM_FORMAT_ADPCM        0x0103
+#define WAVE_FORMAT_EXTENSIBLE  0xfffe
 
-#define WAV_HEADER_LEN 44
+#define WAV_HEADER_MAXLEN 68
 
 #define WRITE_U32(buf, x) *(buf)     = (unsigned char)(x&0xff);\
 						  *((buf)+1) = (unsigned char)((x>>8)&0xff);\
@@ -68,7 +74,10 @@ struct common_struct
 	unsigned int dwSamplesPerSec;
 	unsigned int dwAvgBytesPerSec;
 	unsigned short wBlockAlign;
-	unsigned short wBitsPerSample;  /* Only for PCM */
+	unsigned short wBitsPerSample;
+        unsigned short cbSize;
+        unsigned int   dwChannelMask;
+        unsigned short subFormat;
 };
 
 struct wave_header

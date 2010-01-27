@@ -22,7 +22,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>

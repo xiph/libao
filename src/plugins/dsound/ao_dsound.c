@@ -1,5 +1,5 @@
 /*
- * $Id: ao_dsound.c,v 1.1 2001/09/05 19:28:07 cwolf Exp $
+ * $Id$
  * $Name:  $
  *
  * Skeleton DirectSound plugin, just a place holder until test code 
