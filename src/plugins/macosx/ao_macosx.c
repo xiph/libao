@@ -21,8 +21,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
 
+ last mod: $Id$
+
+ ********************************************************************/
 /*
   The MacOS X CoreAudio framework doesn't mesh as simply as some
   simpler frameworks do.  This is due to the fact that CoreAudio pulls
@@ -49,6 +52,8 @@
 #define true  1
 #define false 0
 
+static char *ao_macosx_options[] = {"matrix","verbose","quiet"};
+
 static ao_info ao_macosx_info =
 {
 	AO_TYPE_LIVE,
@@ -58,8 +63,8 @@ static ao_info ao_macosx_info =
 	"",
 	AO_FMT_NATIVE,
 	30,
-	NULL,
-	0
+	ao_macosx_options,
+	3
 };
 
 
@@ -245,6 +250,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     internal->bytesDequeued = 0;
     
     device->driver_byte_format = AO_FMT_NATIVE;
+
+    /* limited to stereo for now */
+    if(!device->output_matrix)
+      device->output_matrix=strdup("L,R");
 
     return 1;
 }

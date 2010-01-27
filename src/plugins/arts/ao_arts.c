@@ -21,7 +21,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 #include <stdio.h>
 #include <errno.h>
@@ -31,6 +35,7 @@
 #include <ao/plugin.h>
 
 
+static char *ao_arts_options[] = {"matrix","verbose","quiet"};
 static ao_info ao_arts_info =
 {
 	AO_TYPE_LIVE,
@@ -44,8 +49,8 @@ static ao_info ao_arts_info =
 #else
 	15,
 #endif
-	NULL,
-	0
+	ao_arts_options,
+        3
 };
 
 
@@ -115,6 +120,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 					    format->bits, 
 					    format->channels, 
 					    "libao stream");
+        if(!device->output_matrix){
+          /* set up out matrix such that users are warned about > stereo playback */
+          if(format->channels<=2)
+            device->output_matrix=strdup("L,R");
+          //else no matrix, which results in a warning
+        }
+
 	return 1;
 }
 

@@ -23,7 +23,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 #include <stdio.h>
 #include <errno.h>
@@ -45,6 +49,7 @@ typedef struct ao_irix_internal {
 	int channels;
 } ao_irix_internal;
 
+static char *ao_irix_options[] = {"matrix","verbose","quiet"};
 
 static ao_info ao_irix_info =
 {
@@ -55,8 +60,8 @@ static ao_info ao_irix_info =
 	"Outputs to the IRIX Audio Library.",
 	AO_FMT_NATIVE,
 	20,
-	NULL,
-	1
+	ao_irix_options,
+	3
 };
 
 int ao_plugin_test(void)
@@ -186,6 +191,14 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	}
 
 	device->driver_byte_format = AO_FMT_NATIVE;
+
+        if(!device->output_matrix){
+          /* set up out matrix such that users are warned about > stereo playback */
+          if(format->channels<=2)
+            device->output_matrix=strdup("L,R");
+          //else no matrix, which results in a warning
+        }
+
 
 	return 1;
 }

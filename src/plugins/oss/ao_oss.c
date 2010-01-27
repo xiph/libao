@@ -22,7 +22,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 #include <stdio.h>
 #include <errno.h>
@@ -41,7 +45,7 @@
 #include "ao/plugin.h"
 
 
-static char *ao_oss_options[] = {"dsp"};
+static char *ao_oss_options[] = {"dsp","verbose","quiet","matrix"};
 static ao_info ao_oss_info =
 {
 	AO_TYPE_LIVE,
@@ -52,7 +56,7 @@ static ao_info ao_oss_info =
 	AO_FMT_NATIVE,
 	20,
 	ao_oss_options,
-	1
+	4
 };
 
 
@@ -90,7 +94,7 @@ int _open_default_oss_device (char **dev_path, int blocking)
 #endif /* BROKEN_OSS */
 
 	/* then try the original dsp path */
-	if(fd < 0) 
+	if(fd < 0)
 	{
 		/* no? then try the traditional path */
 		err = strdup(strerror(errno));
@@ -117,7 +121,7 @@ int _open_default_oss_device (char **dev_path, int blocking)
 #endif /* BROKEN_OSS */
 
 	/* Deal with error cases */
-	if(fd < 0) 
+	if(fd < 0)
 	{
 	  /*			fprintf(stderr,
 				"libao - error: Could not open either default device:\n"
@@ -143,7 +147,7 @@ int ao_plugin_test()
 
 	/* OSS emulation in ALSA will by default cause the open() call
 	   to block if the dsp is in use.  This will freeze the default
-	   driver detection unless the O_NONBLOCK flag is passed to 
+	   driver detection unless the O_NONBLOCK flag is passed to
 	   open().  We cannot use this flag when we actually open the
 	   device for writing because then we will overflow the buffer. */
 	if ( (fd = _open_default_oss_device(&dev_path, 0)) < 0 )
@@ -168,11 +172,11 @@ int ao_plugin_device_init(ao_device *device)
 
 	internal = (ao_oss_internal *) malloc(sizeof(ao_oss_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	internal->dev = NULL;
-	
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
@@ -185,7 +189,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 
 	if (!strcmp(key, "dsp")) {
 		/* Free old string in case "dsp" set twice in options */
-		free(internal->dev); 
+		free(internal->dev);
 		internal->dev = strdup(value);
 	}
 
@@ -202,7 +206,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	int tmp;
 
 	/* Open the device driver */
-	
+
 	if (internal->dev != NULL) {
 		/* open the user-specified path */
 		internal->fd = open(internal->dev, O_WRONLY);
@@ -231,10 +235,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 			format->channels);
 		goto ERR;
 	}
-	
-	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0 || 
+
+	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0 ||
 			tmp+1 != format->channels) {
-		fprintf(stderr, "libao - OSS cannot set channels to %d\n", 
+		fprintf(stderr, "libao - OSS cannot set channels to %d\n",
 			format->channels);
 		goto ERR;
 	}
@@ -245,7 +249,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	{
 	case 8: tmp = AFMT_S8;
 		break;
-        case 16: tmp = device->client_byte_format == AO_FMT_BIG ? 
+        case 16: tmp = device->client_byte_format == AO_FMT_BIG ?
 		   AFMT_S16_BE : AFMT_S16_LE;
 	        device->driver_byte_format = device->client_byte_format;
 	        break;
@@ -266,7 +270,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	   of whack. */
 	if (ioctl(internal->fd,SNDCTL_DSP_SPEED, &tmp) < 0
 	    || tmp > 1.02 * format->rate || tmp < 0.98 * format->rate) {
-		fprintf(stderr, "libao - OSS cannot set rate to %d\n", 
+		fprintf(stderr, "libao - OSS cannot set rate to %d\n",
 			format->rate);
 		goto ERR;
 	}
@@ -282,6 +286,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		goto ERR;
 	}
 
+        /* limited to stereo */
+        if(!device->output_matrix)
+          device->output_matrix=strdup("L,R");
+
 	return 1; /* Open successful */
 
  ERR:
@@ -292,7 +300,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 /*
  * play the sample to the already opened file descriptor
  */
-int ao_plugin_play(ao_device *device, const char *output_samples, 
+int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
 	int ret;

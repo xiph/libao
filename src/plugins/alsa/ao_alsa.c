@@ -80,7 +80,7 @@ static ao_info ao_alsa_info =
 	"Advanced Linux Sound Architecture (ALSA) output",
 	"alsa",
 	"Bill Currie <bill@taniwha.org>/Kevin Cody, Jr. <kevinc@wuff.dhs.org>",
-	"Outputs to the Advanced Linux Sound Architecture version 0.9.x/1.x.x.",
+	"Outputs to the Advanced Linux Sound Architecture version 0.9/1.x",
 	AO_FMT_NATIVE,
 	35,
 	ao_alsa_options,

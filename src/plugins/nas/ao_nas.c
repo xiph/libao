@@ -42,7 +42,10 @@
 
 static char *ao_nas_options[] = {
   "host",    /* NAS server. See nas(1) for format. */
-  "buf_size" /* Buffer size on server */
+  "buf_size", /* Buffer size on server */
+  "quiet",
+  "verbose",
+  "matrix"
 };
 
 static ao_info ao_nas_info =
@@ -55,7 +58,7 @@ static ao_info ao_nas_info =
 	AO_FMT_NATIVE,
 	10,
 	ao_nas_options,
-	2
+	5
 };
 
 
@@ -95,9 +98,9 @@ int ao_plugin_device_init(ao_device *device)
 
 	internal = (ao_nas_internal *) malloc(sizeof(ao_nas_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	internal->host = NULL;
 	internal->buf_size = AO_NAS_BUF_SIZE;
 	internal->buf_free = 0;
@@ -161,8 +164,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		(AuDeviceNumTracks(AuServerDevice(internal->aud, i)) ==
 		 format->channels))
 	      break;
-	  
-	  if ((i == AuServerNumDevices(internal->aud)) || 
+
+	  if ((i == AuServerNumDevices(internal->aud)) ||
 	      (!(internal->flow = AuCreateFlow(internal->aud, 0)))) {
 	    /* No physical output device found or flow creation failed. */
 	    AuCloseServer(internal->aud);
@@ -180,12 +183,20 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 				  format->rate, AuUnlimitedSamples, 0, 0);
 	AuSetElements(internal->aud, internal->flow, AuTrue, 2, elms, 0);
 	AuStartFlow(internal->aud, internal->flow, 0);
-	
+
 	device->driver_byte_format = AO_FMT_NATIVE;
+
+        if(!device->output_matrix){
+          /* set up out matrix such that users are warned about > stereo playback */
+          if(format->channels<=2)
+            device->output_matrix=strdup("L,R");
+          //else no matrix, which results in a warning
+        }
+
 	return 1;
 }
 
-int ao_plugin_play(ao_device *device, const char* output_samples, 
+int ao_plugin_play(ao_device *device, const char* output_samples,
 		uint_32 num_bytes)
 {
 	ao_nas_internal *internal = (ao_nas_internal *) device->internal;
@@ -223,7 +234,7 @@ int ao_plugin_play(ao_device *device, const char* output_samples,
 	    break;
 	  }
 	}
-	
+
 	return 1;
 }
 

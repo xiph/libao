@@ -21,7 +21,11 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- */
+ ********************************************************************
+
+ last mod: $Id$
+
+ ********************************************************************/
 
 #include <stdio.h>
 #include <unistd.h>
@@ -34,7 +38,7 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-static char *ao_esd_options[] = {"host"};
+static char *ao_esd_options[] = {"host","matrix","verbose","quiet"};
 static ao_info ao_esd_info =
 {
 	AO_TYPE_LIVE,
@@ -45,7 +49,7 @@ static ao_info ao_esd_info =
 	AO_FMT_NATIVE,
 	40,
 	ao_esd_options,
-	1
+	4
 };
 
 
@@ -61,7 +65,7 @@ int ao_plugin_test()
 	int sock;
 
 	/* don't wake up the beast while detecting */
-	putenv("ESD_NO_SPAWN=1"); 
+	putenv("ESD_NO_SPAWN=1");
 	sock = esd_open_sound(NULL);
 	if (sock < 0)
 		return 0;
@@ -87,11 +91,11 @@ int ao_plugin_device_init(ao_device *device)
 
 	internal = (ao_esd_internal *) malloc(sizeof(ao_esd_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	internal->host = NULL;
-	
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
@@ -135,21 +139,25 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		 break;
 	default: return 0;
 	}
-	
+
 	esd_format = esd_bits | esd_channels | esd_mode | esd_func;
 
-	internal->sock = esd_play_stream(esd_format, format->rate, 
+	internal->sock = esd_play_stream(esd_format, format->rate,
 					 internal->host,
 					 "libao output");
 	if (internal->sock < 0)
 		return 0; /* Could not contact ESD server */
-	
+
 	device->driver_byte_format = AO_FMT_NATIVE;
+
+        /* ESD restricted to stereo only */
+        if(!device->output_matrix)
+            device->output_matrix=strdup("L,R");
 
 	return 1;
 }
 
-int ao_plugin_play(ao_device *device, const char* output_samples, 
+int ao_plugin_play(ao_device *device, const char* output_samples,
 		uint_32 num_bytes)
 {
 	ao_esd_internal *internal = (ao_esd_internal *) device->internal;

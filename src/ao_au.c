@@ -169,7 +169,7 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 	}
 
         if(!device->output_matrix){
-          /* set up out matrix such that users are arned about > stereo playback */
+          /* set up out matrix such that users are warned about > stereo playback */
           if(format->channels<=2)
             device->output_matrix=strdup("L,R");
           //else no matrix, which results in a warning
