@@ -773,7 +773,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
               fprintf(stderr,"\n");
 
             while(count<device->output_channels){
-              int m=0,mm;
+              int m=1,mm;
               char *h=op;
 
               if(*op){
@@ -802,8 +802,8 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                           count,mnemonics[m],device->permute_channels[count],
                           mnemonics[mm]);
                 }else{
-                  fprintf(stderr,"Output %d (%s)\t <- %s\n",
-                          count,mnemonics[m],(m==1?"unavailable":"none"));
+                  fprintf(stderr,"Output %d (%s)\t %s\n",
+                          count,mnemonics[m],(m==1?"unmapped":"<- none"));
                 }
               }
               count++;

@@ -37,7 +37,7 @@
 
 
 /*
- * default audio device to be used, 
+ * default audio device to be used,
  * possible options:
  * /dev/paud0/1 on PCI machines with the Crystal chipset
  * /dev/baud0/1 on MCA machines with the Crystal chipset
@@ -93,16 +93,16 @@ int ao_aixs_device_init(ao_device *device)
 
 	internal = (ao_aixs_internal *) malloc(sizeof(ao_aixs_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	internal->dev = strdup(AO_AIX_DEFAULT_DEV);
-	
+
 	if (internal->dev == NULL) {
 		free(internal);
 		return 0;
 	}
-		
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
@@ -115,7 +115,7 @@ int ao_aixs_set_option(ao_device *device, const char *key, const char *value)
 
 	if (!strcmp(key, "dev")) {
 		/* Free old string in case "dsp" set twice in options */
-		free(internal->dev); 
+		free(internal->dev);
 		internal->dev = strdup(value);
 	}
 
@@ -126,7 +126,7 @@ int ao_aixs_set_option(ao_device *device, const char *key, const char *value)
 int ao_aixs_open(ao_device *device, ao_sample_format *format)
 {
 	ao_aixs_internal *internal = (ao_aixs_internal *) device->internal;
-	
+
 	audio_init init;
 	audio_control control;
 	audio_change change;
@@ -162,7 +162,7 @@ int ao_aixs_open(ao_device *device, ao_sample_format *format)
 	}
 
 	control.ioctl_request = AUDIO_START;
-	control.request_info = NULL; 
+	control.request_info = NULL;
 
 	if (ioctl(internal->fd, AUDIO_CONTROL, &control) < 0) {
 		close(internal->fd);
@@ -175,11 +175,11 @@ int ao_aixs_open(ao_device *device, ao_sample_format *format)
 }
 
 
-int ao_aixs_play(ao_device *device, const char *output_samples, 
+int ao_aixs_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
 	ao_aixs_internal *internal = (ao_aixs_internal *) device->internal;
-	
+
 	if (write(internal->fd, output_samples, num_bytes) < 0)
 		return 0;
 	else

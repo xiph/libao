@@ -358,6 +358,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Open the ALSA device */
 	internal->cmd = "snd_pcm_open";
+        err=0;
         if(!internal->dev){
           char *tmp=NULL;
           /* we don't try just 'default' as it's a plug device that
@@ -369,28 +370,31 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           case 7:
             err = snd_pcm_open(&(internal->pcm_handle), tmp="surround71",
                                SND_PCM_STREAM_PLAYBACK, 0);
-            if(err==0)break;
-            /* fall through */
-          case 6:
-          case 5:
+            break;
           case 4:
           case 3:
-            err = snd_pcm_open(&(internal->pcm_handle), tmp="surround51",
-                               SND_PCM_STREAM_PLAYBACK, 0);
-            if(err==0)break;
             err = snd_pcm_open(&(internal->pcm_handle), tmp="surround40",
                                SND_PCM_STREAM_PLAYBACK, 0);
             if(err==0)break;
-            /* fall through */
-          case 2:
+          case 6:
+          case 5:
+            err = snd_pcm_open(&(internal->pcm_handle), tmp="surround51",
+                               SND_PCM_STREAM_PLAYBACK, 0);
           case 1:
+          case 2:
+            break;
+          }
+
+          if(err){
+            fprintf(stderr,"ERROR: Unable to open ALSA surround device '%s'\n"
+                           "       trying default device...\n",tmp);
+            tmp=NULL;
+          }
+          if(!tmp)
             err = snd_pcm_open(&(internal->pcm_handle), tmp="default",
                                SND_PCM_STREAM_PLAYBACK, 0);
-            if(err==0)break;
-            err = snd_pcm_open(&(internal->pcm_handle), tmp="hw:0",
-                               SND_PCM_STREAM_PLAYBACK, 0);
-          }
-          if(err==0)internal->dev=strdup(tmp);
+          internal->dev=strdup(tmp);
+
         }else
           err = snd_pcm_open(&(internal->pcm_handle), internal->dev,
                              SND_PCM_STREAM_PLAYBACK, 0);
@@ -424,7 +428,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           if(!strcasecmp(internal->dev,"default")){
             if(format->channels>2 && device->verbose>=0)
               fprintf(stderr,"\nWARNING: ALSA 'default' device plays only L,R channels.\n");
-            device->output_matrix=strdup("L,R,X,X,X,X,X,X,X,X,X");
+            device->output_matrix=strdup("L,R");
           }else
             device->output_matrix=strdup("L,R,BL,BR,C,LFE,SL,SR");
         }
