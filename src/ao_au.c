@@ -79,7 +79,7 @@ static ao_info ao_au_info =
 
 typedef struct ao_au_internal
 {
-	Audio_filehdr au; 		
+	Audio_filehdr au;
 } ao_au_internal;
 
 
@@ -101,18 +101,18 @@ static int ao_au_device_init(ao_device *device)
 
 	internal = (ao_au_internal *) malloc(sizeof(ao_au_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	memset(&(internal->au), 0, sizeof(internal->au));
-	
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
 }
 
 
-static int ao_au_set_option(ao_device *device, const char *key, 
+static int ao_au_set_option(ao_device *device, const char *key,
 			    const char *value)
 {
 	return 1; /* No options! */
@@ -126,7 +126,7 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 
 	/* The AU format is big-endian */
 	device->driver_byte_format = AO_FMT_BIG;
-		
+
 	/* Fill out the header */
 	internal->au.magic = AUDIO_FILE_MAGIC;
 	internal->au.channels = format->channels;
@@ -137,7 +137,7 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 	else {
 		/* Only 8 and 16 bits are supported at present. */
 		return 0;
-	}	
+	}
 	internal->au.sample_rate = format->rate;
 	internal->au.hdr_size = AU_HEADER_LEN;
 
@@ -158,10 +158,17 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 	WRITE_U32(buf + 20, internal->au.channels);
 	strncpy (buf + 24, internal->au.info, 4);
 
-	if (fwrite(buf, sizeof(char), AU_HEADER_LEN, device->file) 
+	if (fwrite(buf, sizeof(char), AU_HEADER_LEN, device->file)
 	    != AU_HEADER_LEN) {
 		return 0; /* Error writing header */
 	}
+
+        if(!device->output_matrix){
+          /* set up out matrix such that users are arned about > stereo playback */
+          if(format->channels<=2)
+            device->output_matrix=strdup("L,R");
+          //else no matrix, which results in a warning
+        }
 
 	return 1;
 }
@@ -170,10 +177,10 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 /*
  * play the sample to the already opened file descriptor
  */
-static int ao_au_play(ao_device *device, const char *output_samples, 
+static int ao_au_play(ao_device *device, const char *output_samples,
 		       uint_32 num_bytes)
 {
-	if (fwrite(output_samples, sizeof(char), num_bytes, 
+	if (fwrite(output_samples, sizeof(char), num_bytes,
 		   device->file) < num_bytes)
 		return 0;
 	else

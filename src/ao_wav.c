@@ -55,13 +55,13 @@ struct riff_struct {
 };
 
 
-struct chunk_struct 
+struct chunk_struct
 {
 	unsigned char id[4];
 	unsigned int len;
 };
 
-struct common_struct 
+struct common_struct
 {
 	unsigned short wFormatTag;
 	unsigned short wChannels;
@@ -71,7 +71,7 @@ struct common_struct
 	unsigned short wBitsPerSample;  /* Only for PCM */
 };
 
-struct wave_header 
+struct wave_header
 {
 	struct riff_struct   riff;
 	struct chunk_struct  format;
@@ -117,18 +117,18 @@ static int ao_wav_device_init(ao_device *device)
 
 	internal = (ao_wav_internal *) malloc(sizeof(ao_wav_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	memset(&(internal->wave), 0, sizeof(internal->wave));
-	
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
 }
 
 
-static int ao_wav_set_option(ao_device *device, const char *key, 
+static int ao_wav_set_option(ao_device *device, const char *key,
 			     const char *value)
 {
 	return 1; /* No options! */
@@ -157,13 +157,13 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	internal->wave.format.len = 16;
 
 	internal->wave.common.wFormatTag = WAVE_FORMAT_PCM;
-	internal->wave.common.dwAvgBytesPerSec = 
-		internal->wave.common.wChannels * 
+	internal->wave.common.dwAvgBytesPerSec =
+		internal->wave.common.wChannels *
 		internal->wave.common.dwSamplesPerSec *
 		(internal->wave.common.wBitsPerSample >> 3);
 
-	internal->wave.common.wBlockAlign = 
-		internal->wave.common.wChannels * 
+	internal->wave.common.wBlockAlign =
+		internal->wave.common.wChannels *
 		(internal->wave.common.wBitsPerSample >> 3);
 
 	strncpy(internal->wave.data.id, "data",4);
@@ -184,7 +184,7 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	strncpy(buf+36, internal->wave.data.id, 4);
 	WRITE_U32(buf+40, internal->wave.data.len);
 
-	if (fwrite(buf, sizeof(char), WAV_HEADER_LEN, device->file) 
+	if (fwrite(buf, sizeof(char), WAV_HEADER_LEN, device->file)
 	    != WAV_HEADER_LEN) {
 		return 0; /* Could not write wav header */
 	}
@@ -198,15 +198,15 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 /*
  * play the sample to the already opened file descriptor
  */
-static int ao_wav_play(ao_device *device, const char *output_samples, 
+static int ao_wav_play(ao_device *device, const char *output_samples,
 			uint_32 num_bytes)
 {
-	if (fwrite(output_samples, sizeof(char), num_bytes, 
+	if (fwrite(output_samples, sizeof(char), num_bytes,
 		   device->file) < num_bytes)
 		return 0;
 	else
 		return 1;
-	
+
 }
 
 static int ao_wav_close(ao_device *device)
@@ -231,7 +231,7 @@ static int ao_wav_close(ao_device *device)
 	/* Rewind to riff len and write it */
 	if (fseek(device->file, 4, SEEK_SET) < 0)
 		return 0; /* Wav header corrupt */
-	
+
 	WRITE_U32(buf, internal->wave.riff.len);
 	if (fwrite(buf, sizeof(char), 4, device->file) < 4)
 	  return 0; /* Wav header corrupt */
@@ -240,12 +240,12 @@ static int ao_wav_close(ao_device *device)
 	/* Rewind to data len and write it */
 	if (fseek(device->file, 40, SEEK_SET) < 0)
 		return 0; /* Wav header corrupt */
-	
+
 	WRITE_U32(buf, internal->wave.data.len);
 	if (fwrite(buf, sizeof(char), 4, device->file) < 4)
 	  return 0; /* Wav header corrupt */
 
-       
+
 	return 1; /* Wav header correct */
 }
 
@@ -267,4 +267,3 @@ ao_functions ao_wav = {
 	ao_wav_close,
 	ao_wav_device_clear
 };
-

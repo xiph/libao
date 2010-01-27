@@ -68,9 +68,9 @@ static int ao_null_device_init(ao_device *device)
 
 	internal = (ao_null_internal *) malloc(sizeof(ao_null_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	internal->byte_counter = 0;
 	internal->debug_output = 0;
 
@@ -80,7 +80,7 @@ static int ao_null_device_init(ao_device *device)
 }
 
 
-static int ao_null_set_option(ao_device *device, const char *key, 
+static int ao_null_set_option(ao_device *device, const char *key,
 			      const char *value)
 {
 	ao_null_internal *internal = (ao_null_internal *) device->internal;
@@ -99,11 +99,16 @@ static int ao_null_open(ao_device *device, ao_sample_format *format)
 	/* Use whatever format the client requested */
 	device->driver_byte_format = device->client_byte_format;
 
+        if(!device->output_matrix){
+          /* all channels 'unavailable' */
+          device->output_matrix=strdup("X");
+        }
+
 	return 1;
 }
 
 
-static int ao_null_play(ao_device *device, const char *output_samples, 
+static int ao_null_play(ao_device *device, const char *output_samples,
 			uint_32 num_bytes)
 {
 	ao_null_internal *internal = (ao_null_internal *)device->internal;

@@ -67,22 +67,22 @@ static int ao_raw_device_init(ao_device *device)
 
 	internal = (ao_raw_internal *) malloc(sizeof(ao_raw_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	internal->byte_order = AO_FMT_NATIVE;
-	
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
 }
 
-static int ao_raw_set_option(ao_device *device, const char *key, 
+static int ao_raw_set_option(ao_device *device, const char *key,
 			      const char *value)
 {
 	ao_raw_internal *internal = (ao_raw_internal *)device->internal;
-	
-	if (!strcmp(key, "byteorder")) {    
+
+	if (!strcmp(key, "byteorder")) {
 		if (!strcmp(value, "native"))
 			internal->byte_order = AO_FMT_NATIVE;
 		else if (!strcmp(value, "big"))
@@ -103,6 +103,12 @@ static int ao_raw_open(ao_device *device, ao_sample_format *format)
 
 	device->driver_byte_format = internal->byte_order;
 
+        if(!device->output_matrix){
+          /* by default, out == in */
+          if(format->matrix)
+            device->output_matrix = strdup(format->matrix);
+        }
+
 	return 1;
 }
 
@@ -110,10 +116,10 @@ static int ao_raw_open(ao_device *device, ao_sample_format *format)
 /*
  * play the sample to the already opened file descriptor
  */
-static int ao_raw_play(ao_device *device, const char *output_samples, 
+static int ao_raw_play(ao_device *device, const char *output_samples,
 		       uint_32 num_bytes)
 {
-	if (fwrite(output_samples, sizeof(char), num_bytes, 
+	if (fwrite(output_samples, sizeof(char), num_bytes,
 		   device->file) < num_bytes)
 		return 0;
 	else

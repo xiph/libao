@@ -171,6 +171,13 @@ int ao_aixs_open(ao_device *device, ao_sample_format *format)
 
 	device->driver_byte_format = AO_FMT_NATIVE;
 
+        if(!device->output_matrix){
+          /* set up out matrix such that users are warned about > stereo playback */
+          if(format->channels<=2)
+            device->output_matrix=strdup("L,R");
+          //else no matrix, which results in a warning
+        }
+
 	return 1;
 }
 
