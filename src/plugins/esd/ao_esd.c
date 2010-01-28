@@ -162,10 +162,24 @@ int ao_plugin_play(ao_device *device, const char* output_samples,
 {
 	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
-	if (write(internal->sock, output_samples, num_bytes) < 0)
-		return 0;
-	else
-		return 1;
+
+        while (num_bytes > 0) {
+          ssize_t ret = write(internal->sock, output_samples, num_bytes);
+          if(ret<0){
+            switch(errno){
+            case EAGAIN:
+            case EINTR:
+              break;
+            default:
+              return 0;
+            }
+          }
+
+          output_samples += ret;
+          num_bytes -= ret;
+        }
+
+        return 1;
 }
 
 

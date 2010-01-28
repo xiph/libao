@@ -302,15 +302,16 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
 
 	while(num_bytes > 0) {
-		send = num_bytes>internal->buf_size?
-			internal->buf_size:num_bytes;
-		ret = write(internal->fd, output_samples, send);
+          send = num_bytes>internal->buf_size?
+            internal->buf_size:num_bytes;
+          ret = write(internal->fd, output_samples, send);
 
-		if (ret <= 0)
-			return 0;
-
-		num_bytes-=ret;
-		output_samples+=ret;
+          if (ret < 0){
+            if(errno == EINTR) continue;
+            return 0;
+          }
+          num_bytes-=ret;
+          output_samples+=ret;
 	}
 
 	return 1;
