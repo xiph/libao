@@ -33,7 +33,7 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-static char *ao_raw_options[] = {"byteorder","matrix","verbose","quiet"};
+static char *ao_raw_options[] = {"byteorder","matrix","verbose","quiet","debug"};
 static ao_info ao_raw_info =
 {
 	AO_TYPE_FILE,
@@ -44,7 +44,7 @@ static ao_info ao_raw_info =
 	AO_FMT_NATIVE,
 	0,
 	ao_raw_options,
-	4
+	5
 };
 
 typedef struct ao_raw_internal

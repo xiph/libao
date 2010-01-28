@@ -35,7 +35,7 @@
 #include <ao/plugin.h>
 
 
-static char *ao_arts_options[] = {"matrix","verbose","quiet"};
+static char *ao_arts_options[] = {"matrix","verbose","quiet","debug"};
 static ao_info ao_arts_info =
 {
 	AO_TYPE_LIVE,
@@ -50,7 +50,7 @@ static ao_info ao_arts_info =
 	15,
 #endif
 	ao_arts_options,
-        3
+        4
 };
 
 

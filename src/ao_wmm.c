@@ -46,21 +46,6 @@
 #define GALLOC_WVHD_TYPE (GHND)
 #define GALLOC_DATA_TYPE (GHND)
 
-#ifndef AO_WMM_DEBUG
-  #define AO_WMM_DEBUG 0
-#endif
-static int debug_flag = AO_WMM_DEBUG;
-
-static void debug(const char * fmt, ...)
-{
-  if (debug_flag) {
-    va_list list;
-    va_start(list,fmt);
-    vfprintf(stderr,fmt,list);
-    va_end(list);
-  }
-}
-
 static const char * mmerror(MMRESULT mmrError)
 {
   static char mmbuffer[1024];
@@ -72,7 +57,7 @@ static const char * mmerror(MMRESULT mmrError)
   return mmbuffer;
 }
 
-static char * ao_wmm_options[] = {"debug", "dev", "id", "matrix","verbose","quiet"};
+static char * ao_wmm_options[] = {"dev", "id", "matrix","verbose","quiet","debug"};
 static ao_info ao_wmm_info =
   {
     /* type             */ AO_TYPE_LIVE,
@@ -120,13 +105,11 @@ typedef struct ao_wmm_internal {
 
 int ao_wmm_test(void)
 {
-  debug("ao_wmm_test() {} => [success]\n");
   return 1; /* This plugin works in default mode */
 }
 
 ao_info *ao_wmm_driver_info(void)
 {
-  debug("ao_wmm_driver_info() {} => [success]\n");
   return &ao_wmm_info;
 }
 
@@ -136,47 +119,28 @@ int ao_wmm_set_option(ao_device *device,
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
   int res = 0;
 
-  debug("ao_wmm_set_option(%s,%s) {\n", key, value);
-
-  if(!strcmp(key,"debug")) {
-    if(!strcmp(value,"yes")) {
-      debug_flag = 1; res = 1;
-    } else if(!strcmp(value,"no")) {
-      debug_flag = 0; res = 1;
-    } else {
-      res = 0;
-    } goto finish;
-  }
-
   if (!strcmp(key, "dev")) {
     if (!strcmp(value,"default")) {
       key = "id";
       value = "0";
     } else {
       WAVEOUTCAPS caps;
-      int i, max = waveOutGetNumDevs(); 
+      int i, max = waveOutGetNumDevs();
 
-      debug("ao_wmm_set_option: search device %s among %d\n", value, max);
+      adebug("searching for device %s among %d\n", value, max);
       for (i=0; i<max; ++i) {
-        MMRESULT mmres
-          = waveOutGetDevCaps(i, &caps, sizeof(caps));
+        MMRESULT mmres = waveOutGetDevCaps(i, &caps, sizeof(caps));
         if (mmres == MMSYSERR_NOERROR) {
           res = !strcmp(value, caps.szPname);
-          debug("ao_wmm_set_option:\n"
-		"  id   : %d\n"
-		"  name : %s\n"
-		"  ver  : %d.%d\n"
-		"  => [%sfound]\n",i,caps.szPname,
-		caps.vDriverVersion>>8,caps.vDriverVersion&255,
-		res?"":"not ");
+          adebug("checking id=%d, name='%s', ver=%d.%d  => [%s]\n",
+                i,caps.szPname,caps.vDriverVersion>>8,caps.vDriverVersion&255,res?"YES":"no");
           if (res) {
             internal->id   = i;
             internal->caps = caps;
             break;
           }
         } else {
-          debug("ao_wmm_set_option: waveOutGetDevCaps(%d) => [error]\n",i);
-          debug(" => %s\n", mmerror(mmres));
+          aerror("waveOutGetDevCaps(%d) => %s",i,mmerror(mmres));
         }
       }
       goto finish;
@@ -190,32 +154,26 @@ int ao_wmm_set_option(ao_device *device,
     int id  = strtol(value,0,0);
     int max = waveOutGetNumDevs();
 
-    debug("ao_wmm_set_option: search device %d among %d\n", id, max);
-
     if (id >= 0 &&  id <= max) {
       if (id-- == 0) {
-        debug("ao_wmm_set_option: set default wavemapper\n");
+        adebug("set default wavemapper\n");
         id = WAVE_MAPPER;
       }
       mmres = waveOutGetDevCaps(id, &caps, sizeof(caps));
 
       if (mmres == MMSYSERR_NOERROR) {
         res = 1;
-        debug("ao_wmm_set_option:\n"
-	      "  id   : %d\n"
-	      "  name : %s\n"
-	      "  ver  : %d.%d\n",
-	      id,caps.szPname,caps.vDriverVersion>>8,caps.vDriverVersion&255);
+        adebug("checking id=%d, name='%s', ver=%d.%d  => [YES]\n",
+              i,caps.szPname,caps.vDriverVersion>>8,caps.vDriverVersion&255);
         internal->id   = id;
         internal->caps = caps;
       } else {
-        debug(" waveOutGetDevCaps(%d) => %s\n",id, mmerror(mmres));
+        aerror("waveOutGetDevCaps(%d) => %s",id,mmerror(mmres));
       }
     }
   }
 
  finish:
-  debug("} ao_wmm_set_option() => [%s]\n", res?"success":"error");
   return res;
 }
 
@@ -224,8 +182,6 @@ int ao_wmm_device_init(ao_device *device)
 {
   ao_wmm_internal *internal;
   int res;
-
-  debug("ao_wmm_device_init() {\n");
 
   internal = (ao_wmm_internal *) malloc(sizeof(ao_wmm_internal));
   device->internal = internal;
@@ -239,7 +195,6 @@ int ao_wmm_device_init(ao_device *device)
   }
 
   res = internal != NULL;
-  debug("} ao_wmm_device_init() => [%s]\n",res?"success":"error" );
 
   return res;
 }
@@ -247,7 +202,7 @@ int ao_wmm_device_init(ao_device *device)
 #if 0
 static void CALLBACK
 waveOutProc(HWAVEOUT hwo,
-            UINT uMsg, DWORD_PTR dwInstance,  
+            UINT uMsg, DWORD_PTR dwInstance,
             DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
   ao_device *device = (ao_device *) dwInstance;
@@ -257,15 +212,11 @@ waveOutProc(HWAVEOUT hwo,
 
   case WOM_OPEN:
     /* Sent when the device is opened using the waveOutOpen function. */
-    {
-      debug("WOM_OPEN\n");
-    } break;
+    break;
 
   case WOM_CLOSE:
     /* Sent when the device is closed using the waveOutClose function. */
-    {
-      debug("WOM_CLOSE\n");
-    } break;
+    break;
 
   case WOM_DONE:
     /* Sent when the device driver is finished with a data block sent
@@ -273,14 +224,12 @@ waveOutProc(HWAVEOUT hwo,
     {
       LPWAVEHDR lpwvhdr = (LPWAVEHDR) dwParam1;
       int me = lpwvhdr - internal->wh;
-      debug("WOM_DONE #%d\n",me);
       lpwvhdr->dwBytesRecorded = 0;
-    } break;
+    }
+    break;
 
   default:
-    {
-      debug("WOM_???\n");
-    } break;
+    break;
   }
 }
 #endif
@@ -291,38 +240,36 @@ static int _ao_open_device(ao_device *device)
   int res;
   MMRESULT mmres;
 
-  debug("_ao_open_device() {\n");
-  mmres = 
-    waveOutOpen(&internal->hwo,     
+  mmres =
+    waveOutOpen(&internal->hwo,
 		internal->id,
 		&internal->wavefmt,
 		(DWORD_PTR)0/* waveOutProc */,
 		(DWORD_PTR)device,
 		CALLBACK_NULL/* |WAVE_FORMAT_DIRECT */|WAVE_ALLOWSYNC);
 
-  debug("_ao_open_device: waveOutOpen\n"
-	" id       : %d\n"
-	" channels : %d\n" 
-	" bits     : %d\n" 
-	" rate     : %d => [%s]\n",
-	internal->id,
-	internal->wavefmt.nChannels,
-	internal->wavefmt.wBitsPerSample,
-	internal->wavefmt.nSamplesPerSec,
-	mmres == MMSYSERR_NOERROR?"success":"error");
+  if(mmres == MMSYSERR_NOERROR){
+    adebug("waveOutOpen id=%d, channels=%d, bits=%d, rate %d => SUCCESS\n",
+          internal->id,
+          internal->wavefmt.nChannels,
+          internal->wavefmt.wBitsPerSample,
+          internal->wavefmt.nSamplesPerSec);
+  }else{
+    aerror("waveOutOpen id=%d, channels=%d, bits=%d, rate %d => FAILED\n",
+          internal->id,
+          internal->wavefmt.nChannels,
+          internal->wavefmt.wBitsPerSample,
+          internal->wavefmt.nSamplesPerSec);
+  }
 
   if (mmres == MMSYSERR_NOERROR) {
     UINT id;
     if (MMSYSERR_NOERROR == waveOutGetID(internal->hwo,&id)) {
-      debug("_ao_open_device: waveOutGetID() => [%d]\n",id);
       internal->id = id;
     }
-  }  else {
-    debug(" waveOutOpen(%d)\n => %s\n", internal->id, mmerror(mmres));
   }
 
   res = (mmres == MMSYSERR_NOERROR);
-  debug("} _ao_open_device() => [%s]\n",res?"success":"error");
   return res;
 }
 
@@ -332,14 +279,13 @@ static int _ao_close_device(ao_device *device)
   int res;
   MMRESULT mmres;
 
-  debug("_ao_close_device() {\n");
-
   mmres = waveOutClose(internal->hwo);
-  if (mmres != MMSYSERR_NOERROR) {
-    debug(" waveOutClose(%d)\n => %s\n", internal->id, mmerror(mmres));
+  if(mmres == MMSYSERR_NOERROR) {
+    adebug("waveOutClose(%d)\n => %s\n", internal->id, mmerror(mmres));
+  }else{
+    aerror("waveOutClose(%d)\n => %s\n", internal->id, mmerror(mmres));
   }
   res = (mmres == MMSYSERR_NOERROR);
-  debug("} _ao_close_device() => [%s]\n",res?"success":"error");
 
   return res;
 }
@@ -353,10 +299,8 @@ static int _ao_alloc_wave_headers(ao_device *device)
   int res;
   MMRESULT mmres;
 
-  debug("_ao_alloc_wave_headers() {\n"
-	"  blocks       : %d\n"
-	"  bytes/blocks : %d\n"
-	"  total        : %d\n",internal->blocks,bytesPerBlock,bytes);
+  adebug("_ao_alloc_wave_headers blocks=%d, bytes/blocks=%d, total=%d\n",
+         internal->blocks,bytesPerBlock,bytes);
 
   internal->bigbuffer = malloc(bytes);
   if (internal->bigbuffer != NULL) {
@@ -375,9 +319,7 @@ static int _ao_alloc_wave_headers(ao_device *device)
       mmres = waveOutPrepareHeader(internal->hwo,
 				   &internal->wh[i].wh,sizeof(WAVEHDR));
       if (MMSYSERR_NOERROR != mmres) {
-        debug("_ao_alloc_wave_headers:"
-	      " waveOutPrepareHeader(%d) => [error]\n",i);
-        debug(" => %s\n", mmerror(mmres));
+        aerror("waveOutPrepareHeader(%d) => %s\n",i, mmerror(mmres));
         break;
       }
     }
@@ -394,11 +336,14 @@ static int _ao_alloc_wave_headers(ao_device *device)
       /* all ok ! */
     }
   } else {
-    debug("_ao_alloc_wave_headers: malloc() => [error]\n");
+    adebug("malloc() => FAILED\n");
   }
 
   res = (internal->bigbuffer != NULL);
-  debug("} _ao_alloc_wave_headers() => [%s]\n", res?"success":"error");
+  if(!res)
+    aerror("_ao_alloc_wave_headers() => FAILED\n");
+  else
+    adebug("_ao_alloc_wave_headers() => success\n");
   return res;
 }
 
@@ -408,8 +353,8 @@ static int _ao_wait_wave_headers(ao_device *device, int wait_all)
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
   int res = 1;
 
-  debug("_ao_wait_wave_headers: wait for %d blocks (%swait all)\n",
-	internal->sent_blocks,wait_all?"":"not ");
+  adebug("wait for %d blocks (%swait all)\n",
+         internal->sent_blocks,wait_all?"":"not ");
 
   while (internal->sent_blocks > 0) {
     int n;
@@ -418,13 +363,16 @@ static int _ao_wait_wave_headers(ao_device *device, int wait_all)
     if (n > 0) {
       unsigned int ms = (internal->msPerBlock>>1)+1;
       if (wait_all) ms *= n;
-      debug("_ao_wait_wave_headers: sleep for %ums wait on %d blocks\n",ms, internal->sent_blocks);
+      adebug("sleep for %ums wait on %d blocks\n",ms, internal->sent_blocks);
       Sleep(ms);
     }
   }
 
   res &= !internal->sent_blocks;
-  debug("_ao_wait_wave_headers: => [%s]\n",res?"success":"error");  
+  if(!res)
+    aerror("_ao_wait_wave_headers => FAILED\n");
+  else
+    adebug("_ao_wait_wave_headers => success\n");
   return res;
 }
 
@@ -433,7 +381,6 @@ static int _ao_free_wave_headers(ao_device *device)
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
   MMRESULT mmres;
   int res = 1;
-  debug("_ao_free_wave_headers() {\n");
 
   if (internal->wh) {
     int i;
@@ -442,18 +389,15 @@ static int _ao_free_wave_headers(ao_device *device)
      * since _ao_wait_wave_headers() has been called once before.
      */
     mmres = waveOutReset(internal->hwo);
-    debug(" waveOutReset(%d) => %s\n", internal->id, mmerror(mmres));
+    adebug("waveOutReset(%d) => %s\n", internal->id, mmerrormmres);
     /* Wait again to be sure reseted waveheaders has been released. */
     _ao_wait_wave_headers(device,0);
 
     for (i=internal->blocks; --i>=0; ) {
       mmres = waveOutUnprepareHeader(internal->hwo,
 				     &internal->wh[i].wh,sizeof(WAVEHDR));
-      if (mmres != MMSYSERR_NOERROR) {
-        debug("_ao_free_wave_headers:"
-	      " waveOutUnprepareHeader(%d)\n",i);
-        debug(" => %s\n", mmerror(mmres));
-      }
+      if (mmres != MMSYSERR_NOERROR)
+        aerror("waveOutUnprepareHeader(%d) => %s\n", i, mmerror(mmres));
 
       res &= mmres == MMSYSERR_NOERROR;
     }
@@ -461,7 +405,11 @@ static int _ao_free_wave_headers(ao_device *device)
     internal->spl = 0;
   }
 
-  debug("} _ao_alloc_wave_headers() => [%s]\n", res?"success":"error");
+  if(!res)
+    aerror("_ao_alloc_wave_headers() => FAILED\n");
+  else
+    adebug("_ao_alloc_wave_headers() => success\n");
+
   return res;
 }
 
@@ -475,22 +423,16 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
   int res = 0;
   WAVEFORMATEX wavefmt;
 
-  debug("ao_wmm_open(%p,%p) {\n",device,format);
-
-  debug("ao_wmm_open:\n"
-	"  channels : %d\n"
-	"  bits     : %d\n"
-	"  rate     : %d\n"
-	"  format   : %d(%s)\n",
-	format->channels,format->bits,format->rate,format->byte_format,
-	format->byte_format==AO_FMT_LITTLE
-	?"little"
-	:(format->byte_format==AO_FMT_NATIVE
-	  ?"native"
-	  :(format->byte_format==AO_FMT_BIG?"big":"unknown")));
+  adebug("open() channels=%d, bits=%d, rate=%d, format %d(%s)\n",
+         format->channels,format->bits,format->rate,format->byte_format,
+         format->byte_format==AO_FMT_LITTLE
+         ?"little"
+         :(format->byte_format==AO_FMT_NATIVE
+           ?"native"
+           :(format->byte_format==AO_FMT_BIG?"big":"unknown")));
 
   if(internal->opened) {
-    debug("ao_wmm_open: already opened\n");
+    aerror("open() => already opened\n");
     goto error_no_close;
   }
 
@@ -498,15 +440,16 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
   format->byte_format = AO_FMT_LITTLE;
   device->driver_byte_format = AO_FMT_LITTLE;
 
-  if (! (format->channels == 1 || format->channels ==  2) || 
+  if (! (format->channels == 1 || format->channels ==  2) ||
       ! (format->bits     == 8 || format->bits     == 16) ||
       ! (format->rate  >= 6000 && format->rate  <= 50000)
       ) {
-    debug("ao_wmm_open: weird format\n");
+    aerror("open() => unable to handle input format\n");
     goto error;
   }
 
   /* $$$ WMM 8 bit samples are unsigned... Not sure for ao ... */
+  /* Yes, ao 8 bit PCM is unsigned -- Monty */
 
   /* Make sample format */
   memset(&wavefmt,0,sizeof(wavefmt));
@@ -526,17 +469,13 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
     (internal->splPerBlock * 1000 + format->rate - 1) / format->rate;
 
   /* Open device */
-  if(!_ao_open_device(device)) {
-    debug("ao_wmm_open: _ao_open_device() => [error]\n");
+  if(!_ao_open_device(device))
     goto error;
-  }
   internal->opened = 1;
 
   /* Allocate buffers */
-  if (!_ao_alloc_wave_headers(device)) {
-    debug("ao_wmm_open: _ao_alloc_wave_headers() => [error]\n");
+  if (!_ao_alloc_wave_headers(device))
     goto error;
-  }
   internal->prepared = 1;
 
   res = 1;
@@ -552,8 +491,11 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
     }
   }
 
- error_no_close: 
-  debug("} ao_wmm_open() => [%s]\n",res?"success":"error");
+ error_no_close:
+  if(res)
+    adebug("open() => success\n");
+  else
+    aerror("open() => FAILED\n");
   return res;
 }
 
@@ -567,11 +509,11 @@ static int _ao_send_block(ao_device *device, const int idx)
 
   /* Satanity checks */
   if (internal->wh[idx].sent) {
-    debug("_ao_send_block: block %d marked SENT\n",idx);
+    adebug("block %d marked SENT\n",idx);
     return 0;
   }
   if (!!(internal->wh[idx].wh.dwFlags & WHDR_DONE)) {
-    debug("_ao_send_block: block %d marked DONE\n",idx);
+    adebug("block %d marked DONE\n",idx);
     return 0;
   }
 
@@ -591,8 +533,7 @@ static int _ao_send_block(ao_device *device, const int idx)
   /*&& !(internal->wh[idx].wh.dwFlags & WHDR_DONE);*/
   internal->sent_blocks += internal->wh[idx].sent;
   if (mmres != MMSYSERR_NOERROR) {
-    debug("_ao_send_block:: waveOutWrite(%d)\n",idx);
-    debug(" => %s\n",mmerror(mmres));
+    adebug("waveOutWrite(%d) => %s\n",idx,mmerror(mmres));
   }
   return mmres == MMSYSERR_NOERROR;
 }
@@ -609,16 +550,16 @@ static int _ao_get_free_block(ao_device * device)
     /*debug("_ao_get_free_block: release block %d\n",ridx);*/
     internal->wh[ridx].sent = 0;
     internal->wh[ridx].wh.dwFlags &= ~WHDR_DONE;
-    
+
     --internal->full_blocks;
     if (internal->full_blocks<0) {
-      debug("_ao_get_free_block: internal error with full block counter\n");
+      adebug("internal error with full block counter\n");
       internal->full_blocks = 0;
     }
 
     --internal->sent_blocks;
     if (internal->sent_blocks<0) {
-      debug("_ao_get_free_block: internal error with sent block counter\n");
+      adebug("internal error with sent block counter\n");
       internal->sent_blocks = 0;
     }
     if (++ridx >= internal->blocks) ridx = 0;
@@ -644,7 +585,6 @@ int ao_wmm_play(ao_device *device,
     const int idx = _ao_get_free_block(device);
 
     if (idx == -1) {
-      /* debug("sleep %dms, rem %d bytes\n",internal->msPerBlock,num_bytes); */
       Sleep(internal->msPerBlock);
       continue;
     }
@@ -653,15 +593,10 @@ int ao_wmm_play(ao_device *device,
     n = internal->wh[idx].wh.dwBufferLength
       - internal->wh[idx].count;
 
-    /*     debug("free in block %d : %d/%d\n", */
-    /* 	  idx,n,internal->wh[idx].dwBufferLength); */
-
     /* Get amount to copy */
     if (n > (int)num_bytes) {
       n = num_bytes;
     }
-    /*     debug("copy = %d\n",n); */
-
 
     /* Do copy */
     CopyMemory((char*)internal->wh[idx].wh.lpData
@@ -671,14 +606,12 @@ int ao_wmm_play(ao_device *device,
     /* Updates pointers and counters */
     output_samples += n;
     num_bytes -= n;
-    /*     debug("rem = %d\n",num_bytes); */
     internal->wh[idx].count += n;
 
     /* Is this block full ? */
-    if (internal->wh[idx].count 
+    if (internal->wh[idx].count
 	== internal->wh[idx].wh.dwBufferLength) {
       ++internal->full_blocks;
-      /*       debug("blocks %d full, total:%d\n",internal->widx,internal->full_blocks); */
       if (++internal->widx == internal->blocks) {
 	internal->widx = 0;
       }
@@ -686,7 +619,7 @@ int ao_wmm_play(ao_device *device,
     }
   }
 
-  /*   debug("ao_wmm_play => %d rem => [%s]\n",num_bytes,ret?"success":"error"); */
+  adebug("ao_wmm_play => %d rem => [%s]\n",num_bytes,ret?"success":"error");
   return ret;
 
 }
@@ -695,8 +628,6 @@ int ao_wmm_close(ao_device *device)
 {
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
   int ret = 0;
-
-  debug("ao_wmm_close() {\n");
 
   if (internal->opened && internal->prepared) {
     _ao_wait_wave_headers(device, 1);
@@ -712,8 +643,6 @@ int ao_wmm_close(ao_device *device)
     internal->opened = 0;
   }
 
-  debug("} ao_wmm_close() => [%s]\n",ret?"success":"error");
-
   return ret;
 }
 
@@ -721,14 +650,10 @@ void ao_wmm_device_clear(ao_device *device)
 {
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
 
-  debug("ao_wmm_device_clear() {\n");
-
   if (internal->bigbuffer) {
     free(internal->bigbuffer); internal->bigbuffer = NULL;
   }
   free(internal);
-
-  debug("} ao_wmm_device_clear()\n");
 
 }
 

@@ -44,7 +44,8 @@ static char * ao_pulse_options[] = {
     "sink",
     "verbose",
     "quiet",
-    "matrix"
+    "matrix",
+    "debug"
 };
 
 static ao_info ao_pulse_info = {
@@ -56,7 +57,7 @@ static ao_info ao_pulse_info = {
     AO_FMT_NATIVE,
     50,
     ao_pulse_options,
-    5
+    6
 };
 
 typedef struct ao_pulse_internal {

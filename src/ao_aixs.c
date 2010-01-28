@@ -52,7 +52,7 @@
 #endif
 
 
-static char *ao_aixs_options[] = {"dev","matrix","verbose","quiet"};
+static char *ao_aixs_options[] = {"dev","matrix","verbose","quiet","debug"};
 ao_info ao_aixs_info = {
 	AO_TYPE_LIVE,
 	"AIX audio driver output",
@@ -62,7 +62,7 @@ ao_info ao_aixs_info = {
 	AO_FMT_NATIVE,
 	20,
 	ao_aixs_options,
-	4
+	5
 };
 
 

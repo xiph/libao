@@ -45,7 +45,8 @@ static char *ao_nas_options[] = {
   "buf_size", /* Buffer size on server */
   "quiet",
   "verbose",
-  "matrix"
+  "matrix",
+  "debug"
 };
 
 static ao_info ao_nas_info =
@@ -58,7 +59,7 @@ static ao_info ao_nas_info =
 	AO_FMT_NATIVE,
 	10,
 	ao_nas_options,
-	5
+	6
 };
 
 

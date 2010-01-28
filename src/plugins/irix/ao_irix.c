@@ -49,7 +49,7 @@ typedef struct ao_irix_internal {
 	int channels;
 } ao_irix_internal;
 
-static char *ao_irix_options[] = {"matrix","verbose","quiet"};
+static char *ao_irix_options[] = {"matrix","verbose","quiet","debug"};
 
 static ao_info ao_irix_info =
 {
@@ -61,7 +61,7 @@ static ao_info ao_irix_info =
 	AO_FMT_NATIVE,
 	20,
 	ao_irix_options,
-	3
+	4
 };
 
 int ao_plugin_test(void)
@@ -119,13 +119,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	int  wsize = AL_SAMPLE_16;
 
 	if (alSetQueueSize(internal->alconfig, AO_IRIX_BUFFER_SIZE) < 0) {
-		fprintf(stderr, "alSetQueueSize failed: %s\n",
+		aerror("alSetQueueSize failed: %s\n",
 			alGetErrorString(oserror()));
 		return 0;
 	}
 
 	if (alSetChannels(internal->alconfig, format->channels) < 0) {
-		fprintf(stderr, "alSetChannels(%d) failed: %s\n",
+		aerror("alSetChannels(%d) failed: %s\n",
 			format->channels, alGetErrorString(oserror()));
 		return 0;
 	}
@@ -133,13 +133,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	internal->channels = format->channels;
 
 	if (alSetDevice(internal->alconfig, dev) < 0) {
-		fprintf(stderr, "alSetDevice failed: %s\n",
+		aerror("alSetDevice failed: %s\n",
 			alGetErrorString(oserror()));
 		return 0;
 	}
 
 	if (alSetSampFmt(internal->alconfig, AL_SAMPFMT_TWOSCOMP) < 0) {
-		fprintf(stderr, "alSetSampFmt failed: %s\n",
+		aerror("alSetSampFmt failed: %s\n",
 			alGetErrorString(oserror()));
 		return 0;
 	}
@@ -161,13 +161,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		break;
 
 	default:
-		fprintf(stderr, "Irix audio: unsupported bit with %d\n",
+		aerror("unsupported bit with %d\n",
 			format->bits);
 		break;
 	}
 
 	if (alSetWidth(internal->alconfig, wsize) < 0) {
-		fprintf(stderr, "alSetWidth failed: %s\n",
+		aerror("alSetWidth failed: %s\n",
 			alGetErrorString(oserror()));
 		alClosePort(internal->alport);
 		return 0;
@@ -176,7 +176,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	internal->alport = alOpenPort("libao", "w", internal->alconfig);
 	if (internal->alport == NULL)
 	{
-		fprintf(stderr, "alOpenPort failed: %s\n",
+		aerror("alOpenPort failed: %s\n",
 			alGetErrorString(oserror()));
 		return 0;
 	}
@@ -185,7 +185,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	params.value.ll = alDoubleToFixed((double) format->rate);
 	if (alSetParams(dev, &params, 1) < 0)
 	{
-		printf("alSetParams() failed: %s\n", alGetErrorString(oserror()));
+		aerror("alSetParams() failed: %s\n", alGetErrorString(oserror()));
 		alClosePort(internal->alport);
 		return 0;
 	}

@@ -70,7 +70,8 @@ static char *ao_alsa_options[] = {
 	"use_mmap",
         "matrix",
         "verbose",
-        "quiet"
+        "quiet",
+        "debug"
 };
 
 
@@ -84,7 +85,7 @@ static ao_info ao_alsa_info =
 	AO_FMT_NATIVE,
 	35,
 	ao_alsa_options,
-	7
+	8
 };
 
 
@@ -185,7 +186,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 
 
 /* determine the alsa bitformat for a given bitwidth and endianness */
-static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian)
+static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian, ao_device *device)
 {
 	int ret;
 
@@ -198,7 +199,7 @@ static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian)
 		  break;
 	case 32 : ret = SND_PCM_FORMAT_S32;
 		  break;
-	default : fprintf(stderr,"ALSA: invalid bitwidth %d\n", bitwidth);
+	default : aerror("invalid bitwidth %d\n", bitwidth);
 		  return -1;
 	}
 
@@ -208,7 +209,8 @@ static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian)
 
 /* setup alsa data format and buffer geometry */
 static inline int alsa_set_hwparams(ao_alsa_internal *internal,
-		ao_sample_format *format)
+                                    ao_sample_format *format,
+                                    ao_device *device)
 {
 	snd_pcm_hw_params_t   *params;
 	int err;
@@ -254,8 +256,8 @@ static inline int alsa_set_hwparams(ao_alsa_internal *internal,
 	if (err < 0)
 		return err;
 	if (rate > 1.05 * format->rate || rate < 0.95 * format->rate) {
-		fprintf(stderr, "warning: sample rate %i not supported "
-			"by the hardware, using %u\n", format->rate, rate);
+          awarn("sample rate %i not supported "
+                "by the hardware, using %u\n", format->rate, rate);
 	}
 
 	/* set the length of the hardware sample buffer in microseconds */
@@ -354,7 +356,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Get the ALSA bitformat first to make sure it's valid */
 	err = alsa_get_sample_bitformat(format->bits,
-			device->client_byte_format == AO_FMT_BIG);
+                                        device->client_byte_format == AO_FMT_BIG,device);
 	if (err < 0)
 		goto error;
 
@@ -390,8 +392,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           }
 
           if(err){
-            fprintf(stderr,"ERROR: Unable to open ALSA surround device '%s'\n"
-                           "       trying default device...\n",tmp);
+            awarn("Unable to open ALSA surround device '%s'\n"
+                  "       trying default device...\n",tmp);
             tmp=NULL;
           }
           if(!tmp)
@@ -408,7 +410,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	}
 
 	/* Set up the hardware parameters, ie sample and buffer specs */
-	err = alsa_set_hwparams(internal, format);
+	err = alsa_set_hwparams(internal, format, device);
 	if (err < 0)
 		goto error;
 
@@ -427,11 +429,11 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
         if(!device->output_matrix){
           if(!strncasecmp(internal->dev,"plug:",5))
             if(format->channels>2 && device->verbose>=0)
-              fprintf(stderr,"\nWARNING: No way to determine hardware channel mapping of\n"
-                      "ALSA 'plug:' devices.\n");
+              awarn("No way to determine hardware channel mapping of\n"
+                    "ALSA 'plug:' devices.\n");
           if(!strcasecmp(internal->dev,"default")){
             if(format->channels>2 && device->verbose>=0)
-              fprintf(stderr,"\nWARNING: ALSA 'default' device plays only L,R channels.\n");
+              awarn("ALSA 'default' device plays only L,R channels.\n");
             device->output_matrix=strdup("L,R");
           }else
             device->output_matrix=strdup("L,R,BL,BR,C,LFE,SL,SR");
@@ -440,8 +442,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	return 1;
 
 error:
-	fprintf(stderr, "ALSA %s error: %s\n",
-			internal->cmd, snd_strerror(err));
+	aerror("%s => %s\n",
+               internal->cmd, snd_strerror(err));
 	if (internal->pcm_handle) {
 		snd_pcm_close(internal->pcm_handle);
 		internal->pcm_handle = NULL;
@@ -451,11 +453,11 @@ error:
 
 
 /* recover from an alsa exception */
-static inline int alsa_error_recovery(ao_alsa_internal *internal, int err)
+static inline int alsa_error_recovery(ao_alsa_internal *internal, int err, ao_device *device)
 {
 	if (err == -EPIPE) {
 		/* FIXME: underrun length detection */
-		//fprintf(stderr,"ALSA: underrun, at least %dms.\n", 0);
+		adebug("underrun, restarting...\n");
 		/* output buffer underrun */
 		internal->cmd = "underrun recovery: snd_pcm_prepare";
 		err = snd_pcm_prepare(internal->pcm_handle);
@@ -503,10 +505,10 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 
 		if (err < 0) {
 			/* this might be an error, or an exception */
-			err = alsa_error_recovery(internal, err);
+                  err = alsa_error_recovery(internal, err, device);
 			if (err < 0) {
-				fprintf(stderr,"ALSA write error: %s\n",
-						snd_strerror(err));
+				aerror("write error: %s\n",
+                                       snd_strerror(err));
 				return 0;
 			}else /* recovered, continue */
                           continue;
@@ -529,17 +531,17 @@ int ao_plugin_close(ao_device *device)
 	ao_alsa_internal *internal;
 
 	if (device) {
-		if ((internal = (ao_alsa_internal *) device->internal)) {
-			if (internal->pcm_handle) {
-				snd_pcm_drain(internal->pcm_handle);
-				snd_pcm_close(internal->pcm_handle);
-				internal->pcm_handle=NULL;
-			} else
-				fprintf(stderr,"ao_plugin_close called with uninitialized ao_device->internal->pcm_handle\n");
-		} else
-			fprintf(stderr,"ao_plugin_close called with uninitialized ao_device->internal\n");
+          if ((internal = (ao_alsa_internal *) device->internal)) {
+            if (internal->pcm_handle) {
+              snd_pcm_drain(internal->pcm_handle);
+              snd_pcm_close(internal->pcm_handle);
+              internal->pcm_handle=NULL;
+            } else
+              awarn("ao_plugin_close called with uninitialized ao_device->internal->pcm_handle\n");
+          } else
+            awarn("ao_plugin_close called with uninitialized ao_device->internal\n");
 	} else
-		fprintf(stderr,"ao_plugin_close called with uninitialized ao_device\n");
+          awarn("ao_plugin_close called with uninitialized ao_device\n");
 
 	return 1;
 }
@@ -551,18 +553,18 @@ void ao_plugin_device_clear(ao_device *device)
 	ao_alsa_internal *internal;
 
 	if (device) {
-		if ((internal = (ao_alsa_internal *) device->internal)) {
-			if (internal->dev)
-				free (internal->dev);
-			else
-				fprintf(stderr,"ao_plugin_device_clear called with uninitialized ao_device->internal->dev\n");
-			if (internal->cmd)
-				internal->cmd = NULL;
+          if ((internal = (ao_alsa_internal *) device->internal)) {
+            if (internal->dev)
+              free (internal->dev);
+            else
+              awarn("ao_plugin_device_clear called with uninitialized ao_device->internal->dev\n");
+            if (internal->cmd)
+              internal->cmd = NULL;
 
-			free(device->internal);
-		} else
-			fprintf(stderr,"ao_plugin_device_clear called with uninitialized ao_device->internal\n");
+            free(device->internal);
+          } else
+            awarn("ao_plugin_device_clear called with uninitialized ao_device->internal\n");
 	} else
-		fprintf(stderr,"ao_plugin_device_clear called with uninitialized ao_device\n");
+          awarn("ao_plugin_device_clear called with uninitialized ao_device\n");
 }
 

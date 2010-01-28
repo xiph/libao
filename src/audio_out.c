@@ -595,7 +595,7 @@ static char *mnemonics[]={
 };
 
 /* Check the requested maxtrix string for syntax and mnemonics */
-static char *_sanitize_matrix(char *matrix,int quiet){
+static char *_sanitize_matrix(char *matrix, ao_device *device){
   if(matrix){
     char *ret = calloc(strlen(matrix)+1,1); /* can only get smaller */
     char *p=matrix;
@@ -626,9 +626,9 @@ static char *_sanitize_matrix(char *matrix,int quiet){
       }
       if(!mnemonics[m]){
         /* unrecognized channel mnemonic */
-        if(!quiet){
+        {
           int i;
-          fprintf(stderr,"\nUnrecognized channel name \"");
+          aerror("Unrecognized channel name \"");
           for(i=0;i<t-p;i++)fputc(p[i],stderr);
           fprintf(stderr,"\" in channel matrix \"%s\"\n",matrix);
         }
@@ -720,13 +720,15 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
           if(!strcmp(options->key,"matrix")){
             /* explicitly set the output matrix to the requested
                string; devices must not override. */
-            device->output_matrix = _sanitize_matrix(options->value, device->verbose==-1);
+            device->output_matrix = _sanitize_matrix(options->value, device);
             if(!device->output_matrix){
               errno = AO_EBADOPTION;
               return NULL;
             }
+          }else if(!strcmp(options->key,"debug")){
+            device->verbose=2;
           }else if(!strcmp(options->key,"verbose")){
-            device->verbose=1;
+            if(device->verbose<1)device->verbose=1;
           }else if(!strcmp(options->key,"quiet")){
             device->verbose=-1;
           }else{
@@ -743,9 +745,9 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
         /* also sanitize the format input channel matrix */
         if(format->matrix){
-          sformat.matrix = _sanitize_matrix(format->matrix, device->verbose==-1);
-          if(!sformat.matrix && device->verbose>=0)
-            fprintf(stderr,"Input channel matrix invalid; ignoring.\n");
+          sformat.matrix = _sanitize_matrix(format->matrix, device);
+          if(!sformat.matrix)
+            awarn("Input channel matrix invalid; ignoring.\n");
         }
 
         /* set up any other housekeeping */
@@ -765,10 +767,9 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
         /* resolve channel mapping request if any */
         if(sformat.matrix){
           if(!device->output_matrix){
-            if(device->verbose>=0)
-              fprintf(stderr,"\nOutput driver %s does not support channel matrixing;\n"
-                      "continuing without routing channels to specific locations.\n\n",
-                      info_table[device->driver_id]->short_name);
+            awarn("Driver %s does not support channel matrixing;\n"
+                 "continuing without routing channels to specific locations.\n\n",
+                 info_table[device->driver_id]->short_name);
           }else{
 
             /* walk thorugh the output matrix, match outputs to inputs */
@@ -776,8 +777,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
             int count=0;
             device->permute_channels = calloc(device->output_channels,sizeof(int));
 
-            if(device->verbose>0)
-              fprintf(stderr,"\n");
+            averbose("\n");
 
             while(count<device->output_channels){
               int m=1,mm;
@@ -803,22 +803,19 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                 device->permute_channels[count] = -1;
 
               /* display resulting mapping for now */
-              if(device->verbose>0){
-                if(device->permute_channels[count]>=0){
-                  fprintf(stderr,"Output %d (%s)\t <- input %d (%s)\n",
-                          count,mnemonics[m],device->permute_channels[count],
-                          mnemonics[mm]);
-                }else{
-                  fprintf(stderr,"Output %d (%s)\t %s\n",
-                          count,mnemonics[m],(m==1?"unmapped":"<- none"));
-                }
+              if(device->permute_channels[count]>=0){
+                averbose("Output %d (%s)\t <- input %d (%s)\n",
+                        count,mnemonics[m],device->permute_channels[count],
+                        mnemonics[mm]);
+              }else{
+                averbose("Output %d (%s)\t %s\n",
+                        count,mnemonics[m],(m==1?"unmapped":"<- none"));
               }
               count++;
               op=h;
               if(*h)op++;
             }
-            if(device->verbose>0)
-              fprintf(stderr,"\n");
+            averbose("\n");
 
           }
         }
@@ -840,15 +837,12 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
 	/* Only create swap buffer if needed */
         if (device->bytewidth>1 &&
-            device->client_byte_format != device->driver_byte_format &&
-            device->verbose>0)
-          fprintf(stderr,
-                  "n\n\n\n-------------------------\n"
-                  "machine endianness: %d\n"
-                  "device->client_byte_format:%d\n"
-                  "device->driver_byte_format:%d\n"
-                  "--------------------------\n",
-                  ao_is_big_endian(),device->client_byte_format,device->driver_byte_format);
+            device->client_byte_format != device->driver_byte_format){
+          adebug("swap buffer required:\n");
+          adebug("  machine endianness: %d\n",ao_is_big_endian());
+          adebug("  device->client_byte_format:%d\n",device->client_byte_format);
+          adebug("  device->driver_byte_format:%d\n",device->driver_byte_format);
+        }
 
 	if ( (device->bytewidth>1 &&
               device->client_byte_format != device->driver_byte_format) ||

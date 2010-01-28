@@ -49,7 +49,7 @@
 #endif
 
 
-static char *ao_sun_options[] = {"dev","verbose","quiet","matrix"};
+static char *ao_sun_options[] = {"dev","verbose","quiet","matrix","debug"};
 ao_info ao_sun_info = {
 	AO_TYPE_LIVE,
 	"Sun audio driver output",
@@ -59,7 +59,7 @@ ao_info ao_sun_info = {
 	AO_FMT_NATIVE,
 	20,
 	ao_sun_options,
-	4
+	5
 };
 
 

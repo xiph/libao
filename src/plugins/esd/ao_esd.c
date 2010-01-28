@@ -38,7 +38,7 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-static char *ao_esd_options[] = {"host","matrix","verbose","quiet"};
+static char *ao_esd_options[] = {"host","matrix","verbose","quiet","debug"};
 static ao_info ao_esd_info =
 {
 	AO_TYPE_LIVE,
@@ -49,7 +49,7 @@ static ao_info ao_esd_info =
 	AO_FMT_NATIVE,
 	40,
 	ao_esd_options,
-	4
+	5
 };
 
 

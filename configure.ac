@@ -191,11 +191,6 @@ AC_ARG_ENABLE([wmm],
 	[include WMM output plugin @<:@default=check@:>@])],
 	[],[enable_wmm="check"]
 )
-AC_ARG_ENABLE([wmm_debug],
-    [AS_HELP_STRING(
-	[--enable-wmm-debug],
-	[enable WMM debugging output @<:@default=no@:>@])]
-)
 AS_IF([test "x$enable_wmm" != "xno"],
 [AC_CHECK_HEADERS([mmsystem.h],
    [
@@ -219,7 +214,6 @@ LIBS="$waveout_old_LIBS"
 ],[],[#include <windows.h>])])
 AM_CONDITIONAL([HAVE_WMM],[test "x$has_wmm" = "xyes"])
 AS_IF([test "x${has_wmm}" = "xyes"],[WMM_LIBS="-lwinmm"],[WMM_LIBS=""])
-AS_IF([test "x${has_wmm}" = "xyes" && test "x$enable_wmm_debug" = "xyes"],[CFLAGS="$CFLAGS -DAO_WMM_DEBUG=1"],[])
 AC_SUBST([WMM_LIBS])
 
 dnl Check for ESD

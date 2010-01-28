@@ -33,7 +33,7 @@
 #include <ao/ao.h>
 
 static char *ao_null_options[] = {
-	"debug"
+  "debug","verbose","matrix","quiet"
 };
 static ao_info ao_null_info = {
 	AO_TYPE_LIVE,
@@ -44,13 +44,12 @@ static ao_info ao_null_info = {
 	AO_FMT_NATIVE,
 	0,
 	ao_null_options,
-	1
+	4
 };
 
 
 typedef struct ao_null_internal {
 	unsigned long byte_counter;
-	int debug_output;
 } ao_null_internal;
 
 
@@ -76,7 +75,6 @@ static int ao_null_device_init(ao_device *device)
 		return 0; /* Could not initialize device memory */
 
 	internal->byte_counter = 0;
-	internal->debug_output = 0;
 
 	device->internal = internal;
 
@@ -88,10 +86,6 @@ static int ao_null_set_option(ao_device *device, const char *key,
 			      const char *value)
 {
 	ao_null_internal *internal = (ao_null_internal *) device->internal;
-
-	if (!strcmp(key, "debug")) {
-		internal->debug_output = 1;
-	}
 
 	return 1;
 }
@@ -127,10 +121,7 @@ static int ao_null_close(ao_device *device)
 {
 	ao_null_internal *internal = (ao_null_internal *) device->internal;
 
-	if (internal->debug_output) {
-	  fprintf(stderr, "ao_null: %ld bytes sent to null device.\n",
-		  internal->byte_counter);
-	}
+	adebug("%ld bytes sent to null device.\n");
 
 	return 1;
 }

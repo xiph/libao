@@ -28,7 +28,7 @@
 
 /* --- Operating System Compatibility --- */
 
-/* 
+/*
   OpenBSD systems with a.out binaries require dlsym()ed symbols to be
   prepended with an underscore, so we need the following nasty #ifdef
   hack.
@@ -106,5 +106,53 @@ struct ao_functions {
 
 void read_config_files (ao_config *config);
 int read_config_file(ao_config *config, const char *config_file);
+
+#define adebug(format, args...) {\
+    if(device->verbose==2){                                             \
+      if(strcmp(format,"\n")){                                          \
+        fprintf(stderr,"ao_%s debug: " format,device->funcs->driver_info()->short_name,## args); \
+      }else{                                                            \
+        fprintf(stderr,"\n");                                           \
+      }                                                                 \
+    }                                                                   \
+  }
+
+#define averbose(format, args...) {\
+    if(device->verbose>0){                                              \
+      if(strcmp(format,"\n")){                                          \
+        fprintf(stderr,"ao_%s info: " format,device->funcs->driver_info()->short_name,## args); \
+      }else{                                                            \
+        fprintf(stderr,"\n");                                           \
+      }                                                                 \
+    }                                                                   \
+  }
+
+#define ainfo(format, args...) {\
+    if(device->verbose>=0){                                             \
+      if(strcmp(format,"\n")){                                          \
+        fprintf(stderr,"ao_%s info: " format,device->funcs->driver_info()->short_name,## args); \
+      }else{                                                            \
+        fprintf(stderr,"\n");                                           \
+      }                                                                 \
+    }                                                                   \
+  }
+
+#define awarn(format, args...) {\
+    if(device->verbose>=0){                                             \
+      if(strcmp(format,"\n")){                                          \
+        fprintf(stderr,"ao_%s WARNING: " format,device->funcs->driver_info()->short_name,## args); \
+      }else{                                                            \
+        fprintf(stderr,"\n");                                           \
+      }                                                                 \
+    }                                                                   \
+  }
+
+#define aerror(format, args...) {                                       \
+    if(strcmp(format,"\n")){                                            \
+      fprintf(stderr,"ao_%s ERROR: " format,device->funcs->driver_info()->short_name,## args); \
+    }else{                                                              \
+      fprintf(stderr,"\n");                                             \
+    }                                                                   \
+  }
 
 #endif /* __AO_PRIVATE_H__ */

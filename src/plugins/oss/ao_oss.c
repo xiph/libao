@@ -45,7 +45,7 @@
 #include "ao/plugin.h"
 
 
-static char *ao_oss_options[] = {"dsp","verbose","quiet","matrix"};
+static char *ao_oss_options[] = {"dsp","verbose","quiet","matrix","debug"};
 static ao_info ao_oss_info =
 {
 	AO_TYPE_LIVE,
@@ -56,7 +56,7 @@ static ao_info ao_oss_info =
 	AO_FMT_NATIVE,
 	20,
 	ao_oss_options,
-	4
+	5
 };
 
 
@@ -123,12 +123,7 @@ int _open_default_oss_device (char **dev_path, int blocking)
 	/* Deal with error cases */
 	if(fd < 0)
 	{
-	  /*			fprintf(stderr,
-				"libao - error: Could not open either default device:\n"
-				"  %s - %s\n"
-				"  %s - %s\n",
-				err, dev,
-				strerror(errno), *dev_path); */
+                /* could not open either default device */
 		free(*dev_path);
 		*dev_path = NULL;
 	}
@@ -212,8 +207,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		internal->fd = open(internal->dev, O_WRONLY);
 
 		if(internal->fd < 0) {
-		  /* fprintf(stderr,"libao - %s: Opening audio device %s\n",
-		     strerror(errno), internal->dev); */
+                  aerror("open(%s) => %s",internal->dev,strerror(errno));
 			return 0;  /* Cannot open device */
 		}
 
@@ -231,16 +225,16 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		break;
 	case 2: tmp = 1;
 		break;
-	default:fprintf(stderr,"libao - Unsupported number of channels: %d.",
-			format->channels);
+	default:aerror("Unsupported number of channels: %d.",
+                       format->channels);
 		goto ERR;
 	}
 
 	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0 ||
 			tmp+1 != format->channels) {
-		fprintf(stderr, "libao - OSS cannot set channels to %d\n",
-			format->channels);
-		goto ERR;
+          aerror("cannot set channels to %d\n",
+                 format->channels);
+          goto ERR;
 	}
 
 	/* To eliminate the need for a swap buffer, we set the device
@@ -253,13 +247,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		   AFMT_S16_BE : AFMT_S16_LE;
 	        device->driver_byte_format = device->client_byte_format;
 	        break;
-	default:fprintf(stderr,"libao - Unsupported number of bits: %d.",
+	default:aerror("Unsupported number of bits: %d.",
 			format->bits);
 		goto ERR;
 	}
 
 	if (ioctl(internal->fd,SNDCTL_DSP_SAMPLESIZE,&tmp) < 0) {
-		fprintf(stderr, "libao - OSS cannot set sample size to %d\n",
+		aerror("cannot set sample size to %d\n",
 			format->bits);
 		goto ERR;
 	}
@@ -270,7 +264,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	   of whack. */
 	if (ioctl(internal->fd,SNDCTL_DSP_SPEED, &tmp) < 0
 	    || tmp > 1.02 * format->rate || tmp < 0.98 * format->rate) {
-		fprintf(stderr, "libao - OSS cannot set rate to %d\n",
+		aerror("cannot set rate to %d\n",
 			format->rate);
 		goto ERR;
 	}
@@ -281,8 +275,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 				&(internal->buf_size)) < 0) ||
 			internal->buf_size<=0 )
 	{
-		fprintf(stderr, "libao - OSS cannot get buffer size for "
-				" device\n");
+		aerror("cannot get buffer size for "
+                        " device\n");
 		goto ERR;
 	}
 
