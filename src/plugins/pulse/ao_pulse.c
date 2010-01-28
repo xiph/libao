@@ -79,7 +79,7 @@ static void disable_sigpipe(void) {
 }
 
 int ao_plugin_test(void) {
-    char p[PATH_MAX], t[256], t2[256];
+    char *p=NULL, t[256], t2[256];
     const char *fn;
     struct pa_simple *s;
     static const struct pa_sample_spec ss = {
@@ -87,16 +87,32 @@ int ao_plugin_test(void) {
         .rate = 44100,
         .channels = 2
     };
+    size_t allocated = 128;
 
     disable_sigpipe();
 
     if (getenv("PULSE_SERVER") || getenv("PULSE_SINK"))
         return 1;
 
-    if ((fn = pa_get_binary_name(p, sizeof(p)))) {
+    while (1) {
+      p = pa_xmalloc(allocated);
+
+      if (!(fn = pa_get_binary_name(p, allocated))) {
+        pa_xfree(p);
+        break;
+      }
+
+      if (fn != p || strlen(p) < allocated - 1) {
         snprintf(t, sizeof(t), "libao[%s]", fn);
         snprintf(t2, sizeof(t2), "libao[%s] test", fn);
+        break;
+      }
+
+      pa_xfree(p);
+      allocated *= 2;
     }
+    pa_xfree(p);
+    p = NULL;
 
     if (!(s = pa_simple_new(NULL, fn ? t : "libao", PA_STREAM_PLAYBACK, NULL, fn ? t2 : "libao test", &ss, NULL, NULL, NULL)))
         return 0;
@@ -202,12 +218,13 @@ translate trans[]={
 };
 
 int ao_plugin_open(ao_device *device, ao_sample_format *format) {
-    char p[PATH_MAX], t[256], t2[256];
+    char *p=NULL, t[256], t2[256];
     const char *fn = NULL;
     ao_pulse_internal *internal;
     struct pa_sample_spec ss;
     struct pa_channel_map map;
     int usemap=0;
+    size_t allocated = 128;
 
     assert(device && device->internal && format);
 
@@ -228,11 +245,26 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
 
     disable_sigpipe();
 
-    if (pa_get_binary_name(p, sizeof(p))) {
-        fn = pa_path_get_filename(p);
-        snprintf(t, sizeof(t), "libao[%s]", fn);
-        snprintf(t2, sizeof(t2), "libao[%s] playback stream", fn);
+    while (1) {
+        p = pa_xmalloc(allocated);
+
+        if (!(fn = pa_get_binary_name(p, allocated))) {
+            pa_xfree(p);
+            break;
+        }
+
+        if (fn != p || strlen(p) < allocated - 1) {
+            fn = pa_path_get_filename(fn);
+            snprintf(t, sizeof(t), "libao[%s]", fn);
+            snprintf(t2, sizeof(t2), "libao[%s] playback stream", fn);
+            break;
+        }
+
+        pa_xfree(p);
+        allocated *= 2;
     }
+    pa_xfree(p);
+    p = NULL;
 
     if(!device->output_matrix){
       if(format->matrix){

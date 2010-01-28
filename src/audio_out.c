@@ -258,7 +258,6 @@ static void _append_dynamic_drivers(driver_list *end)
 	struct dirent *plugin_dirent;
 	char *ext;
 	struct stat statbuf;
-	char fullpath[PATH_MAX];
 	DIR *plugindir;
 	driver_list *plugin;
 	driver_list *driver = end;
@@ -266,24 +265,25 @@ static void _append_dynamic_drivers(driver_list *end)
 	/* now insert any plugins we find */
 	plugindir = opendir(AO_PLUGIN_PATH);
 	if (plugindir != NULL) {
-		while ((plugin_dirent = readdir(plugindir)) != NULL) {
-			snprintf(fullpath, PATH_MAX, "%s/%s",
-				 AO_PLUGIN_PATH, plugin_dirent->d_name);
-			if (!stat(fullpath, &statbuf) &&
-			    S_ISREG(statbuf.st_mode) &&
-			 (ext = strrchr(plugin_dirent->d_name, '.')) != NULL) {
-				if (strcmp(ext, SHARED_LIB_EXT) == 0) {
-					plugin = _get_plugin(fullpath);
-					if (plugin) {
-						driver->next = plugin;
-						plugin->next = NULL;
-						driver = driver->next;
-					}
-				}
-			}
-		}
+          while ((plugin_dirent = readdir(plugindir)) != NULL) {
+            char fullpath[strlen(AO_PLUGIN_PATH) + 1 + strlen(plugin_dirent->d_name) + 1];
+            snprintf(fullpath, sizeof(fullpath), "%s/%s",
+                     AO_PLUGIN_PATH, plugin_dirent->d_name);
+            if (!stat(fullpath, &statbuf) &&
+                S_ISREG(statbuf.st_mode) &&
+                (ext = strrchr(plugin_dirent->d_name, '.')) != NULL) {
+              if (strcmp(ext, SHARED_LIB_EXT) == 0) {
+                plugin = _get_plugin(fullpath);
+                if (plugin) {
+                  driver->next = plugin;
+                  plugin->next = NULL;
+                  driver = driver->next;
+                }
+              }
+            }
+          }
 
-		closedir(plugindir);
+          closedir(plugindir);
 	}
 #endif
 }
