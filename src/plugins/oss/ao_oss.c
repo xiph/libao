@@ -82,11 +82,11 @@ typedef struct ao_oss_internal {
 int _open_default_oss_device (char **dev_path, int blocking)
 {
 	int fd;
-	char *err = NULL;
-	char *dev = NULL;
 
 	/* default: first try the devfs path */
-	*dev_path = strdup("/dev/sound/dsp");
+	if(!(*dev_path = strdup("/dev/sound/dsp")))
+          return -1;
+
 #ifdef BROKEN_OSS
 	fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
 #else
@@ -97,10 +97,9 @@ int _open_default_oss_device (char **dev_path, int blocking)
 	if(fd < 0)
 	{
 		/* no? then try the traditional path */
-		err = strdup(strerror(errno));
-		dev = strdup(*dev_path);
 		free(*dev_path);
-		*dev_path = strdup("/dev/dsp");
+		if(!(*dev_path = strdup("/dev/dsp")))
+                  return -1;
 #ifdef BROKEN_OSS
 		fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
 #else
@@ -127,9 +126,6 @@ int _open_default_oss_device (char **dev_path, int blocking)
 		free(*dev_path);
 		*dev_path = NULL;
 	}
-
-	if (err) free(err);
-	if (dev) free(dev);
 
 	return fd;
 }
@@ -185,7 +181,8 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	if (!strcmp(key, "dsp")) {
 		/* Free old string in case "dsp" set twice in options */
 		free(internal->dev);
-		internal->dev = strdup(value);
+		if(!(internal->dev = strdup(value)))
+                  return 1;
 	}
 
 	return 1;
