@@ -272,9 +272,14 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 				&(internal->buf_size)) < 0) ||
 			internal->buf_size<=0 )
 	{
-		aerror("cannot get buffer size for "
-                        " device\n");
-		goto ERR;
+          /* Some versions of the *BSD OSS drivers use a subtly
+             different SNDCTL_DSP_GETBLKSIZE ioctl implementation
+             which is, oddly, incompatible with the shipped
+             declaration in soundcard.h.  This ioctl isn't necessary
+             anyway, it's just tuning.  Soldier on without, */
+
+          adebug("cannot get buffer size for device; using a default of 1024kB\n");
+          internal->buf_size=1024;
 	}
 
         /* limited to stereo */
