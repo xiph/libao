@@ -86,11 +86,11 @@ int ao_plugin_device_init(ao_device *device)
 {
 	ao_arts_internal *internal;
 
-	internal = (ao_arts_internal *) malloc(sizeof(ao_arts_internal));
+	internal = (ao_arts_internal *) calloc(1,sizeof(ao_arts_internal));
 
-	if (internal == NULL)	
+	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
-	
+
 	device->internal = internal;
 
 	return 1; /* Memory alloc successful */
@@ -107,19 +107,34 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
 	int errorcode;
 
+        if(format->channels<1 || format->channels>2){
+          /* the docs aren't kidding here--- feed it more than 2
+             channels and the server simply stops answering; the
+             connection freezes. */
+          aerror("Cannot handle more than 2 channels\n");
+          return 0;
+        }
+
 	errorcode = arts_init();
 
 	if (0 != errorcode)
 	{
-		return 0; /* Could not connect to server */
+          aerror("Could not connect to server => %s.\n",arts_error_text(errorcode));
+          return 0; /* Could not connect to server */
 	}
 
 	device->driver_byte_format = AO_FMT_NATIVE;
 
-	internal->stream = arts_play_stream(format->rate, 
-					    format->bits, 
-					    format->channels, 
+	internal->stream = arts_play_stream(format->rate,
+					    format->bits,
+					    format->channels,
 					    "libao stream");
+        if(!internal->stream){
+          arts_free();
+          aerror("Could not open audio stream.\n");
+          return 0;
+        }
+
         if(!device->output_matrix){
           /* set up out matrix such that users are warned about > stereo playback */
           if(format->channels<=2)
@@ -131,12 +146,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 }
 
 
-int ao_plugin_play(ao_device *device, const char *output_samples, 
+int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
 	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
 
-	if (arts_write(internal->stream, output_samples, 
+	if (arts_write(internal->stream, output_samples,
 		       num_bytes) < num_bytes)
 		return 0;
 	else
@@ -147,7 +162,9 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 int ao_plugin_close(ao_device *device)
 {
 	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
-	arts_close_stream(internal->stream);
+        if(internal->stream)
+          arts_close_stream(internal->stream);
+        internal->stream = NULL;
 	arts_free();
 
 	return 1;
@@ -158,5 +175,7 @@ void ao_plugin_device_clear(ao_device *device)
 {
 	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
 
-	free(internal);
+	if(internal)
+          free(internal);
+        device->internal=NULL;
 }
