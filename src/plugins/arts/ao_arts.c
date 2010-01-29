@@ -29,11 +29,16 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include <artsc.h>
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
+/* we must serialize server setup/teardown communication as its state
+   is process-global */
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static int server_open_count = 0;
 
 static char *ao_arts_options[] = {"matrix","verbose","quiet","debug"};
 static ao_info ao_arts_info =
@@ -53,7 +58,6 @@ static ao_info ao_arts_info =
         4
 };
 
-
 typedef struct ao_arts_internal
 {
 	arts_stream_t stream;
@@ -62,120 +66,142 @@ typedef struct ao_arts_internal
 
 int ao_plugin_test()
 {
-	if (arts_init() == 0) {
+  pthread_mutex_lock(&mutex);
+
+  if (server_open_count || arts_init() == 0) {
+    server_open_count++;
+
 #ifdef HAVE_ARTS_SUSPENDED
-		if (arts_suspended() == 1) {
-			arts_free();
-			return 0;
-		}
+    if (arts_suspended() == 1) {
+      server_open_count--;
+      if(!server_open_count)arts_free();
+      pthread_mutex_unlock(&mutex);
+      return 0;
+    }
 #endif
-		arts_free();
-		return 1;
-	} else
-		return 0;
+    server_open_count--;
+    if(!server_open_count)arts_free();
+    arts_free();
+    pthread_mutex_unlock(&mutex);
+    return 1;
+  }
+  pthread_mutex_unlock(&mutex);
+  return 0;
 }
 
 
 ao_info *ao_plugin_driver_info(void)
 {
-	return &ao_arts_info;
+  return &ao_arts_info;
 }
 
 
 int ao_plugin_device_init(ao_device *device)
 {
-	ao_arts_internal *internal;
+  ao_arts_internal *internal;
 
-	internal = (ao_arts_internal *) calloc(1,sizeof(ao_arts_internal));
+  internal = (ao_arts_internal *) calloc(1,sizeof(ao_arts_internal));
 
-	if (internal == NULL)
-		return 0; /* Could not initialize device memory */
+  if (internal == NULL)
+    return 0; /* Could not initialize device memory */
 
-	device->internal = internal;
+  device->internal = internal;
 
-	return 1; /* Memory alloc successful */
+  return 1; /* Memory alloc successful */
 }
 
 
 int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
-	return 1; /* No options */
+  return 1; /* No options */
 }
 
 int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
-	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
-	int errorcode;
+  ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+  int errorcode=0;
 
-        if(format->channels<1 || format->channels>2){
-          /* the docs aren't kidding here--- feed it more than 2
-             channels and the server simply stops answering; the
-             connection freezes. */
-          aerror("Cannot handle more than 2 channels\n");
-          return 0;
-        }
+  if(format->channels<1 || format->channels>2){
+    /* the docs aren't kidding here--- feed it more than 2
+       channels and the server simply stops answering; the
+       connection freezes. */
+    aerror("Cannot handle more than 2 channels\n");
+    return 0;
+  }
 
-	errorcode = arts_init();
+  pthread_mutex_lock(&mutex);
+  if(!server_open_count)
+    errorcode = arts_init();
 
-	if (0 != errorcode)
-	{
-          aerror("Could not connect to server => %s.\n",arts_error_text(errorcode));
-          return 0; /* Could not connect to server */
-	}
+  if (0 != errorcode){
+    pthread_mutex_unlock(&mutex);
+    aerror("Could not connect to server => %s.\n",arts_error_text(errorcode));
+    return 0; /* Could not connect to server */
+  }else
+    server_open_count++;
+  pthread_mutex_unlock(&mutex);
 
-	device->driver_byte_format = AO_FMT_NATIVE;
 
-	internal->stream = arts_play_stream(format->rate,
-					    format->bits,
-					    format->channels,
-					    "libao stream");
-        if(!internal->stream){
-          arts_free();
-          aerror("Could not open audio stream.\n");
-          return 0;
-        }
+  device->driver_byte_format = AO_FMT_NATIVE;
+  internal->stream = arts_play_stream(format->rate,
+                                      format->bits,
+                                      format->channels,
+                                      "libao stream");
+  if(!internal->stream){
+    pthread_mutex_lock(&mutex);
+    server_open_count--;
+    if(!server_open_count)arts_free();
+    pthread_mutex_unlock(&mutex);
 
-        if(!device->output_matrix){
-          /* set up out matrix such that users are warned about > stereo playback */
-          if(format->channels<=2)
-            device->output_matrix=strdup("L,R");
-          //else no matrix, which results in a warning
-        }
+    aerror("Could not open audio stream.\n");
+    return 0;
+  }
 
-	return 1;
+  if(!device->output_matrix){
+    /* set up out matrix such that users are warned about > stereo playback */
+    if(format->channels<=2)
+      device->output_matrix=strdup("L,R");
+    //else no matrix, which results in a warning
+  }
+
+  return 1;
 }
 
 
 int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
-	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+  ao_arts_internal *internal = (ao_arts_internal *) device->internal;
 
-	if (arts_write(internal->stream, output_samples,
-		       num_bytes) < num_bytes)
-		return 0;
-	else
-		return 1;
+  if (arts_write(internal->stream, output_samples,
+                 num_bytes) < num_bytes)
+    return 0;
+  else
+    return 1;
 }
 
 
 int ao_plugin_close(ao_device *device)
 {
-	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
-        if(internal->stream)
-          arts_close_stream(internal->stream);
-        internal->stream = NULL;
-	arts_free();
+  ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+  if(internal->stream)
+    arts_close_stream(internal->stream);
+  internal->stream = NULL;
 
-	return 1;
+  pthread_mutex_lock(&mutex);
+  server_open_count--;
+  if(!server_open_count)arts_free();
+  pthread_mutex_unlock(&mutex);
+
+  return 1;
 }
 
 
 void ao_plugin_device_clear(ao_device *device)
 {
-	ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+  ao_arts_internal *internal = (ao_arts_internal *) device->internal;
 
-	if(internal)
-          free(internal);
-        device->internal=NULL;
+  if(internal)
+    free(internal);
+  device->internal=NULL;
 }
