@@ -44,6 +44,17 @@
 #define AUDIO_ENCODING_SLINEAR AUDIO_ENCODING_LINEAR	/* Solaris */
 #endif
 
+#ifndef AO_SUN_ENV_DEV1
+/* SunRay device environment variable, look here first */
+#define AO_SUN_ENV_DEV1 "UTAUDIODEV"
+#endif
+
+#ifndef AO_SUN_ENV_DEV2
+/* Ordinary Sun audio device environment variable, look here second */
+#define AO_SUN_ENV_DEV2 "AUDIODEV"
+#endif
+
+/* No environment variable, try the default local device */
 #ifndef AO_SUN_DEFAULT_DEV
 #define AO_SUN_DEFAULT_DEV "/dev/audio"
 #endif
@@ -72,8 +83,13 @@ typedef struct ao_sun_internal {
 int ao_plugin_test()
 {
 	int fd;
+        char *dev = NULL;
 
-	if ( (fd = open(AO_SUN_DEFAULT_DEV, O_WRONLY | O_NONBLOCK)) < 0 )
+        dev = getenv(AO_SUN_ENV_DEV1);
+        if (!dev) dev = getenv(AO_SUN_ENV_DEV2);
+        if (!dev) dev = AO_SUN_DEFAULT_DEV;
+
+	if ( (fd = open(dev, O_WRONLY | O_NONBLOCK)) < 0 )
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
 		close(fd);
@@ -91,13 +107,17 @@ ao_info *ao_plugin_driver_info(void)
 int ao_plugin_device_init(ao_device *device)
 {
 	ao_sun_internal *internal;
+        char *dev = NULL;
 
 	internal = (ao_sun_internal *) malloc(sizeof(ao_sun_internal));
 
 	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
 
-	internal->dev = strdup(AO_SUN_DEFAULT_DEV);
+        dev = getenv(AO_SUN_ENV_DEV1);
+        if (!dev) dev = getenv(AO_SUN_ENV_DEV2);
+        if (!dev) dev = AO_SUN_DEFAULT_DEV;
+	internal->dev = strdup(dev);
 
 	if (internal->dev == NULL) {
 		free(internal);
