@@ -81,6 +81,7 @@ struct ao_device {
         int input_channels;
         int output_channels;
         int bytewidth;
+        int rate;
         char *output_matrix;
         int  *permute_channels;
 	void *internal; /* Pointer to driver-specific data */

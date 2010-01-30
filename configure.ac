@@ -310,8 +310,9 @@ if test "$BUILD_ARTS" = "yes"; then
 
   if test "x$ac_cv_path_ARTSC_CONFIG" != x
   then
-	ARTS_CFLAGS=`$ac_cv_path_ARTSC_CONFIG --cflags`
-	ARTS_LIBS=`$ac_cv_path_ARTSC_CONFIG --libs`
+	PKG_CHECK_MODULES(ARTSGLIB, glib-2.0 gthread-2.0)
+	ARTS_CFLAGS="`$ac_cv_path_ARTSC_CONFIG --cflags` $ARTSGLIB_CFLAGS"
+	ARTS_LIBS="`$ac_cv_path_ARTSC_CONFIG --libs` $ARTSGLIB_LIBS"
 	SAVELIBS=$LIBS
 	LIBS="$LIBS $ARTS_LIBS"
 	AC_CHECK_FUNCS(arts_suspended)

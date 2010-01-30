@@ -20,8 +20,16 @@
 <p>This function initializes the internal libao data structures and
 loads all of the available plugins.  The system and user <a
 href="config.html">configuration files</a> are also read at this time
-if available.  The library must be initialized before any other libao
-functions can be used.
+if available.  ao_initialize() must be called in the main thread and
+before any other libao functions can be used.
+
+<p><i>More background on initialization in the main thread:
+ao_initialize() must be called in the main thread because several
+sound system interfaces used by libao must be initialized in the main
+thread.  One example is the system aRts interface, which stores some
+global state in thread-specific keys that it fails to delete on
+shutdown. If aRts is initialized in a non-main thread that later
+exits, these undeleted keys will cause a segmentation fault.</i>
 
 <br><br>
 <table border=0 color=black cellspacing=0 cellpadding=7>

@@ -3,6 +3,7 @@
  *  ao_arts.c
  *
  *      Copyright (C) Rik Hemsley (rikkus) <rik@kde.org> 2000
+ *     Modifications Copyright (C) 2010 Monty <monty@xiph.org>
  *
  *  This file is part of libao, a cross-platform library.  See
  *  README for a history of this source code.
@@ -29,24 +30,26 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 #include <pthread.h>
 
+#include <glib.h>
 #include <artsc.h>
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-/* we must serialize server setup/teardown communication as its state
-   is process-global */
+/* we must serialize all aRtsc library access as virtually every
+   operation accesses global state */
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int server_open_count = 0;
 
-static char *ao_arts_options[] = {"matrix","verbose","quiet","debug"};
+static char *ao_arts_options[] = {"matrix","verbose","quiet","debug","multi"};
 static ao_info ao_arts_info =
 {
 	AO_TYPE_LIVE,
 	"aRts output",
 	"arts",
-	"Rik Hemsley (rikkus) <rik@kde.org>",
+	"Monty <monty@xiph.org>",
 	"Outputs to the aRts soundserver.",
 	AO_FMT_NATIVE,
 #ifdef HAVE_ARTS_SUSPENDED
@@ -55,12 +58,14 @@ static ao_info ao_arts_info =
 	15,
 #endif
 	ao_arts_options,
-        4
+        5
 };
 
 typedef struct ao_arts_internal
 {
-	arts_stream_t stream;
+  arts_stream_t stream;
+  int allow_multi;
+  int buffersize;
 } ao_arts_internal;
 
 
@@ -89,9 +94,31 @@ int ao_plugin_test()
   return 0;
 }
 
-
 ao_info *ao_plugin_driver_info(void)
 {
+  /* this is a dirty but necessary trick.  aRts's C library for
+     clients calls g_thread_init() internally in arts_init() whether
+     your app uses glib or not.  This call sets several
+     thread-specific keys and stashes glib static data state in the
+     calling thread.  Later, ao_close() calls arts_free(), glib is
+     dlclose()d, but the keys aren't deleted and this will cause a
+     segfault when the thread that originally called arts_init() exits
+     and pthreads tries to clean up. In addition, g_thread_init() must
+     be called outside of mutextes, and access to arts_init() below is
+     and must be locked.
+
+     So we tackle this problem in two ways; one, call g_thread_init()
+     here, which will be during ao_initialize().  It is documented
+     that ao_initialize() must be called in the app's main
+     thread. Second, be sure to link with glib-2.0, which means that
+     the glib static context is never unloaded by aRts (this alone is
+     currently enough in practice to avoid problems, but that's partly
+     by accident. The g_thread_init() here avoids it randomly breaking
+     again in the future by following documentation exactly). */
+
+  if (!g_thread_supported ())
+    g_thread_init(0);
+
   return &ao_arts_info;
 }
 
@@ -113,7 +140,26 @@ int ao_plugin_device_init(ao_device *device)
 
 int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
-  return 1; /* No options */
+  ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+
+  if (!strcmp(key, "multi")) {
+    if(!strcmp(value,"yes") || !strcmp(value,"y") ||
+       !strcmp(value,"true") || !strcmp(value,"t") ||
+       !strcmp(value,"1"))
+      {
+        internal->allow_multi = 1;
+        return 1;
+      }
+    if(!strcmp(value,"no") || !strcmp(value,"n") ||
+       !strcmp(value,"false") || !strcmp(value,"f") ||
+       !strcmp(value,"0"))
+      {
+        internal->allow_multi = 0;
+        return 1;
+      }
+    return 0;
+  }
+  return 1;
 }
 
 int ao_plugin_open(ao_device *device, ao_sample_format *format)
@@ -132,24 +178,29 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   pthread_mutex_lock(&mutex);
   if(!server_open_count)
     errorcode = arts_init();
+  else{
+    if(!internal->allow_multi){
+      /* multiple-playback access disallowed; it's disallowed by
+         default as it tends to crash the aRts server. */
+      adebug("Multiple-open access disallowed and playback already in progress.\n");
+      pthread_mutex_unlock(&mutex);
+      return 0;
+    }
+  }
 
   if (0 != errorcode){
     pthread_mutex_unlock(&mutex);
     aerror("Could not connect to server => %s.\n",arts_error_text(errorcode));
     return 0; /* Could not connect to server */
-  }else
-    server_open_count++;
-  pthread_mutex_unlock(&mutex);
-
+  }
 
   device->driver_byte_format = AO_FMT_NATIVE;
   internal->stream = arts_play_stream(format->rate,
                                       format->bits,
                                       format->channels,
                                       "libao stream");
+
   if(!internal->stream){
-    pthread_mutex_lock(&mutex);
-    server_open_count--;
     if(!server_open_count)arts_free();
     pthread_mutex_unlock(&mutex);
 
@@ -157,13 +208,34 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     return 0;
   }
 
-  if(!device->output_matrix){
-    /* set up out matrix such that users are warned about > stereo playback */
-    if(format->channels<=2)
-      device->output_matrix=strdup("L,R");
-    //else no matrix, which results in a warning
+  if(arts_stream_set(internal->stream, ARTS_P_BLOCKING, 0)){
+    arts_close_stream(internal->stream);
+    internal->stream=NULL;
+    if(!server_open_count)arts_free();
+    pthread_mutex_unlock(&mutex);
+
+    aerror("Could not set audio stream to nonblocking.\n");
+    return 0;
   }
 
+  if((internal->buffersize = arts_stream_get(internal->stream, ARTS_P_BUFFER_SIZE))<=0){
+    arts_close_stream(internal->stream);
+    internal->stream=NULL;
+    if(!server_open_count)arts_free();
+    pthread_mutex_unlock(&mutex);
+
+    aerror("Could not get audio buffer size.\n");
+    return 0;
+  }
+
+  server_open_count++;
+  pthread_mutex_unlock(&mutex);
+
+  if(!device->output_matrix)
+    device->output_matrix=strdup("L,R");
+
+  adebug("thread %p: playback stream created!\n",internal->stream);
+  adebug("thread %p: buffer size = %d bytes\n",internal->stream,internal->buffersize);
   return 1;
 }
 
@@ -172,23 +244,104 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
   ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+  int spindetect=0;
+  int i;
 
-  if (arts_write(internal->stream, output_samples,
-                 num_bytes) < num_bytes)
-    return 0;
-  else
-    return 1;
+  pthread_mutex_lock(&mutex);
+
+  /* the while loop below is another dirty but servicable hack needed
+     for two reasons:
+
+     1) for multiple-stream playback, there is no way to block on
+     more than one stream object at a time.  One can neither
+     select/poll, nor can we block on multiple writes at a time as
+     access to arts_write must be locked globally.  So we run in
+     nonblocking mode and write to the server based on audio timing.
+
+     2) Although aRts allegedly delivers errors on write failure, I've
+     never observed it actually do so in practice.  Most of the time
+     when something goes wrong, it returns a short count or zero, but
+     there are also cases where the write simply blocks forever
+     because the server logged an error and stopped answering without
+     informing the client or dropping the connection.  Again, we have
+     to run in nonblocking moda and look for an output pattern that
+     indicates the server disappeared out from under us (no successful
+     writes over a period that should certainly have starved
+     playback) */
+
+  while(1){
+    int accwrote=0;
+
+    /* why the multiple rapid-fire writes below?
+
+       aRts in nonblocking mode does not service internal buffering
+       state outside of the write call.  Further, the internal buffer
+       state appears to be pipelined; although the server may be
+       waiting or even starved for data, a non blocking write call
+       will often return immediately without actually writing
+       anything, regardless of internal buffer fullness.  Several more
+       calls (all returning 0, due to the full internal buffer) will
+       suddenly cause the internal state to actually flush data to the
+       server.  Thus the multiple writes in sequence are a way of
+       having the aRts internal state step through the sequence
+       necessary to actually submit data to the server.
+    */
+
+    for(i=0;i<5;i++){
+      int wrote = arts_write(internal->stream, output_samples, num_bytes);
+      if(wrote < 0){
+        /* although it's vanishingly unlikely that aRtsc will actually
+           bother reporting any errors, we might as well be ready for
+           one. */
+        pthread_mutex_unlock(&mutex);
+        aerror("Write error\n");
+        return 0;
+      }
+      accwrote+=wrote;
+      num_bytes -= wrote;
+      output_samples += wrote;
+    }
+
+    if(accwrote)
+      spindetect=0;
+    else
+      spindetect++;
+
+    if(spindetect==100){
+        pthread_mutex_unlock(&mutex);
+        aerror("Write thread spinning; has the aRts server crashed?\n");
+        return 0;
+    }
+
+    if(num_bytes>0){
+      long wait = internal->buffersize*1000/(device->output_channels*device->bytewidth*device->rate);
+      pthread_mutex_unlock(&mutex);
+      wait = (wait/8)*1000;
+      if(wait<1)wait=1;
+      if(wait>500000)wait=500000;
+      adebug("thread %p: wrote %d bytes\n",internal->stream,accwrote);
+      adebug("thread %p: playback stream waiting %dus\n",internal->stream,wait);
+      usleep(wait);
+      pthread_mutex_lock(&mutex);
+    }else{
+      pthread_mutex_unlock(&mutex);
+      adebug("thread %p: wrote %d bytes\n",internal->stream,accwrote);
+      break;
+    }
+  }
+
+  return 1;
 }
 
 
 int ao_plugin_close(ao_device *device)
 {
   ao_arts_internal *internal = (ao_arts_internal *) device->internal;
+  pthread_mutex_lock(&mutex);
   if(internal->stream)
     arts_close_stream(internal->stream);
   internal->stream = NULL;
 
-  pthread_mutex_lock(&mutex);
   server_open_count--;
   if(!server_open_count)arts_free();
   pthread_mutex_unlock(&mutex);

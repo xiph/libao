@@ -753,6 +753,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
         /* set up any other housekeeping */
         device->input_channels = sformat.channels;
         device->bytewidth = (sformat.bits+7)>>3;
+        device->rate = sformat.rate;
 
 	/* Open the device */
 	result = funcs->open(device, &sformat);
