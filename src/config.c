@@ -28,32 +28,15 @@
  ********************************************************************/
 
 #include "ao.h"
+#include "ao_private.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 
-void read_config_files (ao_config *config)
-{
-	char userfile[FILENAME_MAX+1];
-	char *homedir = getenv("HOME");
-
-	/* Read the system-wide config file */
-	read_config_file(config, AO_SYSTEM_CONFIG);
-	
-	/* Read the user config file */
-	if ( homedir!=NULL && 
-	     strlen(homedir) <= FILENAME_MAX - strlen(AO_USER_CONFIG) )
-	{
-		strncpy(userfile, homedir, FILENAME_MAX);
-		strcat(userfile, AO_USER_CONFIG);
-		read_config_file(config, userfile);
-	}
-}
-
 #define LINE_LEN 100
 
-int read_config_file(ao_config *config, const char *config_file)
+static int ao_read_config_file(ao_config *config, const char *config_file)
 {
 	FILE *fp;
 	char line[LINE_LEN];
@@ -80,3 +63,22 @@ int read_config_file(ao_config *config, const char *config_file)
 
 	return 1;
 }
+
+void ao_read_config_files (ao_config *config)
+{
+	char userfile[FILENAME_MAX+1];
+	char *homedir = getenv("HOME");
+
+	/* Read the system-wide config file */
+	read_config_file(config, AO_SYSTEM_CONFIG);
+	
+	/* Read the user config file */
+	if ( homedir!=NULL && 
+	     strlen(homedir) <= FILENAME_MAX - strlen(AO_USER_CONFIG) )
+	{
+		strncpy(userfile, homedir, FILENAME_MAX);
+		strcat(userfile, AO_USER_CONFIG);
+		read_config_file(config, userfile);
+	}
+}
+

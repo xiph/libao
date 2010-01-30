@@ -105,8 +105,7 @@ struct ao_functions {
 
 /* --- Functions --- */
 
-void read_config_files (ao_config *config);
-int read_config_file(ao_config *config, const char *config_file);
+void ao_read_config_files (ao_config *config);
 
 #define adebug(format, args...) {\
     if(device->verbose==2){                                             \
