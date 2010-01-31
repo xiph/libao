@@ -38,6 +38,8 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
+extern char **environ;
+
 static char *ao_esd_options[] = {"host","matrix","verbose","quiet","debug"};
 static ao_info ao_esd_info =
 {
@@ -59,14 +61,48 @@ typedef struct ao_esd_internal
 	char *host;
 } ao_esd_internal;
 
+/* An old favorite from the UNIX-hater's handbook.
+   two things worth noting:
+   1) 'not found' returns -1 with a zero errno
+   2) removed strings are freed
+*/
+
+int portable_unsetenv(char *name){
+  char **p = environ;
+  if(name){
+    if(strchr(name,'=')){
+      errno=EINVAL;
+      return -1;
+    }
+    while(*p){
+      char *pos = strchr(*p,'=');
+      if((pos && !strncmp(name,*p,(pos-*p))) ||
+         (!pos && !strcmp(name,*p))){
+        /* assume we can free it */
+        free(*p);
+        /* scrunch.  Not actually O bigger than moving last into the
+           slot as we need to scan the whole environment anyway */
+        do{
+          *p = *(p+1);
+          p++;
+        }while(*p);
+        return 0;
+      }
+      p++;
+    }
+  }
+  errno = 0;
+  return -1; /* not found */
+}
 
 int ao_plugin_test()
 {
 	int sock;
 
 	/* don't wake up the beast while detecting */
-	putenv("ESD_NO_SPAWN=1");
+	putenv(strdup("ESD_NO_SPAWN=1"));
 	sock = esd_open_sound(NULL);
+        portable_unsetenv("ESD_NO_SPAWN");
 	if (sock < 0)
 		return 0;
 	if (esd_get_standby_mode(sock) != ESM_RUNNING) {
