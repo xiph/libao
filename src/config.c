@@ -70,7 +70,7 @@ void ao_read_config_files (ao_config *config)
 	char *homedir = getenv("HOME");
 
 	/* Read the system-wide config file */
-	read_config_file(config, AO_SYSTEM_CONFIG);
+	ao_read_config_file(config, AO_SYSTEM_CONFIG);
 	
 	/* Read the user config file */
 	if ( homedir!=NULL && 
@@ -78,7 +78,7 @@ void ao_read_config_files (ao_config *config)
 	{
 		strncpy(userfile, homedir, FILENAME_MAX);
 		strcat(userfile, AO_USER_CONFIG);
-		read_config_file(config, userfile);
+		ao_read_config_file(config, userfile);
 	}
 }
 

@@ -877,7 +877,7 @@ void ao_initialize(void)
 	driver_list *end;
 
 	/* Read config files */
-	read_config_files(&config);
+	ao_read_config_files(&config);
 
 	if (driver_head == NULL) {
 		driver_head = _load_static_drivers(&end);
