@@ -197,7 +197,6 @@ static int _find_default_driver_id (const char *name)
 		while (driver != NULL) {
 
 			info = driver->functions->driver_info();
-
 			if ( info->type == AO_TYPE_LIVE &&
 			     info->priority > 0 && /* Skip static drivers */
 			     driver->functions->test() ) {

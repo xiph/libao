@@ -332,11 +332,33 @@ static inline int alsa_set_swparams(ao_alsa_internal *internal)
 	if (err < 0)
 		return err;
 
-	/* do not align transfers */
+	/* do not align transfers; this is obsolete/deprecated in ALSA
+           1.x where the transfer alignemnt is always 1 (except for
+           buggy drivers like VIA 82xx which still demand aligned
+           transfers regardless of setting, in violation of the ALSA
+           API docs) */
 	internal->cmd = "snd_pcm_sw_params_set_xfer_align";
 	err = snd_pcm_sw_params_set_xfer_align(internal->pcm_handle, params, 1);
 	if (err < 0)
 		return err;
+
+        /* force a work-ahead silence buffer; this is an attempted
+           fix, again for VIA 82xx, where non-MMIO transfers will
+           buffer into period-size transfers, but the last transfer is
+           usually undersized and playback falls off the end of the
+           submitted data. */
+        {
+          snd_pcm_uframes_t boundary;
+          internal->cmd = "snd_pcm_sw_params_get_boundary";
+          err = snd_pcm_sw_params_get_boundary(params,&boundary);
+          if (err < 0)
+            return err;
+
+          internal->cmd = "snd_pcm_sw_params_set_silence_size";
+          err = snd_pcm_sw_params_set_silence_size(internal->pcm_handle, params, boundary);
+          if (err < 0)
+            return err;
+        }
 
 	/* commit the params structure to ALSA */
 	internal->cmd = "snd_pcm_sw_params";
