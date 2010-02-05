@@ -148,10 +148,12 @@ void ao_read_config_files (ao_config *config);
   }
 
 #define aerror(format, args...) {                                       \
-    if(strcmp(format,"\n")){                                            \
-      fprintf(stderr,"ao_%s ERROR: " format,device->funcs->driver_info()->short_name,## args); \
-    }else{                                                              \
-      fprintf(stderr,"\n");                                             \
+    if(device->verbose>=0){                                             \
+      if(strcmp(format,"\n")){                                          \
+        fprintf(stderr,"ao_%s ERROR: " format,device->funcs->driver_info()->short_name,## args); \
+      }else{                                                            \
+        fprintf(stderr,"\n");                                           \
+      }                                                                 \
     }                                                                   \
   }
 
