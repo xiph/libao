@@ -32,7 +32,9 @@
 #include <signal.h>
 #include <limits.h>
 
+#include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
+#include <pulse/xmalloc.h>
 #include <pulse/util.h>
 
 #include <ao/ao.h>
@@ -98,7 +100,6 @@ int ao_plugin_test(void) {
       p = pa_xmalloc(allocated);
 
       if (!(fn = pa_get_binary_name(p, allocated))) {
-        pa_xfree(p);
         break;
       }
 
@@ -249,7 +250,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
         p = pa_xmalloc(allocated);
 
         if (!(fn = pa_get_binary_name(p, allocated))) {
-            pa_xfree(p);
             break;
         }
 
