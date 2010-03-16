@@ -1016,7 +1016,7 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
             int swap = (device->bytewidth>1 &&
                         device->client_byte_format != device->driver_byte_format);
             for(i=0;i<device->output_channels;i++){
-              int ic = device->permute_channels[i];
+              int ic = device->permute_channels ? device->permute_channels[i] : i;
               if(ic==-1){
                 _buffer_zero(device->swap_buffer,i,device->bytewidth,device->output_channels,
                              out_bytes);

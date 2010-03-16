@@ -85,10 +85,10 @@ else
                 PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char" ;;
         *-darwin*)
                 PLUGIN_LDFLAGS="-module -avoid-version"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"
-                CFLAGS="-D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore"
-                PROFILE="-g -pg -D__NO_MATH_INLINES -fsigned-char -Ddlsym=dlsym_auto_underscore" ;;
-        *)
+               	DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
+                CFLAGS="-D__NO_MATH_INLINES -fsigned-char"
+                PROFILE="-g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
+     	*)
                 PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
                 CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
@@ -137,7 +137,7 @@ case $host in
 	DLOPEN_FLAG='(RTLD_LAZY)'
 	SHARED_LIB_EXT='.sl'
 	;;    
-    *openbsd* | *netbsd* | *solaris2.7)
+    *openbsd* | *netbsd* | *solaris2.7 | *darwin*)
 	DLOPEN_FLAG='(RTLD_LAZY)'
 	SHARED_LIB_EXT='.so'
 	;;
