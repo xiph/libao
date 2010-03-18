@@ -233,8 +233,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   server_open_count++;
   pthread_mutex_unlock(&mutex);
 
-  adebug("thread %p: playback stream created!\n",internal->stream);
-  adebug("thread %p: buffer size = %d bytes\n",internal->stream,internal->buffersize);
   return 1;
 }
 
@@ -318,13 +316,10 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
       wait = (wait/8)*1000;
       if(wait<1)wait=1;
       if(wait>500000)wait=500000;
-      adebug("thread %p: wrote %d bytes\n",internal->stream,accwrote);
-      adebug("thread %p: playback stream waiting %dus\n",internal->stream,wait);
       usleep(wait);
       pthread_mutex_lock(&mutex);
     }else{
       pthread_mutex_unlock(&mutex);
-      adebug("thread %p: wrote %d bytes\n",internal->stream,accwrote);
       break;
     }
   }

@@ -1039,7 +1039,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                  info_table[device->driver_id]->short_name);
           }else{
 
-            /* walk thorugh the inter matrix, match channles */
+            /* walk thorugh the inter matrix, match channels */
             char *op=device->inter_matrix;
             int count=0;
             device->inter_permute = calloc(device->output_channels,sizeof(int));
@@ -1081,6 +1081,23 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
               count++;
               op=h;
               if(*h)op++;
+            }
+            {
+              char **inch = _tokenize_matrix(sformat.matrix);
+              int i,j;
+              int unflag=0;
+              for(j=0;j<sformat.channels;j++){
+                for(i=0;i<device->output_channels;i++)
+                  if(device->inter_permute[i]==j)break;
+                if(i==device->output_channels){
+                  averbose("input %d (%s)\t -> none\n",
+                           j,inch[j]);
+                  unflag=1;
+                }
+              }
+              _free_map(inch);
+              if(unflag)
+                awarn("Some input channels are unmapped and will not be used.\n");
             }
             averbose("\n");
 
