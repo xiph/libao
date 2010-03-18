@@ -108,6 +108,7 @@ int ao_aixs_device_init(ao_device *device)
 	}
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	return 1; /* Memory alloc successful */
 }
@@ -140,7 +141,7 @@ int ao_aixs_open(ao_device *device, ao_sample_format *format)
 
 	init.srate = format->rate;
 	init.bits_per_sample = format->bits;
-	init.channels = format->channels;
+	init.channels = device->output_channels;
 	init.mode = AUDIO_PCM;
 	init.flags = AUDIO_BIG_ENDIAN | AUDIO_TWOS_COMPLEMENT;
 	init.operation = AUDIO_PLAY;
@@ -174,11 +175,10 @@ int ao_aixs_open(ao_device *device, ao_sample_format *format)
 	}
 
 	device->driver_byte_format = AO_FMT_NATIVE;
-
-        if(!device->output_matrix){
-          /* set up out matrix such that users are warned about > stereo playback */
-          if(format->channels<=2)
-            device->output_matrix=strdup("L,R");
+        if(!device->inter_matrix){
+          /* set up matrix such that users are warned about > stereo playback */
+          if(device->output_channels<=2)
+            device->inter_matrix=strdup("L,R");
           //else no matrix, which results in a warning
         }
 

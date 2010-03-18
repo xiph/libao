@@ -424,7 +424,7 @@ static ao_device* _create_device(int driver_id, driver_list *driver,
 		device->swap_buffer_size = 0;
 		device->internal = NULL;
                 device->output_channels = format->channels;
-                device->permute_channels = NULL;
+                device->inter_permute = NULL;
                 device->output_matrix = NULL;
 	}
 
@@ -585,7 +585,8 @@ static void _swap_samples(char *target_buffer, char* source_buffer,
 
 /* the channel locations we know right now. code below assumes U is in slot 0, X in 1, M in 2 */
 static char *mnemonics[]={
-  "U","X","M",
+  "X",
+  "M",
   "L","C","R","CL","CR","SL","SR","BL","BC","BR","LFE",
   "A1","A2","A3","A4","A5","A6","A7","A8","A9","A10",
   "A11","A12","A13","A14","A15","A16","A17","A18","A19","A20",
@@ -593,13 +594,13 @@ static char *mnemonics[]={
   "A31","A32",NULL
 };
 
-/* Check the requested maxtrix string for syntax and mnemonics */
-static char *_sanitize_matrix(char *matrix, ao_device *device){
+/* Check the requested matrix string for syntax and mnemonics */
+static char *_sanitize_matrix(int maxchannels, char *matrix, ao_device *device){
   if(matrix){
     char *ret = calloc(strlen(matrix)+1,1); /* can only get smaller */
     char *p=matrix;
     int count=0;
-    while(1){
+    while(count<maxchannels){
       char *h,*t;
       int m=0;
 
@@ -633,8 +634,8 @@ static char *_sanitize_matrix(char *matrix, ao_device *device){
         }
         free(ret);
         return NULL;
-      }
-      count++;
+      }else
+        count++;
       if(!*h)break;
       p=h+1;
     }
@@ -646,6 +647,10 @@ static char *_sanitize_matrix(char *matrix, ao_device *device){
 static int _find_channel(int needle, char *haystack){
   char *p=haystack;
   int count=0;
+
+  /* X does not map to anything, including X! */
+  if(needle==0) return -1;
+
   while(1){
     char *h;
     int m=0;
@@ -668,20 +673,192 @@ static int _find_channel(int needle, char *haystack){
   return -1;
 }
 
+static char **_tokenize_matrix(char *matrix){
+  char **ret=NULL;
+  char *p=matrix;
+  int count=0;
+  while(1){
+    char *h,*t;
+
+    /* trim leading space */
+    while(*p && isspace(*p))p++;
+
+    /* search for seperator */
+    h=p;
+    while(*h && *h!=',')h++;
+
+    /* trim trailing space */
+    t=h;
+    while(t>p && isspace(*(t-1)))t--;
+
+    count++;
+    if(!*h)break;
+    p=h+1;
+  }
+
+  ret = calloc(count+1,sizeof(*ret));
+
+  p=matrix;
+  count=0;
+  while(1){
+    char *h,*t;
+
+    /* trim leading space */
+    while(*p && isspace(*p))p++;
+
+    /* search for seperator */
+    h=p;
+    while(*h && *h!=',')h++;
+
+    /* trim trailing space */
+    t=h;
+    while(t>p && isspace(*(t-1)))t--;
+
+    ret[count++] = strndup(p,t-p);
+    if(!*h)break;
+    p=h+1;
+  }
+
+  return ret;
+
+}
+
+static void _free_map(char **m){
+  char **in=m;
+  while(m && *m){
+    free(*m);
+    m++;
+  }
+  if(in)free(in);
+}
+
+static unsigned int _matrix_to_channelmask(int ch, char *matrix, char *premap, int **mout){
+  unsigned int ret=0;
+  char *p=matrix;
+  int *perm=(*mout=malloc(ch*sizeof(*mout)));
+  int i;
+  char **map = _tokenize_matrix(premap);
+
+  for(i=0;i<ch;i++) perm[i] = -1;
+  i=0;
+
+  while(1){
+    char *h=p;
+    int m=0;
+
+    /* search for seperator */
+    while(*h && *h!=',')h++;
+
+    while(map[m]){
+      if(h-p && !strncmp(map[m],p,h-p) &&
+         strlen(map[m])==h-p)
+        break;
+      m++;
+    }
+    /* X is a placeholder, X does not map to X */
+    if(map[m] && strcmp(map[m],"X")){
+      ret |= (1<<m);
+      perm[i] = m;
+    }
+    if(!*h)break;
+    p=h+1;
+    i++;
+  }
+
+  _free_map(map);
+  return ret;
+}
+
+static char *_channelmask_to_matrix(unsigned int mask, char *premap){
+  int m=0;
+  int count=0;
+  char buffer[257]={0};
+  char **map = _tokenize_matrix(premap);
+
+  while(map[m]){
+    if(mask & (1<<m)){
+      if(count)
+        strcat(buffer,",");
+      strcat(buffer,map[m]);
+      count++;
+    }
+    m++;
+  }
+  _free_map(map);
+  return strdup(buffer);
+}
+
+static int _channelmask_bits(unsigned int mask){
+  int count=0;
+  while(mask){
+    if(mask&1)count++;
+    mask/=2;
+  }
+  return count;
+}
+
+static int _channelmask_maxbit(unsigned int mask){
+  int count=0;
+  int max=-1;
+  while(mask){
+    if(mask&1)max=count;
+    mask/=2;
+    count++;
+  }
+  return max;
+}
+
+static char *_matrix_intersect(char *matrix,char *premap){
+  char *p=matrix;
+  char buffer[257]={0};
+  int count=0;
+  char **map = _tokenize_matrix(premap);
+
+  while(1){
+    char *h=p;
+    int m=0;
+
+    /* search for seperator */
+    while(*h && *h!=',')h++;
+
+    while(map[m]){
+      if(h-p && !strncmp(map[m],p,h-p) &&
+         strlen(map[m])==h-p)
+        break;
+      m++;
+    }
+    /* X is a placeholder, X does not map to X */
+    if(map[m] && strcmp(map[m],"X")){
+      if(count)
+        strcat(buffer,",");
+      strcat(buffer,map[m]);
+      count++;
+    }
+
+    if(!*h)break;
+    p=h+1;
+  }
+
+  _free_map(map);
+  return strdup(buffer);
+}
+
+
 /* Open a device.  If this is a live device, file == NULL. */
 static ao_device* _open_device(int driver_id, ao_sample_format *format,
 			       ao_option *options, FILE *file)
 {
 	ao_functions *funcs;
 	driver_list *driver;
-	ao_device *device;
+	ao_device *device=NULL;
 	int result;
         ao_sample_format sformat=*format;
+        sformat.matrix=NULL;
 
 	/* Get driver id */
 	if ( (driver = _get_driver(driver_id)) == NULL ) {
 		errno = AO_ENODRIVER;
-		return NULL; /* No driver exists */
+		goto error;
 	}
 
 	funcs = driver->functions;
@@ -691,39 +868,46 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	    funcs->driver_info()->type != AO_TYPE_LIVE) {
 
 		errno = AO_ENOTLIVE;
-		return NULL;
+		goto error;
 	} else if (file != NULL &&
 		   funcs->driver_info()->type != AO_TYPE_FILE) {
 
 		errno = AO_ENOTFILE;
-		return NULL;
+		goto error;
 	}
 
 	/* Make a new device structure */
 	if ( (device = _create_device(driver_id, driver,
 				      format, file)) == NULL ) {
 		errno = AO_EFAIL;
-		return NULL; /* Couldn't alloc device */
+		goto error;
 	}
 
-	/* Initialize the device memory */
+	/* Initialize the device memory; get static channel mapping */
 	if (!funcs->device_init(device)) {
-		free(device);
 		errno = AO_EFAIL;
-		return NULL; /* Couldn't init internal memory */
+		goto error;
 	}
 
 	/* Load options */
 	while (options != NULL) {
-          /* The output matrix option is handled for the drivers here */
           if(!strcmp(options->key,"matrix")){
+            /* If a driver has a static channel mapping mechanism
+               (physically constant channel mapping, or at least an
+               unvarying set of constants for mapping channels), the
+               output_matrix is already set.  An app/user specified
+               output mapping trumps. */
+            if(device->output_matrix)
+              free(device->output_matrix);
             /* explicitly set the output matrix to the requested
                string; devices must not override. */
-            device->output_matrix = _sanitize_matrix(options->value, device);
+            device->output_matrix = _sanitize_matrix(32, options->value, device);
             if(!device->output_matrix){
+              aerror("Empty or inavlid output matrix\n");
               errno = AO_EBADOPTION;
-              return NULL;
+              goto error;
             }
+            adebug("Sanitized device output matrix: %s\n",device->output_matrix);
           }else if(!strcmp(options->key,"debug")){
             device->verbose=2;
           }else if(!strcmp(options->key,"verbose")){
@@ -733,9 +917,8 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
           }else{
             if (!funcs->set_option(device, options->key, options->value)) {
               /* Problem setting options */
-              free(device);
               errno = AO_EOPENDEVICE;
-              return NULL;
+              goto error;
             }
           }
 
@@ -744,12 +927,96 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
         /* also sanitize the format input channel matrix */
         if(format->matrix){
-          sformat.matrix = _sanitize_matrix(format->matrix, device);
+          sformat.matrix = _sanitize_matrix(format->channels, format->matrix, device);
           if(!sformat.matrix)
             awarn("Input channel matrix invalid; ignoring.\n");
         }
 
-        /* set up any other housekeeping */
+        /* If device init was able to declare a static channel mapping
+           mechanism, reconcile it to the input now.  Odd drivers that
+           need to communicate with a backend device to determine
+           channel mapping strategy can still bypass this mechanism
+           entirely.  Also, drivers like ALSA may need to adjust
+           strategy depending on what device is successfully opened,
+           etc, but this still saves work later. */
+
+        if(device->output_matrix && sformat.matrix){
+          switch(device->output_matrix_order){
+          case AO_OUTPUT_MATRIX_FIXED:
+            /* Backend channel ordering is immutable and unused
+               channels must still be sent.  Look for the highest
+               channel number we are able to map from the input
+               matrix. */
+            {
+              unsigned int mask = _matrix_to_channelmask(sformat.channels,sformat.matrix,
+                                                         device->output_matrix,
+                                                         &device->input_map);
+              int max = _channelmask_maxbit(mask);
+              if(max<0){
+                aerror("Unable to map any channels from input matrix to output");
+                errno = AO_EBADFORMAT;
+                goto error;
+              }
+              device->output_channels = max+1;
+              device->output_mask = mask;
+              device->inter_matrix = strdup(device->output_matrix);
+            }
+            break;
+
+          case AO_OUTPUT_MATRIX_COLLAPSIBLE:
+            /* the ordering of channels submitted to the backend is
+               fixed, but only the channels in use should be present
+               in the audio stream */
+            {
+              unsigned int mask = _matrix_to_channelmask(sformat.channels,sformat.matrix,
+                                                         device->output_matrix,
+                                                         &device->input_map);
+              int channels = _channelmask_bits(mask);
+              if(channels<0){
+                aerror("Unable to map any channels from input matrix to output");
+                errno = AO_EBADFORMAT;
+                goto error;
+              }
+              device->output_channels = channels;
+              device->output_mask = mask;
+              device->inter_matrix = _channelmask_to_matrix(mask,device->output_matrix);
+            }
+            break;
+
+          case AO_OUTPUT_MATRIX_PERMUTABLE:
+            /* The ordering of channels is freeform.  Only the
+               channels in use should be sent, and they may be sent in
+               any order.  If possible, leave the input ordering
+               unchanged */
+            {
+              unsigned int mask = _matrix_to_channelmask(sformat.channels,sformat.matrix,
+                                                         device->output_matrix,
+                                                         &device->input_map);
+              int channels = _channelmask_bits(mask);
+              if(channels<0){
+                aerror("Unable to map any channels from input matrix to output");
+                errno = AO_EBADFORMAT;
+                goto error;
+              }
+              device->output_channels = channels;
+              device->output_mask = mask;
+              device->inter_matrix = _matrix_intersect(sformat.matrix,device->output_matrix);
+            }
+            break;
+
+          default:
+            aerror("Driver backend failed to set output ordering.\n");
+            errno = AO_EFAIL;
+            goto error;
+          }
+
+          adebug("Channel order submitted to backend: %s\n",device->inter_matrix);
+
+        }else{
+          device->output_channels = sformat.channels;
+        }
+
+        /* other housekeeping */
         device->input_channels = sformat.channels;
         device->bytewidth = (sformat.bits+7)>>3;
         device->rate = sformat.rate;
@@ -757,34 +1024,34 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	/* Open the device */
 	result = funcs->open(device, &sformat);
 	if (!result) {
-                if(sformat.matrix)free(sformat.matrix);
-		funcs->device_clear(device);
-		free(device);
-		errno = AO_EOPENDEVICE;
-		return NULL; /* Couldn't open device */
+          errno = AO_EOPENDEVICE;
+          goto error;
 	}
 
-        /* resolve channel mapping request if any */
+        /* set up permutation based on finalized inter_matrix mapping */
+        /* The only way device->output_channels could be zero here is
+           if the driver has opted to ouput no channels (eg, the null
+           driver). */
         if(sformat.matrix){
-          if(!device->output_matrix){
-            awarn("Driver %s does not support channel matrixing;\n"
+          if(!device->inter_matrix){
+            awarn("Driver %s does not support automatic channel mapping;\n"
                  "continuing without routing channels to specific locations.\n\n",
                  info_table[device->driver_id]->short_name);
           }else{
 
-            /* walk thorugh the output matrix, match outputs to inputs */
-            char *op=device->output_matrix;
+            /* walk thorugh the inter matrix, match channles */
+            char *op=device->inter_matrix;
             int count=0;
-            device->permute_channels = calloc(device->output_channels,sizeof(int));
+            device->inter_permute = calloc(device->output_channels,sizeof(int));
 
             averbose("\n");
 
             while(count<device->output_channels){
-              int m=1,mm;
+              int m=0,mm;
               char *h=op;
 
               if(*op){
-                /* find mnemonic offset of output channel */
+                /* find mnemonic offset of inter channel */
                 while(*h && *h!=',')h++;
                 while(mnemonics[m]){
                   if(!strncmp(mnemonics[m],op,h-op))
@@ -794,22 +1061,22 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                 mm=m;
 
                 /* find match in input if any */
-                device->permute_channels[count] = _find_channel(m,sformat.matrix);
-                if(device->permute_channels[count] == -1 && sformat.channels == 1){
-                  device->permute_channels[count] = _find_channel(2,sformat.matrix);
-                  mm=2;
+                device->inter_permute[count] = _find_channel(m,sformat.matrix);
+                if(device->inter_permute[count] == -1 && sformat.channels == 1){
+                  device->inter_permute[count] = _find_channel(1,sformat.matrix);
+                  mm=1;
                 }
               }else
-                device->permute_channels[count] = -1;
+                device->inter_permute[count] = -1;
 
               /* display resulting mapping for now */
-              if(device->permute_channels[count]>=0){
-                averbose("Output %d (%s)\t <- input %d (%s)\n",
-                        count,mnemonics[m],device->permute_channels[count],
-                        mnemonics[mm]);
+              if(device->inter_permute[count]>=0){
+                averbose("input %d (%s)\t -> backend %d (%s)\n",
+                         device->inter_permute[count], mnemonics[mm],
+                         count,mnemonics[m]);
               }else{
-                averbose("Output %d (%s)\t %s\n",
-                        count,mnemonics[m],(m==1?"unmapped":"<- none"));
+                averbose("             \t    backend %d (%s)\n",
+                         count,mnemonics[m]);
               }
               count++;
               op=h;
@@ -821,13 +1088,13 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
         }
 
         /* if there's no actual permutation to do, release the permutation vector */
-        if(device->permute_channels && device->output_channels == device->input_channels){
+        if(device->inter_permute && device->output_channels == device->input_channels){
           int i;
           for(i=0;i<device->output_channels;i++)
-            if(device->permute_channels[i]!=i)break;
+            if(device->inter_permute[i]!=i)break;
           if(i==device->output_channels){
-            free(device->permute_channels);
-            device->permute_channels=NULL;
+            free(device->inter_permute);
+            device->inter_permute=NULL;
           }
         }
 
@@ -846,7 +1113,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
 	if ( (device->bytewidth>1 &&
               device->client_byte_format != device->driver_byte_format) ||
-             device->permute_channels){
+             device->inter_permute){
 
           result = _realloc_swap_buffer(device, DEF_SWAP_BUF_SIZE);
 
@@ -864,6 +1131,12 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	/* If we made it this far, everything is OK. */
         if(sformat.matrix)free(sformat.matrix);
 	return device;
+
+ error:
+        if(sformat.matrix)
+          free(sformat.matrix);
+        ao_close(device);
+        return NULL;
 }
 
 
@@ -1016,7 +1289,7 @@ int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
             int swap = (device->bytewidth>1 &&
                         device->client_byte_format != device->driver_byte_format);
             for(i=0;i<device->output_channels;i++){
-              int ic = device->permute_channels ? device->permute_channels[i] : i;
+              int ic = device->inter_permute ? device->inter_permute[i] : i;
               if(ic==-1){
                 _buffer_zero(device->swap_buffer,i,device->bytewidth,device->output_channels,
                              out_bytes);
@@ -1058,6 +1331,12 @@ int ao_close(ao_device *device)
 			free(device->swap_buffer);
                 if (device->output_matrix != NULL)
                         free(device->output_matrix);
+                if (device->input_map != NULL)
+                        free(device->input_map);
+                if (device->inter_matrix != NULL)
+                        free(device->inter_matrix);
+                if (device->inter_permute != NULL)
+                        free(device->inter_permute);
 		free(device);
 	}
 

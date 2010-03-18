@@ -50,6 +50,7 @@ extern "C"
 #define AO_EOPENDEVICE 5
 #define AO_EOPENFILE   6
 #define AO_EFILEEXISTS 7
+#define AO_EBADFORMAT  8
 
 #define AO_EFAIL       100
 

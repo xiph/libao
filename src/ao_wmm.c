@@ -196,43 +196,11 @@ int ao_wmm_device_init(ao_device *device)
 
   res = internal != NULL;
 
+  device->output_matrix = strdup("L,R,C,LFE,BL,BR,CL,CR,BC,SL,SR");
+  device->output_matrix_order = AO_OUTPUT_MATRIX_COLLAPSIBLE;
+
   return res;
 }
-
-#if 0
-static void CALLBACK
-waveOutProc(HWAVEOUT hwo,
-            UINT uMsg, DWORD_PTR dwInstance,
-            DWORD_PTR dwParam1, DWORD_PTR dwParam2)
-{
-  ao_device *device = (ao_device *) dwInstance;
-  ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
-
-  switch (uMsg) {
-
-  case WOM_OPEN:
-    /* Sent when the device is opened using the waveOutOpen function. */
-    break;
-
-  case WOM_CLOSE:
-    /* Sent when the device is closed using the waveOutClose function. */
-    break;
-
-  case WOM_DONE:
-    /* Sent when the device driver is finished with a data block sent
-       using the waveOutWrite function. */
-    {
-      LPWAVEHDR lpwvhdr = (LPWAVEHDR) dwParam1;
-      int me = lpwvhdr - internal->wh;
-      lpwvhdr->dwBytesRecorded = 0;
-    }
-    break;
-
-  default:
-    break;
-  }
-}
-#endif
 
 static int _ao_open_device(ao_device *device)
 {
@@ -421,10 +389,10 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
 {
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
   int res = 0;
-  WAVEFORMATEX wavefmt;
+  WAVEFORMATEXTENSIBLE wavefmt;
 
   adebug("open() channels=%d, bits=%d, rate=%d, format %d(%s)\n",
-         format->channels,format->bits,format->rate,format->byte_format,
+         device->output_channels,format->bits,format->rate,format->byte_format,
          format->byte_format==AO_FMT_LITTLE
          ?"little"
          :(format->byte_format==AO_FMT_NATIVE
@@ -440,26 +408,22 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
   format->byte_format = AO_FMT_LITTLE;
   device->driver_byte_format = AO_FMT_LITTLE;
 
-  if (! (format->channels == 1 || format->channels ==  2) ||
-      ! (format->bits     == 8 || format->bits     == 16) ||
-      ! (format->rate  >= 6000 && format->rate  <= 50000)
-      ) {
-    aerror("open() => unable to handle input format\n");
-    goto error;
-  }
-
   /* $$$ WMM 8 bit samples are unsigned... Not sure for ao ... */
   /* Yes, ao 8 bit PCM is unsigned -- Monty */
 
   /* Make sample format */
   memset(&wavefmt,0,sizeof(wavefmt));
-  wavefmt.wFormatTag      = WAVE_FORMAT_PCM;
-  wavefmt.nChannels       = format->channels;
-  wavefmt.wBitsPerSample  = format->bits;
-  wavefmt.nSamplesPerSec  = format->rate;
-  wavefmt.nBlockAlign     = ((wavefmt.wBitsPerSample+7)>>3)*wavefmt.nChannels;
-  wavefmt.nAvgBytesPerSec = wavefmt.nSamplesPerSec*wavefmt.nBlockAlign;
-  wavefmt.cbSize          = 0;
+  wavefmt.wFormatTag          = WAVE_FORMAT_EXTENSIBLE;
+  wavefmt.nChannels           = device->output_channels;
+  wavefmt.wBitsPerSample      = (((format->bits+7)>>3)<<3);
+  wavefmt.nSamplesPerSec      = format->rate;
+  wavefmt.nBlockAlign         = (wavefmt.wBitsPerSample>>3)*wavefmt.nChannels;
+  wavefmt.nAvgBytesPerSec     = wavefmt.nSamplesPerSec*wavefmt.nBlockAlign;
+  wavefmt.cbSize              = 22;
+  wavefmt.wValidBitsPerSample = format->bits;
+  wavefmt.subFormat           = WAVE_FORMAT_PCM;
+  wavefmt.dwChannelMask       = device->output_mask;
+
   internal->wavefmt       = wavefmt;
 
   /* $$$ later this should be optionnal parms */

@@ -112,6 +112,7 @@ static int ao_au_device_init(ao_device *device)
 	memset(&(internal->au), 0, sizeof(internal->au));
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	return 1; /* Memory alloc successful */
 }
@@ -134,7 +135,7 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 
 	/* Fill out the header */
 	internal->au.magic = AUDIO_FILE_MAGIC;
-	internal->au.channels = format->channels;
+	internal->au.channels = device->output_channels;
 	if (format->bits == 8)
 		internal->au.encoding = AUDIO_FILE_ENCODING_LINEAR_8;
 	else if (format->bits == 16)
@@ -168,12 +169,13 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
 		return 0; /* Error writing header */
 	}
 
-        if(!device->output_matrix){
-          /* set up out matrix such that users are warned about > stereo playback */
-          if(format->channels<=2)
-            device->output_matrix=strdup("L,R");
+        if(!device->inter_matrix){
+          /* set up matrix such that users are warned about > stereo playback */
+          if(device->output_channels<=2)
+            device->inter_matrix=strdup("L,R");
           //else no matrix, which results in a warning
         }
+
 
 	return 1;
 }

@@ -77,6 +77,7 @@ static int ao_null_device_init(ao_device *device)
 	internal->byte_counter = 0;
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	return 1; /* Memory alloc successful */
 }
@@ -97,9 +98,10 @@ static int ao_null_open(ao_device *device, ao_sample_format *format)
 	/* Use whatever format the client requested */
 	device->driver_byte_format = device->client_byte_format;
 
-        if(!device->output_matrix){
-          /* all channels 'unavailable' */
-          device->output_matrix=strdup("X");
+        if(!device->inter_matrix){
+          /* by default, we want inter == in */
+          if(format->matrix)
+            device->inter_matrix = strdup(format->matrix);
         }
 
 	return 1;
@@ -121,7 +123,7 @@ static int ao_null_close(ao_device *device)
 {
 	ao_null_internal *internal = (ao_null_internal *) device->internal;
 
-	adebug("%ld bytes sent to null device.\n");
+	adebug("%ld bytes sent to null device.\n", internal->byte_counter);
 
 	return 1;
 }

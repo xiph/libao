@@ -133,6 +133,8 @@ int ao_plugin_device_init(ao_device *device)
     return 0; /* Could not initialize device memory */
 
   device->internal = internal;
+  device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
+  device->output_matrix=strdup("L,R");
 
   return 1; /* Memory alloc successful */
 }
@@ -167,7 +169,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   ao_arts_internal *internal = (ao_arts_internal *) device->internal;
   int errorcode=0;
 
-  if(format->channels<1 || format->channels>2){
+  if(device->output_channels<1 || device->output_channels>2){
     /* the docs aren't kidding here--- feed it more than 2
        channels and the server simply stops answering; the
        connection freezes. */
@@ -197,7 +199,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   device->driver_byte_format = AO_FMT_NATIVE;
   internal->stream = arts_play_stream(format->rate,
                                       format->bits,
-                                      format->channels,
+                                      device->output_channels,
                                       "libao stream");
 
   if(!internal->stream){
@@ -230,9 +232,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
   server_open_count++;
   pthread_mutex_unlock(&mutex);
-
-  if(!device->output_matrix)
-    device->output_matrix=strdup("L,R");
 
   adebug("thread %p: playback stream created!\n",internal->stream);
   adebug("thread %p: buffer size = %d bytes\n",internal->stream,internal->buffersize);

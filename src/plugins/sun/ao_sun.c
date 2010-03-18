@@ -125,6 +125,7 @@ int ao_plugin_device_init(ao_device *device)
 	}
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	return 1; /* Memory alloc successful */
 }
@@ -160,7 +161,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	info.play.encoding = AUDIO_ENCODING_SLINEAR;
 	info.play.precision = format->bits;
 	info.play.sample_rate = format->rate;
-	info.play.channels = format->channels;
+	info.play.channels = device->output_channels;
 
  	if (ioctl(internal->fd, AUDIO_SETINFO, &info) < 0) {
 		close(internal->fd);
@@ -169,10 +170,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	device->driver_byte_format = AO_FMT_NATIVE;
 
-        if(!device->output_matrix){
+        if(!device->inter_matrix){
           /* set up out matrix such that users are warned about > stereo playback */
-          if(format->channels<=2)
-            device->output_matrix=strdup("L,R");
+          if(device->output_channels<=2)
+            device->inter_matrix=strdup("L,R");
           //else no matrix, which results in a warning
         }
 

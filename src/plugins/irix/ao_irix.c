@@ -100,6 +100,7 @@ int ao_plugin_device_init(ao_device *device)
 	internal->channels = 2;
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	/* Device-specific initialization was successful. */
 	return 1;
@@ -124,13 +125,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		return 0;
 	}
 
-	if (alSetChannels(internal->alconfig, format->channels) < 0) {
+	if (alSetChannels(internal->alconfig, device->output_channels) < 0) {
 		aerror("alSetChannels(%d) failed: %s\n",
-			format->channels, alGetErrorString(oserror()));
+			device->output_channels, alGetErrorString(oserror()));
 		return 0;
 	}
 
-	internal->channels = format->channels;
+	internal->channels = device->output_channels;
 
 	if (alSetDevice(internal->alconfig, dev) < 0) {
 		aerror("alSetDevice failed: %s\n",
@@ -191,14 +192,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	}
 
 	device->driver_byte_format = AO_FMT_NATIVE;
-
-        if(!device->output_matrix){
-          /* set up out matrix such that users are warned about > stereo playback */
-          if(format->channels<=2)
-            device->output_matrix=strdup("L,R");
+        if(!device->inter_matrix){
+          /* set up matrix such that users are warned about > stereo playback */
+          if(device->output_channels<=2)
+            device->inter_matrix=strdup("L,R");
           //else no matrix, which results in a warning
         }
-
 
 	return 1;
 }

@@ -198,10 +198,10 @@ int ao_plugin_device_init(ao_device *device)
 
   internal->device = device;
   device->internal = internal;
-
+  device->output_matrix_order = AO_OUTPUT_MATRIX_COLLAPSIBLE;
+  device->output_matrix = strdup("L,R,C,LFE,BL,BR,CL,CR,BC,SL,SR");
   return 1; /* Memory alloc successful */
 }
-
 
 int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
   {
@@ -216,52 +216,8 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
     }
     internal->buffer_time = buffer;
   }
-  
+
   return 1;
-}
-
-static char *map[]={
-  "L","R","C","LFE","BL","BR","CL","CR","BC","SL","SR",NULL
-};
-
-static unsigned int _matrix_to_channelmask(char *matrix){
-  unsigned int ret=0;
-  char *p=matrix;
-  while(1){
-    char *h=p;
-    int m=0;
-
-    /* search for seperator */
-    while(*h && *h!=',')h++;
-
-    while(map[m]){
-      if(h-p && !strncmp(map[m],p,h-p) &&
-         strlen(map[m])==h-p)
-        break;
-      m++;
-    }
-    if(map[m])
-      ret |= (1<<m);
-    if(!*h)break;
-    p=h+1;
-  }
-  return ret;
-}
-
-static char *_channelmask_to_matrix(unsigned int mask){
-  int m=0;
-  int count=0;
-  char buffer[80]={0};
-  while(map[m]){
-    if(mask & (1<<m)){
-      if(count)
-        strcat(buffer,",");
-      strcat(buffer,map[m]);
-      count++;
-    }
-    m++;
-  }
-  return strdup(buffer);
 }
 
 int ao_plugin_open(ao_device *device, ao_sample_format *format)
@@ -313,7 +269,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   if (format->bits > 8)
     requestedDesc.mFormatFlags |= kAudioFormatFlagIsSignedInteger;
 
-  requestedDesc.mChannelsPerFrame = format->channels;
+  requestedDesc.mChannelsPerFrame = device->output_channels;
   requestedDesc.mSampleRate = format->rate;
   requestedDesc.mBitsPerChannel = format->bits;
   requestedDesc.mFramesPerPacket = 1;
@@ -350,8 +306,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     aerror("Unable to set output sample rate\n");
     return 0;
   }
-  if(requestedDesc.mChannelsPerFrame != format->channels){
-    aerror("Could not configure %d channel output\n",format->channels);
+  if(requestedDesc.mChannelsPerFrame != device->output_channels){
+    aerror("Could not configure %d channel output\n",device->output_channels);
     return 0;
   }
   if(requestedDesc.mBitsPerChannel != format->bits){
@@ -366,7 +322,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     aerror("Could not configure integer sample output\n");
     return 0;
   }
-  if((requestedDesc.mFormatFlags & kAudioFormatFlagsNativeEndian) != 
+  if((requestedDesc.mFormatFlags & kAudioFormatFlagsNativeEndian) !=
      kAudioFormatFlagsNativeEndian){
     aerror("Could not configure output endianness\n");
     return 0;
@@ -391,18 +347,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   /* set the channel mapping.  MacOSX AUHAL is capable of mapping any
      channel format currently representable in the libao matrix. */
 
-  if(format->matrix){
+  if(device->output_mask){
     AudioChannelLayout layout;
     memset(&layout,0,sizeof(layout));
 
     layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap;
-    
-    if(device->output_matrix){
-      layout.mChannelBitmap = _matrix_to_channelmask(device->output_matrix);
-    }else{
-      layout.mChannelBitmap = _matrix_to_channelmask(format->matrix);
-      device->output_matrix = _channelmask_to_matrix(layout.mChannelBitmap);
-    }
+    layout.mChannelBitmap = device->output_mask;
 
     result = AudioUnitSetProperty(internal->outputAudioUnit,
 				  kAudioUnitProperty_AudioChannelLayout,
@@ -415,8 +365,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   /* Set the audio callback */
   input.inputProc = (AURenderCallback) audioCallback;
   input.inputProcRefCon = internal;
- 
-  result = AudioUnitSetProperty( internal->outputAudioUnit, 
+
+  result = AudioUnitSetProperty( internal->outputAudioUnit,
 				 kAudioUnitProperty_SetRenderCallback,
 				 kAudioUnitScope_Input,
 				 0, &input, sizeof( input ));
@@ -437,7 +387,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
      we allocate the buffer here instead of ao_plugin_device_init() */
 
   internal->bufferByteCount =  (internal->buffer_time * format->rate / 1000) *
-    (format->channels * format->bits / 8);
+    (device->output_channels * format->bits / 8);
 
   internal->firstValidByteOffset = 0;
   internal->validByteCount = 0;
@@ -451,7 +401,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   /* limited to stereo for now */
   //if(!device->output_matrix)
   //device->output_matrix=strdup("L,R");
-  
+
   return 1;
 }
 
@@ -465,7 +415,7 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
   unsigned int firstEmptyByteOffset, emptyByteCount;
 
   while (num_bytes) {
-		
+
     // Get a consistent set of data about the available space in the queue,
     // figure out the maximum number of bytes we can copy in this chunk,
     // and claim that amount of space

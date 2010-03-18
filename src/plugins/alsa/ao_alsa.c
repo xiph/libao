@@ -145,6 +145,8 @@ int ao_plugin_device_init(ao_device *device)
 	internal->access_mask = AO_ALSA_ACCESS_MASK;
 
 	device->internal = internal;
+        device->output_matrix = strdup("L,R,BL,BR,C,LFE,SL,SR");
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	return 1;
 }
@@ -242,14 +244,14 @@ static inline int alsa_set_hwparams(ao_device *device,
 
 	/* set the number of channels */
 	err = snd_pcm_hw_params_set_channels(internal->pcm_handle,
-			params, (unsigned int)format->channels);
+			params, (unsigned int)device->output_channels);
 	if (err < 0){
           adebug("snd_pcm_hw_params_set_channels() failed.\n");
           return err;
         }
 
 	/* save the sample size in bytes for posterity */
-	internal->sample_size = format->bits * format->channels / 8;
+	internal->sample_size = format->bits * device->output_channels / 8;
 
 	/* set the sample rate */
 	err = snd_pcm_hw_params_set_rate_near(internal->pcm_handle,
@@ -400,6 +402,17 @@ static inline int alsa_test_open(ao_device *device,
     return err;
   }
 
+  /* this is a hack and fragile if the exact device detection code
+     flow changes!  Nevertheless, this is a useful warning for users.
+     Never fail silently if we can help it! */
+  if(!strcasecmp(dev,"default")){
+    /* default device */
+    if(device->output_channels>2){
+      awarn("ALSA 'default' device plays only channels 0,1.\n");
+      device->output_channels=2;
+    }
+  }
+
   /* try to set up hw params */
   err = alsa_set_hwparams(device,format);
   if(err<0){
@@ -445,7 +458,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           /* we don't try just 'default' as it's a plug device that
              will accept any number of channels but usually plays back
              everything as stereo. */
-          switch(format->channels){
+          switch(device->output_channels){
           default:
           case 8:
           case 7:
@@ -488,20 +501,15 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	if (format->bits > 8)
 		device->driver_byte_format = device->client_byte_format;
 
-        if(!device->output_matrix){
-          if(!strcasecmp(internal->dev,"default")){
-            /* default device */
-            if(format->channels>2)
-              awarn("ALSA 'default' device plays only L,R channels.\n");
-            device->output_matrix=strdup("L,R");
-          }else{
-            if(strncasecmp(internal->dev,"surround",8)){
-              if(format->channels>2 && device->verbose>=0)
-                awarn("No way to determine hardware %d channel mapping of\n"
-                      "ALSA device '%s'.\n",format->channels, internal->dev);
-              device->output_matrix=strdup("L,R");
-            }else{
-              device->output_matrix=strdup("L,R,BL,BR,C,LFE,SL,SR");
+        if(strcasecmp(internal->dev,"default")){
+          if(strncasecmp(internal->dev,"surround",8)){
+            if(device->output_channels>2 && device->verbose>=0){
+              awarn("No way to determine hardware %d channel mapping of\n"
+                    "ALSA device '%s'.\n",device->output_channels, internal->dev);
+              if(device->inter_matrix){
+                free(device->inter_matrix);
+                device->inter_matrix=NULL;
+              }
             }
           }
         }
@@ -591,8 +599,7 @@ int ao_plugin_close(ao_device *device)
               snd_pcm_drain(internal->pcm_handle);
               snd_pcm_close(internal->pcm_handle);
               internal->pcm_handle=NULL;
-            } else
-              awarn("ao_plugin_close called with uninitialized ao_device->internal->pcm_handle\n");
+            } 
           } else
             awarn("ao_plugin_close called with uninitialized ao_device->internal\n");
 	} else

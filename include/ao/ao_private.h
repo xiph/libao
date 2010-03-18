@@ -63,14 +63,21 @@ typedef struct ao_config {
 	char *default_driver;
 } ao_config;
 
+typedef enum {
+  AO_OUTPUT_MATRIX_UNDEFINED=0,   /* matrix unset */
+  AO_OUTPUT_MATRIX_FIXED=1,       /* fixed, immutable channel order, eg, ALSA */
+  AO_OUTPUT_MATRIX_COLLAPSIBLE=2, /* fixed order but only used channels sent, eg MACOS */
+  AO_OUTPUT_MATRIX_PERMUTABLE=3,  /* channel map is fully permutable. eg Pulse */
+} ao_outorder;
+
 struct ao_device {
 	int  type; /* live output or file output? */
 	int  driver_id;
 	ao_functions *funcs;
 	FILE *file; /* File for output if this is a file driver */
 
-  /* input not necessarily == output. Right now, byte order and
-     channel mappings may be altered. */
+  /* input not necessarily == output. Right now, byte order, channel
+     count, and channel mappings may be altered. */
 
 	int  client_byte_format;
 	int  machine_byte_format;
@@ -82,9 +89,33 @@ struct ao_device {
         int output_channels;
         int bytewidth;
         int rate;
-        char *output_matrix;
-        int  *permute_channels;
-	void *internal; /* Pointer to driver-specific data */
+
+        ao_outorder output_matrix_order;
+        char *output_matrix;  /* physical output channel
+                                 ordering/numbering matrix set by
+                                 driver if there's a channel
+                                 name->number mapping useful to the
+                                 backend driver in some way.  Eg,
+                                 Pulse has fully permutable input
+                                 channel masks, but specific channels
+                                 locations (eg, 'Center') still have
+                                 assigned numbers even if not a
+                                 specific slot int he input
+                                 interleave. */
+        int   output_mask;
+        int  *input_map;      /* input permutation mapping from each
+                                 input channel to a location in the
+                                 output_matrix. Made by ao_open,
+                                 intended for convenience use by
+                                 driver in device open. */
+
+        char *inter_matrix;   /* channel matrix as presented to the
+                                 backend API */
+        int  *inter_permute;  /* maps from each channel in the
+                                 inter_matrix back to an input channel
+                                 (if any) */
+
+	void *internal;       /* Pointer to driver-specific data */
 
         int verbose;
 };

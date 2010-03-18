@@ -77,6 +77,7 @@ static int ao_raw_device_init(ao_device *device)
 	internal->byte_order = AO_FMT_NATIVE;
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
 	return 1; /* Memory alloc successful */
 }
@@ -107,11 +108,11 @@ static int ao_raw_open(ao_device *device, ao_sample_format *format)
 
 	device->driver_byte_format = internal->byte_order;
 
-        if(!device->output_matrix){
-          /* by default, out == in */
-          if(format->matrix)
-            device->output_matrix = strdup(format->matrix);
-        }
+        //if(!device->inter_matrix){
+        ///* by default, inter == in */
+        //if(format->matrix)
+        //  device->inter_matrix = strdup(format->matrix);
+        //}
 
 	return 1;
 }

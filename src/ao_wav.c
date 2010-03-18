@@ -134,6 +134,8 @@ static int ao_wav_device_init(ao_device *device)
 	memset(&(internal->wave), 0, sizeof(internal->wave));
 
 	device->internal = internal;
+        device->output_matrix = strdup("L,R,C,LFE,BL,BR,CL,CR,BC,SL,SR");
+        device->output_matrix_order = AO_OUTPUT_MATRIX_COLLAPSIBLE;
 
 	return 1; /* Memory alloc successful */
 }
@@ -145,51 +147,6 @@ static int ao_wav_set_option(ao_device *device, const char *key,
 	return 1; /* No options! */
 }
 
-static char *map[]={
-  "L","R","C","LFE","BL","BR","CL","CR","BC","SL","SR",NULL
-};
-#define SPEAKER_RESERVED               0x80000000
-
-static unsigned int _matrix_to_channelmask(char *matrix){
-  unsigned int ret=0;
-  char *p=matrix;
-  while(1){
-    char *h=p;
-    int m=0;
-
-    /* search for seperator */
-    while(*h && *h!=',')h++;
-
-    while(map[m]){
-      if(h-p && !strncmp(map[m],p,h-p) &&
-         strlen(map[m])==h-p)
-        break;
-      m++;
-    }
-    if(map[m])
-      ret |= (1<<m);
-    if(!*h)break;
-    p=h+1;
-  }
-  return ret;
-}
-
-static char *_channelmask_to_matrix(unsigned int mask){
-  int m=0;
-  int count=0;
-  char buffer[80]={0};
-  while(map[m]){
-    if(mask & (1<<m)){
-      if(count)
-        strcat(buffer,",");
-      strcat(buffer,map[m]);
-      count++;
-    }
-    m++;
-  }
-  return strdup(buffer);
-}
-
 static int ao_wav_open(ao_device *device, ao_sample_format *format)
 {
 	ao_wav_internal *internal = (ao_wav_internal *) device->internal;
@@ -197,7 +154,7 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 	int size = 0x7fffffff; /* Use a bogus size initially */
 
 	/* Store information */
-	internal->wave.common.wChannels = format->channels;
+	internal->wave.common.wChannels = device->output_channels;
 	internal->wave.common.wBitsPerSample = ((format->bits+7)>>3)<<3;
 	internal->wave.common.wValidBitsPerSample = format->bits;
 	internal->wave.common.dwSamplesPerSec = format->rate;
@@ -223,19 +180,7 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
 		(internal->wave.common.wBitsPerSample >> 3);
 	internal->wave.common.cbSize = 22;
 	internal->wave.common.subFormat = WAVE_FORMAT_PCM;
-
-        /* contruct channel mask; WAV is capable of expressing any
-           channel format currently representable in libao */
-        if(format->matrix){
-          if(device->output_matrix){
-            internal->wave.common.dwChannelMask=_matrix_to_channelmask(device->output_matrix);
-          }else{
-            internal->wave.common.dwChannelMask=_matrix_to_channelmask(format->matrix);
-            device->output_matrix = _channelmask_to_matrix(internal->wave.common.dwChannelMask);
-          }
-        }else{
-          internal->wave.common.dwChannelMask=0;
-        }
+        internal->wave.common.dwChannelMask=device->output_mask;
 
 	strncpy(internal->wave.data.id, "data",4);
 

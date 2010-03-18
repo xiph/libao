@@ -133,6 +133,8 @@ int ao_plugin_device_init(ao_device *device)
 	internal->host = NULL;
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
+        device->output_matrix=strdup("L,R");
 
 	return 1; /* Memory alloc successful */
 }
@@ -167,7 +169,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	default : return 0;
 	}
 
-	switch (format->channels)
+	switch (device->output_channels)
 	{
 	case 1 : esd_channels = ESD_MONO;
 		 break;
@@ -185,10 +187,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		return 0; /* Could not contact ESD server */
 
 	device->driver_byte_format = AO_FMT_NATIVE;
-
-        /* ESD restricted to stereo only */
-        if(!device->output_matrix)
-            device->output_matrix=strdup("L,R");
 
 	return 1;
 }

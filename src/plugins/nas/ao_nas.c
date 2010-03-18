@@ -107,6 +107,8 @@ int ao_plugin_device_init(ao_device *device)
 	internal->buf_free = 0;
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
+
 	return 1; /* Memory alloc successful */
 }
 
@@ -163,7 +165,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	    if ((AuDeviceKind(AuServerDevice(internal->aud, i)) ==
 		 AuComponentKindPhysicalOutput) &&
 		(AuDeviceNumTracks(AuServerDevice(internal->aud, i)) ==
-		 format->channels))
+		 device->output_channels))
 	      break;
 
 	  if ((i == AuServerNumDevices(internal->aud)) ||
@@ -177,7 +179,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* set up flow */
 	AuMakeElementImportClient(&elms[0], format->rate,
-				  nas_format, format->channels, AuTrue,
+				  nas_format, device->output_channels, AuTrue,
 				  internal->buf_size, internal->buf_size / 2,
 				  0, 0);
 	AuMakeElementExportDevice(&elms[1], 0, internal->dev,
@@ -187,10 +189,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	device->driver_byte_format = AO_FMT_NATIVE;
 
-        if(!device->output_matrix){
+        if(!device->inter_matrix){
           /* set up out matrix such that users are warned about > stereo playback */
-          if(format->channels<=2)
-            device->output_matrix=strdup("L,R");
+          if(device->output_channels<=2)
+            device->inter_matrix=strdup("L,R");
           //else no matrix, which results in a warning
         }
 

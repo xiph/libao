@@ -169,6 +169,8 @@ int ao_plugin_device_init(ao_device *device)
 	internal->dev = NULL;
 
 	device->internal = internal;
+        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
+        device->output_matrix=strdup("L,R");
 
 	return 1; /* Memory alloc successful */
 }
@@ -216,21 +218,21 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Now set all of the parameters */
 
-	switch (format->channels)
+	switch (device->output_channels)
 	{
 	case 1: tmp = 0;
 		break;
 	case 2: tmp = 1;
 		break;
 	default:aerror("Unsupported number of channels: %d.",
-                       format->channels);
+                       device->output_channels);
 		goto ERR;
 	}
 
 	if (ioctl(internal->fd,SNDCTL_DSP_STEREO,&tmp) < 0 ||
-			tmp+1 != format->channels) {
+			tmp+1 != device->output_channels) {
           aerror("cannot set channels to %d\n",
-                 format->channels);
+                 device->output_channels);
           goto ERR;
 	}
 
@@ -281,10 +283,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           adebug("cannot get buffer size for device; using a default of 1024kB\n");
           internal->buf_size=1024;
 	}
-
-        /* limited to stereo */
-        if(!device->output_matrix)
-          device->output_matrix=strdup("L,R");
 
 	return 1; /* Open successful */
 
