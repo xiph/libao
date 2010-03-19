@@ -59,6 +59,9 @@ typedef struct ao_esd_internal
 {
 	int sock;
 	char *host;
+        char bugbuffer[4096];
+        int bugfill;
+        int bits;
 } ao_esd_internal;
 
 /* An old favorite from the UNIX-hater's handbook.
@@ -125,13 +128,13 @@ int ao_plugin_device_init(ao_device *device)
 {
 	ao_esd_internal *internal;
 
-	internal = (ao_esd_internal *) malloc(sizeof(ao_esd_internal));
+	internal = (ao_esd_internal *) calloc(1,sizeof(ao_esd_internal));
 
 	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
 
 	internal->host = NULL;
-
+        internal->sock = -1;
 	device->internal = internal;
         device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
         device->output_matrix=strdup("L,R");
@@ -162,13 +165,17 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	switch (format->bits)
 	{
-	case 8  : esd_bits = ESD_BITS8;
-		  break;
-	case 16 : esd_bits = ESD_BITS16;
-		  break;
-	default : return 0;
+	case 8  :
+          esd_bits = ESD_BITS8;
+          internal->bits = 8;
+          break;
+	case 16 :
+          esd_bits = ESD_BITS16;
+          internal->bits = 16;
+          break;
+	default :
+          return 0;
 	}
-
 	switch (device->output_channels)
 	{
 	case 1 : esd_channels = ESD_MONO;
@@ -191,46 +198,109 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	return 1;
 }
 
-int ao_plugin_play(ao_device *device, const char* output_samples,
-		uint_32 num_bytes)
-{
-	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
+/* ESD has a longstanding bug where it won't properly handle any input
+   frame size other than ESD_BUF_SIZE, which is defined in esd.h to be
+   4096.  The bug is lines 317/318 in esound/players.c; the lines
+   perform an unneeded/incorrect short-read test that abort playback
+   of any nonblocking read that returns not-4096 bytes.  Simply
+   commenting out these two lines corrects the problem, but even if
+   it's fixed today, ESD is dead and any already deployed daemons are
+   unlilely to ever be fixed.
 
+   So... only ever write 4096 byte chunks.  Ever. */
 
-        while (num_bytes > 0) {
-          ssize_t ret = write(internal->sock, output_samples, num_bytes);
-          if(ret<0){
-            switch(errno){
-            case EAGAIN:
-            case EINTR:
-              break;
-            default:
-              return 0;
-            }
-          }else{
-            output_samples += ret;
-            num_bytes -= ret;
-          }
-        }
-
-        return 1;
+int write4096(int fd, const char *output_samples){
+  int num_bytes = 4096;
+  while (num_bytes > 0) {
+    /* the loop always makes sure at least a complete block is written
+       out almost always, almost instantly-- there's no other way to
+       deal.  Except to fix esd of course. */
+    ssize_t ret = write(fd, output_samples, num_bytes);
+    if(ret<0){
+      switch(errno){
+      case EAGAIN:
+      case EINTR:
+        break;
+      default:
+        return ret;
+      }
+    }else{
+      output_samples += ret;
+      num_bytes -= ret;
+    }
+  }
+  return 0;
 }
 
+int ao_plugin_play(ao_device *device, const char* output_samples,
+                   uint_32 num_bytes)
+{
+  ao_esd_internal *internal = (ao_esd_internal *) device->internal;
+
+  if(internal->bugfill){
+    int addto = internal->bugfill + num_bytes;
+    if(addto>4096) addto = 4096;
+    addto -= internal->bugfill;
+    if(addto){
+      memcpy(internal->bugbuffer + internal->bugfill, output_samples, addto);
+      output_samples += addto;
+      internal->bugfill += addto;
+      num_bytes -= addto;
+    }
+  }
+
+  if(internal->bugfill==4096){
+    if(write4096(internal->sock,internal->bugbuffer))
+      return 0;
+    internal->bugfill=0;
+  }
+
+  while(num_bytes>=4096){
+    if(write4096(internal->sock,output_samples))
+      return 0;
+    output_samples += 4096;
+    num_bytes -= 4096;
+  }
+
+  if(num_bytes){
+    memcpy(internal->bugbuffer, output_samples, num_bytes);
+    internal->bugfill = num_bytes;
+  }
+  return 1;
+}
 
 int ao_plugin_close(ao_device *device)
 {
-	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
+  ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
-	esd_close(internal->sock);
+  if(internal->bugfill && internal->sock != -1){
 
-	return 1;
+    if(internal->bugfill<4096){
+      switch(internal->bits){
+      case 8:
+        memset(internal->bugbuffer + internal->bugfill, 128, 4096-internal->bugfill);
+        break;
+      default:
+        memset(internal->bugbuffer + internal->bugfill, 0, 4096-internal->bugfill);
+        break;
+      }
+    }
+
+    write4096(internal->sock,internal->bugbuffer);
+    internal->bugfill = 0;
+  }
+
+  if(internal->sock != -1)
+    esd_close(internal->sock);
+  internal->sock=-1;
+  return 1;
 }
 
 
 void ao_plugin_device_clear(ao_device *device)
 {
-	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
+  ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
-	if(internal->host) free(internal->host);
-	free(internal);
+  if(internal->host) free(internal->host);
+  free(internal);
 }
