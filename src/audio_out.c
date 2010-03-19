@@ -1010,8 +1010,6 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
             goto error;
           }
 
-          adebug("Channel order submitted to backend: %s\n",device->inter_matrix);
-
         }else{
           device->output_channels = sformat.channels;
         }
@@ -1150,9 +1148,13 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	return device;
 
  error:
-        if(sformat.matrix)
-          free(sformat.matrix);
-        ao_close(device);
+        {
+          int errtemp = errno;
+          if(sformat.matrix)
+            free(sformat.matrix);
+          ao_close(device);
+          errno=errtemp;
+        }
         return NULL;
 }
 

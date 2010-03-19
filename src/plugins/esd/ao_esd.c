@@ -207,10 +207,10 @@ int ao_plugin_play(ao_device *device, const char* output_samples,
             default:
               return 0;
             }
+          }else{
+            output_samples += ret;
+            num_bytes -= ret;
           }
-
-          output_samples += ret;
-          num_bytes -= ret;
         }
 
         return 1;

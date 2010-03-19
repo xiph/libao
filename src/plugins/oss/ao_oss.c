@@ -206,14 +206,16 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		internal->fd = open(internal->dev, O_WRONLY);
 
 		if(internal->fd < 0) {
-                  aerror("open(%s) => %s",internal->dev,strerror(errno));
-			return 0;  /* Cannot open device */
+                  aerror("open(%s) => %s\n",internal->dev,strerror(errno));
+                  return 0;  /* Cannot open device */
 		}
 
 	} else {
 		internal->fd = _open_default_oss_device(&internal->dev, 1);
-		if (internal->fd < 0)
-			return 0;  /* Cannot open default device */
+		if (internal->fd < 0){
+                  aerror("open default => %s\n",strerror(errno));
+                  return 0;  /* Cannot open default device */
+                }
 	}
 
 	/* Now set all of the parameters */
