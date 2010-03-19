@@ -930,6 +930,12 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
           sformat.matrix = _sanitize_matrix(format->channels, format->matrix, device);
           if(!sformat.matrix)
             awarn("Input channel matrix invalid; ignoring.\n");
+
+          /* special-case handling of 'M'. */
+          if(sformat.channels==1 && sformat.matrix && !strcmp(sformat.matrix,"M")){
+            free(sformat.matrix);
+            sformat.matrix=NULL;
+          }
         }
 
         /* If device init was able to declare a static channel mapping
