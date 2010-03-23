@@ -170,7 +170,6 @@ int ao_plugin_device_init(ao_device *device)
 
 	device->internal = internal;
         device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
-        device->output_matrix=strdup("L,R");
 
 	return 1; /* Memory alloc successful */
 }
@@ -220,6 +219,16 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* Now set all of the parameters */
 
+#ifdef SNDCTL_DSP_CHANNELS
+        /* OSS versions > 2 */
+        tmp = format->channels;
+        if (ioctl(internal->fd,SNDCTL_DSP_CHANNELS,&tmp) < 0 ||
+            tmp != format->channels) {
+          aerror("cannot set channels to %d\n", format->channels);
+          goto ERR;
+        }
+#else
+        /* OSS versions < 4 */
 	switch (device->output_channels)
 	{
 	case 1: tmp = 0;
@@ -237,6 +246,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
                  device->output_channels);
           goto ERR;
 	}
+#endif
 
 	/* To eliminate the need for a swap buffer, we set the device
 	   to use whatever byte format the client selected. */
@@ -285,6 +295,13 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           adebug("cannot get buffer size for device; using a default of 1024kB\n");
           internal->buf_size=1024;
 	}
+
+        if(!device->inter_matrix){
+          /* set up matrix such that users are warned about > stereo playback */
+          if(device->output_channels<=2)
+            device->inter_matrix=strdup("L,R");
+          //else no matrix, which results in a warning
+        }
 
 	return 1; /* Open successful */
 
