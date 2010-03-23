@@ -221,10 +221,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 #ifdef SNDCTL_DSP_CHANNELS
         /* OSS versions > 2 */
-        tmp = format->channels;
+        tmp = device->output_channels;
         if (ioctl(internal->fd,SNDCTL_DSP_CHANNELS,&tmp) < 0 ||
-            tmp != format->channels) {
-          aerror("cannot set channels to %d\n", format->channels);
+            tmp != device->output_channels) {
+          aerror("cannot set channels to %d\n", device->output_channels);
           goto ERR;
         }
 #else

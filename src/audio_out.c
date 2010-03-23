@@ -1041,9 +1041,11 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
         if(sformat.matrix){
           if(!device->inter_matrix){
             awarn("Driver %s does not support automatic channel mapping;\n"
-                 "continuing without routing channels to specific locations.\n\n",
+                 "\tRouting only L/R channels to output.\n\n",
                  info_table[device->driver_id]->short_name);
-          }else{
+            device->inter_matrix=strdup("L,R");
+          }
+          {
 
             /* walk thorugh the inter matrix, match channels */
             char *op=device->inter_matrix;
