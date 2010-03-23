@@ -714,7 +714,9 @@ static char **_tokenize_matrix(char *matrix){
     t=h;
     while(t>p && isspace(*(t-1)))t--;
 
-    ret[count++] = strndup(p,t-p);
+    ret[count] = calloc(t-p+1,1);
+    memcpy(ret[count],p,t-p);
+    count++;
     if(!*h)break;
     p=h+1;
   }
