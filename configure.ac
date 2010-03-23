@@ -285,6 +285,11 @@ dnl Check for libsndio audio
 AC_CHECK_HEADERS(sndio.h)
 AM_CONDITIONAL(HAVE_SNDIO_AUDIO,test "${ac_cv_header_sndio_h}" = yes)
 
+dnl Check for roaraudio
+
+AC_CHECK_HEADERS(roaraudio.h)
+AM_CONDITIONAL(HAVE_ROAR_AUDIO,test "${ac_cv_header_roaraudio_h}" = yes)
+
 dnl Check for AIX audio
 
 case $host in
@@ -401,4 +406,4 @@ dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile ao.pc)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc)
