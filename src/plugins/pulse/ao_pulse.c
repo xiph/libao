@@ -85,7 +85,7 @@ int ao_plugin_test(void) {
     const char *fn;
     struct pa_simple *s;
     static const struct pa_sample_spec ss = {
-        .format = PA_SAMPLE_S16LE,
+        .format = PA_SAMPLE_S16NE,
         .rate = 44100,
         .channels = 2
     };
