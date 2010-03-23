@@ -31,14 +31,20 @@
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include <windows.h>
+#include <mmreg.h>
 #include <mmsystem.h>
-#include <mmsystem.h>
+#include <ksmedia.h>
 
 #include <stdlib.h>
 #include <string.h>
 
 #include <stdarg.h>
 #include <stdio.h>
+
+#ifndef KSDATAFORMAT_SUBTYPE_PCM
+#define KSDATAFORMAT_SUBTYPE_PCM (GUID) {0x00000001,0x0000,0x0010,{0x80,0x00,0x00,0xaa,0x00,0x38,0x9b,0x71}}
+#endif
+
 
 #include "ao/ao.h"
 /* #include "ao/plugin.h" */
@@ -84,7 +90,7 @@ typedef struct ao_wmm_internal {
   UINT  id;             /* device id                       */
   HWAVEOUT hwo;         /* waveout handler                 */
   WAVEOUTCAPS caps;     /* device caps                     */
-  WAVEFORMATEX wavefmt; /* sample format                   */
+  WAVEFORMATEXTENSIBLE wavefmt; /* sample format           */
 
   int opened;           /* device has been opened          */
   int prepared;         /* waveheaders have been prepared  */
@@ -164,7 +170,7 @@ int ao_wmm_set_option(ao_device *device,
       if (mmres == MMSYSERR_NOERROR) {
         res = 1;
         adebug("checking id=%d, name='%s', ver=%d.%d  => [YES]\n",
-              i,caps.szPname,caps.vDriverVersion>>8,caps.vDriverVersion&255);
+              id,caps.szPname,caps.vDriverVersion>>8,caps.vDriverVersion&255);
         internal->id   = id;
         internal->caps = caps;
       } else {
@@ -211,7 +217,7 @@ static int _ao_open_device(ao_device *device)
   mmres =
     waveOutOpen(&internal->hwo,
 		internal->id,
-		&internal->wavefmt,
+		&internal->wavefmt.Format,
 		(DWORD_PTR)0/* waveOutProc */,
 		(DWORD_PTR)device,
 		CALLBACK_NULL/* |WAVE_FORMAT_DIRECT */|WAVE_ALLOWSYNC);
@@ -219,15 +225,15 @@ static int _ao_open_device(ao_device *device)
   if(mmres == MMSYSERR_NOERROR){
     adebug("waveOutOpen id=%d, channels=%d, bits=%d, rate %d => SUCCESS\n",
           internal->id,
-          internal->wavefmt.nChannels,
-          internal->wavefmt.wBitsPerSample,
-          internal->wavefmt.nSamplesPerSec);
+          internal->wavefmt.Format.nChannels,
+          internal->wavefmt.Format.wBitsPerSample,
+          internal->wavefmt.Format.nSamplesPerSec);
   }else{
     aerror("waveOutOpen id=%d, channels=%d, bits=%d, rate %d => FAILED\n",
           internal->id,
-          internal->wavefmt.nChannels,
-          internal->wavefmt.wBitsPerSample,
-          internal->wavefmt.nSamplesPerSec);
+          internal->wavefmt.Format.nChannels,
+          internal->wavefmt.Format.wBitsPerSample,
+          internal->wavefmt.Format.nSamplesPerSec);
   }
 
   if (mmres == MMSYSERR_NOERROR) {
@@ -261,7 +267,7 @@ static int _ao_close_device(ao_device *device)
 static int _ao_alloc_wave_headers(ao_device *device)
 {
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;
-  int bytesPerBlock = internal->wavefmt.nBlockAlign * internal->splPerBlock;
+  int bytesPerBlock = internal->wavefmt.Format.nBlockAlign * internal->splPerBlock;
   /*   int bytes = internal->blocks * (sizeof(WAVEHDR) + bytesPerBlock); */
   int bytes = internal->blocks * (sizeof(*internal->wh) + bytesPerBlock);
   int res;
@@ -308,10 +314,11 @@ static int _ao_alloc_wave_headers(ao_device *device)
   }
 
   res = (internal->bigbuffer != NULL);
-  if(!res)
+  if(!res){
     aerror("_ao_alloc_wave_headers() => FAILED\n");
-  else
+  }else{
     adebug("_ao_alloc_wave_headers() => success\n");
+  }
   return res;
 }
 
@@ -337,10 +344,11 @@ static int _ao_wait_wave_headers(ao_device *device, int wait_all)
   }
 
   res &= !internal->sent_blocks;
-  if(!res)
+  if(!res){
     aerror("_ao_wait_wave_headers => FAILED\n");
-  else
+  }else{
     adebug("_ao_wait_wave_headers => success\n");
+  }
   return res;
 }
 
@@ -357,7 +365,7 @@ static int _ao_free_wave_headers(ao_device *device)
      * since _ao_wait_wave_headers() has been called once before.
      */
     mmres = waveOutReset(internal->hwo);
-    adebug("waveOutReset(%d) => %s\n", internal->id, mmerrormmres);
+    adebug("waveOutReset(%d) => %s\n", internal->id, mmerror(mmres));
     /* Wait again to be sure reseted waveheaders has been released. */
     _ao_wait_wave_headers(device,0);
 
@@ -373,11 +381,11 @@ static int _ao_free_wave_headers(ao_device *device)
     internal->spl = 0;
   }
 
-  if(!res)
+  if(!res){
     aerror("_ao_alloc_wave_headers() => FAILED\n");
-  else
+  }else{
     adebug("_ao_alloc_wave_headers() => success\n");
-
+  }
   return res;
 }
 
@@ -413,15 +421,15 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
 
   /* Make sample format */
   memset(&wavefmt,0,sizeof(wavefmt));
-  wavefmt.wFormatTag          = WAVE_FORMAT_EXTENSIBLE;
-  wavefmt.nChannels           = device->output_channels;
-  wavefmt.wBitsPerSample      = (((format->bits+7)>>3)<<3);
-  wavefmt.nSamplesPerSec      = format->rate;
-  wavefmt.nBlockAlign         = (wavefmt.wBitsPerSample>>3)*wavefmt.nChannels;
-  wavefmt.nAvgBytesPerSec     = wavefmt.nSamplesPerSec*wavefmt.nBlockAlign;
-  wavefmt.cbSize              = 22;
-  wavefmt.wValidBitsPerSample = format->bits;
-  wavefmt.subFormat           = WAVE_FORMAT_PCM;
+  wavefmt.Format.wFormatTag          = WAVE_FORMAT_EXTENSIBLE;
+  wavefmt.Format.nChannels           = device->output_channels;
+  wavefmt.Format.wBitsPerSample      = (((format->bits+7)>>3)<<3);
+  wavefmt.Format.nSamplesPerSec      = format->rate;
+  wavefmt.Format.nBlockAlign         = (wavefmt.Format.wBitsPerSample>>3)*wavefmt.Format.nChannels;
+  wavefmt.Format.nAvgBytesPerSec     = wavefmt.Format.nSamplesPerSec*wavefmt.Format.nBlockAlign;
+  wavefmt.Format.cbSize              = 22;
+  wavefmt.Samples.wValidBitsPerSample = format->bits;
+  wavefmt.SubFormat           = KSDATAFORMAT_SUBTYPE_PCM;
   wavefmt.dwChannelMask       = device->output_mask;
 
   internal->wavefmt       = wavefmt;
@@ -456,10 +464,11 @@ int ao_wmm_open(ao_device * device, ao_sample_format * format)
   }
 
  error_no_close:
-  if(res)
+  if(res){
     adebug("open() => success\n");
-  else
+  }else{
     aerror("open() => FAILED\n");
+  }
   return res;
 }
 
