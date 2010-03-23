@@ -184,7 +184,7 @@ dnl ======================================
 
 dnl Check for WMM
 
-[has_wmm="no"]
+[have_wmm="no"]
 AC_ARG_ENABLE([wmm],
     [AS_HELP_STRING(
 	[--enable-wmm],
@@ -204,7 +204,7 @@ int main(int na, char ** a) {
     return waveOutOpen(0,0,0,0,0,0);
 }
 ],[
-has_wmm="yes";
+have_wmm="yes";
 AC_MSG_RESULT([yes])
 AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
 ],[
@@ -212,30 +212,32 @@ AC_MSG_RESULT([no])
 LIBS="$waveout_old_LIBS"
 ])
 ],[],[#include <windows.h>])])
-AM_CONDITIONAL([HAVE_WMM],[test "x$has_wmm" = "xyes"])
-AS_IF([test "x${has_wmm}" = "xyes"],[WMM_LIBS="-lwinmm"],[WMM_LIBS=""])
+AM_CONDITIONAL([HAVE_WMM],[test "x$have_wmm" = "xyes"])
+AS_IF([test "x${have_wmm}" = "xyes"],[WMM_LIBS="-lwinmm"],[WMM_LIBS=""])
 AC_SUBST([WMM_LIBS])
 
 dnl Check for ESD
 
+have_esd="no";
 AC_ARG_ENABLE(esd, [  --enable-esd            include ESD output plugin ],
 [ BUILD_ESD="$enableval" ],[ BUILD_ESD="yes" ])
 
 if test "$BUILD_ESD" = "yes"; then
-  AM_PATH_ESD(0.2.8, have_esd=yes, have_esd=no)
+  AM_PATH_ESD(0.2.8, have_esd=yes)
 fi
 AM_CONDITIONAL(HAVE_ESD,test "x$have_esd" = xyes)
 
 
 dnl Check for OSS
 
-AC_CHECK_HEADERS(sys/soundcard.h)
-AC_CHECK_HEADERS(machine/soundcard.h)
-AM_CONDITIONAL(HAVE_OSS,test "${ac_cv_header_sys_soundcard_h}" = "yes" || test "${ac_cv_header_machine_soundcard_h}" = "yes")
+have_oss="no";
+AC_CHECK_HEADERS(sys/soundcard.h, have_oss=yes)
+AC_CHECK_HEADERS(machine/soundcard.h, have_oss=yes)
+AM_CONDITIONAL(HAVE_OSS,test "${have_oss}" = "yes")
 
 
 dnl Check for ALSA 0.9/1.0
-
+have_alsa="no";
 AC_ARG_ENABLE(alsa, [  --enable-alsa         include alsa 0.9/1.0 output plugin ],
 [ BUILD_ALSA="$enableval" ],[ BUILD_ALSA="yes" ])
 AC_ARG_ENABLE(alsa-mmap,
@@ -277,27 +279,31 @@ fi
    
 dnl Check for Sun audio
 
-AC_CHECK_HEADERS(sys/audioio.h)
-AM_CONDITIONAL(HAVE_SUN_AUDIO,test "${ac_cv_header_sys_audioio_h}" = yes)
+have_sun="no";
+AC_CHECK_HEADERS(sys/audioio.h, have_sun=yes)
+AM_CONDITIONAL(HAVE_SUN_AUDIO,test "${have_sun}" = yes)
 
 dnl Check for libsndio audio
 
-AC_CHECK_HEADERS(sndio.h)
-AM_CONDITIONAL(HAVE_SNDIO_AUDIO,test "${ac_cv_header_sndio_h}" = yes)
+have_sndio="no";
+AC_CHECK_HEADERS(sndio.h, have_sndio=yes)
+AM_CONDITIONAL(HAVE_SNDIO_AUDIO,test "${have_sndio}" = yes)
 
 dnl Check for roaraudio
 
-AC_CHECK_HEADERS(roaraudio.h)
-AM_CONDITIONAL(HAVE_ROAR_AUDIO,test "${ac_cv_header_roaraudio_h}" = yes)
+have_roar="no";
+AC_CHECK_HEADERS(roaraudio.h, have_roar=yes)
+AM_CONDITIONAL(HAVE_ROAR_AUDIO,test "${have_roar}" = yes)
 
 dnl Check for AIX audio
 
+have_aix="no";
 case $host in
     *-aix*)
-	AC_CHECK_HEADERS(sys/audio.h)
+	AC_CHECK_HEADERS(sys/audio.h, have_aix=yes)
 	;;
 esac
-AM_CONDITIONAL(HAVE_AIX_AUDIO,test "x${ac_cv_header_sys_audio_h}" = xyes)
+AM_CONDITIONAL(HAVE_AIX_AUDIO,test "x$have_aix" = xyes)
 
 dnl Check for aRts
 
@@ -314,7 +320,7 @@ if test "$BUILD_ARTS" = "maybe"; then
   esac
 fi
 
-
+have_arts="no";
 if test "$BUILD_ARTS" = "yes"; then
   AC_PATH_PROG(ARTSC_CONFIG, artsc-config)
 
@@ -327,9 +333,10 @@ if test "$BUILD_ARTS" = "yes"; then
 	LIBS="$LIBS $ARTS_LIBS"
 	AC_CHECK_FUNCS(arts_suspended)
 	LIBS=$SAVELIBS
+	have_arts=yes
   fi
 fi
-AM_CONDITIONAL(HAVE_ARTS,test "x$ac_cv_path_ARTSC_CONFIG" != x)
+AM_CONDITIONAL(HAVE_ARTS,test "x${have_arts}" = xyes)
 
 AC_SUBST(ARTS_CFLAGS)
 AC_SUBST(ARTS_LIBS)
@@ -337,6 +344,7 @@ AC_SUBST(ARTS_LIBS)
 
 dnl Check for IRIX
 
+have_irix="no";
 case $host in
         *-*-irix*)
                 AC_CHECK_LIB(audio, ALwritesamps, have_irix=yes, have_irix=no)
@@ -389,7 +397,7 @@ dnl Check for pulse
 AC_ARG_ENABLE(pulse, [  --enable-pulse       include PulseAudio output plugin ],
 [ BUILD_PULSE="$enableval" ],[ BUILD_PULSE="yes" ])
 
-have_pulse=no
+have_pulse="no";
 if test "x$BUILD_PULSE" = "xyes" ; then
     PKG_CHECK_MODULES(PULSE, [ libpulse-simple >= 0.9 ],
 	[have_pulse=yes],[have_pulse=no])
@@ -406,4 +414,49 @@ dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT(Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc)
+AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc])
+
+AS_AC_EXPAND(LIBDIR, ${libdir})
+AS_AC_EXPAND(INCLUDEDIR, ${includedir})
+AS_AC_EXPAND(BINDIR, ${bindir})
+AS_AC_EXPAND(DOCDIR, ${docdir})
+
+AC_MSG_RESULT([
+------------------------------------------------------------------------
+  $PACKAGE $VERSION:  Automatic configuration OK.
+
+  Backends to be built:
+
+    AU file output: .............. yes
+    RAW file output: ............. yes
+    WAV file output: ............. yes
+
+    AIX live output: ............. ${have_aix}
+    ALSA live output: ............ ${have_alsa}
+    ARTS live output: ............ ${have_arts}
+    ESD live output: ............. ${have_esd}
+    IRIX live output: ............ ${have_irix}
+    MACOSX live output: .......... ${have_macosx}
+    NAS live output: ............. ${have_nas}
+    NULL live output: ............ yes
+    OSS live output: ............. ${have_oss}
+    PULSE live output: ........... ${have_pulse}
+    ROAR live output: ............ ${have_roar}
+    SNDIO live output: ........... ${have_sndio}
+    SUN live output: ............. ${have_sun}
+    Windows WMM live output: ..... ${have_wmm}
+
+  Installation paths:
+
+    libtheora: ................... ${LIBDIR}
+    C header files: .............. ${INCLUDEDIR}/ao
+    Documentation: ............... ${DOCDIR}
+
+  Building:
+
+    Type 'make' to compile $PACKAGE.
+
+    Type 'make install' to install $PACKAGE.
+
+------------------------------------------------------------------------
+])

@@ -12,7 +12,7 @@ pkgconfig_DATA = ao.pc
 
 man_MANS = libao.conf.5
 
-EXTRA_DIST = README AUTHORS CHANGES COPYING libao.spec ao.m4 acinclude.m4 ao.pc.in $(man_MANS)
+EXTRA_DIST = README AUTHORS CHANGES COPYING libao.spec ao.m4 acinclude.m4 as-ac-expand.m4 ao.pc.in $(man_MANS)
 
 debug:
 	$(MAKE) clean
