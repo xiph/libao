@@ -3,6 +3,7 @@
  *  config.c
  *
  *       Copyright (C) Stan Seibert - July 2000
+ *       Copyright (C) Monty - Mar 2010
  *
  *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
@@ -36,19 +37,31 @@
 
 #define LINE_LEN 100
 
+static char *trim(char *p){
+  char *t;
+  while(*p && isspace(*p))p++;
+  if(*p){
+    t=p+strlen(p);
+    while(t>p && isspace(*(t-1))){
+      t--;
+      *t='\0';
+    }
+  }
+  return p;
+}
+
 static int ao_read_config_file(ao_config *config, const char *config_file)
 {
 	FILE *fp;
 	char line[LINE_LEN];
 	int end;
-	
-	
+
 	if ( !(fp = fopen(config_file, "r")) )
 		return 0; /* Can't open file */
-	
+
 	while (fgets(line, LINE_LEN, fp)) {
 		/* All options are key=value */
-		
+
 		if (strncmp(line, "default_driver=", 15) == 0) {
 			free(config->default_driver);
 			end = strlen(line);
@@ -56,7 +69,20 @@ static int ao_read_config_file(ao_config *config, const char *config_file)
 				line[end-1] = 0; /* Remove trailing newline */
 
 			config->default_driver = strdup(line+15);
-		}
+		}else{
+                        /* entries in the config file that don't parse as
+                           directives to AO at large are treated as driver
+                           options */
+                        char *key=trim(line);
+                        if(key && *key){
+                          char *val=strchr(key,'=');
+                          if(val){
+                            *val='\0';
+                            val++;
+                          }
+                          ao_append_global_option(key,val);
+                        }
+                }
 	}
 
 	fclose(fp);
@@ -71,9 +97,9 @@ void ao_read_config_files (ao_config *config)
 
 	/* Read the system-wide config file */
 	ao_read_config_file(config, AO_SYSTEM_CONFIG);
-	
+
 	/* Read the user config file */
-	if ( homedir!=NULL && 
+	if ( homedir!=NULL &&
 	     strlen(homedir) <= FILENAME_MAX - strlen(AO_USER_CONFIG) )
 	{
 		strncpy(userfile, homedir, FILENAME_MAX);

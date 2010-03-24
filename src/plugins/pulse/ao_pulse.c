@@ -171,7 +171,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
     ao_pulse_internal *internal;
     struct pa_sample_spec ss;
     struct pa_channel_map map;
-    int usemap=0;
     size_t allocated = 128;
 
     assert(device && device->internal && format);

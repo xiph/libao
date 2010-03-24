@@ -106,12 +106,22 @@ static ao_config config = {
 static ao_info **info_table = NULL;
 static int driver_count = 0;
 
+/* uses the device messaging and option infrastructure */
+static ao_device *ao_global_dummy;
+static ao_device ao_global_dummy_storage;
+static ao_option *ao_global_options=NULL;
+
 /* ---------- Helper functions ---------- */
 
 /* Clear out all of the library configuration options and set them to
    defaults.   The defaults should match the initializer above. */
 static void _clear_config()
 {
+        memset(ao_global_dummy,0,sizeof(*ao_global_dummy));
+        ao_global_dummy = NULL;
+        ao_free_options(ao_global_options);
+        ao_global_options = NULL;
+
 	free(config.default_driver);
 	config.default_driver = NULL;
 }
@@ -121,12 +131,15 @@ static void _clear_config()
    struct. */
 static driver_list *_get_plugin(char *plugin_file)
 {
+        ao_device *device = ao_global_dummy;
 	driver_list *dt;
 	void *handle;
+        char *prompt="";
 
 	handle = dlopen(plugin_file, DLOPEN_FLAG /* See ao_private.h */);
 
 	if (handle) {
+                prompt="calloc() failed";
                 dt = (driver_list *)calloc(1,sizeof(driver_list));
 		if (!dt) return NULL;
 
@@ -138,42 +151,53 @@ static driver_list *_get_plugin(char *plugin_file)
 			return NULL;
 		}
 
+                prompt="ao_plugin_test() missing";
 		dt->functions->test = dlsym(dt->handle, "ao_plugin_test");
 		if (!(dt->functions->test)) goto failed;
 
+                prompt="ao_plugin_driver_info() missing";
 		dt->functions->driver_info =
 		  dlsym(dt->handle, "ao_plugin_driver_info");
 		if (!(dt->functions->driver_info)) goto failed;
 
+                prompt="ao_plugin_device_list() missing";
 		dt->functions->device_init =
 		  dlsym(dt->handle, "ao_plugin_device_init");
 		if (!(dt->functions->device_init )) goto failed;
 
+                prompt="ao_plugin_set_option() missing";
 		dt->functions->set_option =
 		  dlsym(dt->handle, "ao_plugin_set_option");
 		if (!(dt->functions->set_option)) goto failed;
 
+                prompt="ao_plugin_open() missing";
 		dt->functions->open = dlsym(dt->handle, "ao_plugin_open");
 		if (!(dt->functions->open)) goto failed;
 
+                prompt="ao_plugin_play() missing";
 		dt->functions->play = dlsym(dt->handle, "ao_plugin_play");
 		if (!(dt->functions->play)) goto failed;
 
+                prompt="ao_plugin_close() missing";
 		dt->functions->close = dlsym(dt->handle, "ao_plugin_close");
 		if (!(dt->functions->close)) goto failed;
 
+                prompt="ao_plugin_clear() missing";
 		dt->functions->device_clear =
 		  dlsym(dt->handle, "ao_plugin_device_clear");
 		if (!(dt->functions->device_clear)) goto failed;
 
 
 	} else {
-		return NULL;
+          aerror("Failed to load plugin %s => dlopen() failed\n",plugin_file);
+          return NULL;
 	}
 
+        adebug("Loaded driver %s\n",dt->functions->driver_info()->short_name);
 	return dt;
 
  failed:
+        aerror("Failed to load plugin %s => %s\n",plugin_file,prompt);
 	free(dt->functions);
 	free(dt);
 	return NULL;
@@ -187,24 +211,28 @@ static int _find_default_driver_id (const char *name)
 	int def_id;
 	int id;
 	ao_info *info;
-	driver_list *driver = driver_head;
+	driver_list *dl = driver_head;
+        ao_device *device = ao_global_dummy;
 
+        adebug("Testing drivers to find playback default...\n");
 	if ( name == NULL || (def_id = ao_driver_id(name)) < 0 ) {
 		/* No default specified. Find one among available drivers. */
 		def_id = -1;
 
 		id = 0;
-		while (driver != NULL) {
+		while (dl != NULL) {
 
-			info = driver->functions->driver_info();
+			info = dl->functions->driver_info();
+                        adebug("...testing %s\n",info->short_name);
 			if ( info->type == AO_TYPE_LIVE &&
 			     info->priority > 0 && /* Skip static drivers */
-			     driver->functions->test() ) {
+			     dl->functions->test() ) {
 				def_id = id; /* Found a usable driver */
+                                adebug("OK, using driver %s\n",info->short_name);
 				break;
 			}
 
-			driver = driver->next;
+			dl = dl->next;
 			id++;
 		}
 	}
@@ -216,6 +244,7 @@ static int _find_default_driver_id (const char *name)
 /* Convert the static drivers table into a linked list of drivers. */
 static driver_list* _load_static_drivers(driver_list **end)
 {
+        ao_device *device = ao_global_dummy;
 	driver_list *head;
 	driver_list *driver;
 	int i;
@@ -226,6 +255,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 		driver->functions = static_drivers[0];
 		driver->handle = NULL;
 		driver->next = NULL;
+                adebug("Loaded driver %s\n",driver->functions->driver_info()->short_name);
 
 		i = 1;
 		while (static_drivers[i] != NULL) {
@@ -238,6 +268,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 			driver->next->next = NULL;
 
 			driver = driver->next;
+                        adebug("Loaded driver %s\n",driver->functions->driver_info()->short_name);
 			i++;
 		}
 	}
@@ -845,6 +876,60 @@ static char *_matrix_intersect(char *matrix,char *premap){
   return strdup(buffer);
 }
 
+static int ao_global_load_options(ao_option *options){
+  while (options != NULL) {
+    if(!strcmp(options->key,"debug")){
+      ao_global_dummy->verbose=2;
+    }else if(!strcmp(options->key,"verbose")){
+      if(ao_global_dummy->verbose<1)ao_global_dummy->verbose=1;
+    }else if(!strcmp(options->key,"quiet")){
+      ao_global_dummy->verbose=-1;
+    }
+
+    options = options->next;
+  }
+
+  return 0;
+
+}
+
+static int ao_device_load_options(ao_device *device, ao_option *options){
+
+  while (options != NULL) {
+    if(!strcmp(options->key,"matrix")){
+      /* If a driver has a static channel mapping mechanism
+         (physically constant channel mapping, or at least an
+         unvarying set of constants for mapping channels), the
+         output_matrix is already set.  An app/user specified
+         output mapping trumps. */
+      if(device->output_matrix)
+        free(device->output_matrix);
+      /* explicitly set the output matrix to the requested
+         string; devices must not override. */
+      device->output_matrix = _sanitize_matrix(32, options->value, device);
+      if(!device->output_matrix){
+        aerror("Empty or inavlid output matrix\n");
+        return AO_EBADOPTION;
+      }
+      adebug("Sanitized device output matrix: %s\n",device->output_matrix);
+    }else if(!strcmp(options->key,"debug")){
+      device->verbose=2;
+    }else if(!strcmp(options->key,"verbose")){
+      if(device->verbose<1)device->verbose=1;
+    }else if(!strcmp(options->key,"quiet")){
+      device->verbose=-1;
+    }else{
+      if (!device->funcs->set_option(device, options->key, options->value)) {
+        /* Problem setting options */
+        return AO_EOPENDEVICE;
+      }
+    }
+
+    options = options->next;
+  }
+
+  return 0;
+}
 
 /* Open a device.  If this is a live device, file == NULL. */
 static ao_device* _open_device(int driver_id, ao_sample_format *format,
@@ -892,40 +977,10 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 	}
 
 	/* Load options */
-	while (options != NULL) {
-          if(!strcmp(options->key,"matrix")){
-            /* If a driver has a static channel mapping mechanism
-               (physically constant channel mapping, or at least an
-               unvarying set of constants for mapping channels), the
-               output_matrix is already set.  An app/user specified
-               output mapping trumps. */
-            if(device->output_matrix)
-              free(device->output_matrix);
-            /* explicitly set the output matrix to the requested
-               string; devices must not override. */
-            device->output_matrix = _sanitize_matrix(32, options->value, device);
-            if(!device->output_matrix){
-              aerror("Empty or inavlid output matrix\n");
-              errno = AO_EBADOPTION;
-              goto error;
-            }
-            adebug("Sanitized device output matrix: %s\n",device->output_matrix);
-          }else if(!strcmp(options->key,"debug")){
-            device->verbose=2;
-          }else if(!strcmp(options->key,"verbose")){
-            if(device->verbose<1)device->verbose=1;
-          }else if(!strcmp(options->key,"quiet")){
-            device->verbose=-1;
-          }else{
-            if (!funcs->set_option(device, options->key, options->value)) {
-              /* Problem setting options */
-              errno = AO_EOPENDEVICE;
-              goto error;
-            }
-          }
-
-          options = options->next;
-	}
+        errno = ao_device_load_options(device,ao_global_options);
+        if(errno) goto error;
+        errno = ao_device_load_options(device,options);
+        if(errno) goto error;
 
         /* also sanitize the format input channel matrix */
         if(format->matrix){
@@ -1173,12 +1228,23 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
 /* -- Library Setup/Teardown -- */
 
+static ao_info ao_dummy_info=
+  { 0,0,0,0,0,0,0,0,0 };
+static ao_info *ao_dummy_driver_info(void){
+  return &ao_dummy_info;
+}
+static ao_functions ao_dummy_funcs=
+  { 0, &ao_dummy_driver_info, 0,0,0,0,0,0,0};
+
 void ao_initialize(void)
 {
 	driver_list *end;
+        ao_global_dummy = &ao_global_dummy_storage;
+        ao_global_dummy->funcs = &ao_dummy_funcs;
 
 	/* Read config files */
 	ao_read_config_files(&config);
+        ao_global_load_options(ao_global_options);
 
 	if (driver_head == NULL) {
 		driver_head = _load_static_drivers(&end);
@@ -1188,7 +1254,6 @@ void ao_initialize(void)
 	/* Create the table of driver info structs */
 	info_table = _make_info_table(&driver_head, &driver_count);
 }
-
 
 void ao_shutdown(void)
 {
@@ -1216,7 +1281,6 @@ void ao_shutdown(void)
 
 
 /* -- Device Setup/Playback/Teardown -- */
-
 int ao_append_option(ao_option **options, const char *key, const char *value)
 {
 	ao_option *op, *list;
@@ -1240,6 +1304,10 @@ int ao_append_option(ao_option **options, const char *key, const char *value)
 	return 1;
 }
 
+int ao_append_global_option(const char *key, const char *value)
+{
+  return ao_append_option(&ao_global_options,key,value);
+}
 
 void ao_free_options(ao_option *options)
 {
