@@ -255,7 +255,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 		driver->functions = static_drivers[0];
 		driver->handle = NULL;
 		driver->next = NULL;
-                adebug("Loaded driver %s\n",driver->functions->driver_info()->short_name);
+                adebug("Loaded driver %s (built-in)\n",driver->functions->driver_info()->short_name);
 
 		i = 1;
 		while (static_drivers[i] != NULL) {
@@ -268,7 +268,7 @@ static driver_list* _load_static_drivers(driver_list **end)
 			driver->next->next = NULL;
 
 			driver = driver->next;
-                        adebug("Loaded driver %s\n",driver->functions->driver_info()->short_name);
+                        adebug("Loaded driver %s (built-in)\n",driver->functions->driver_info()->short_name);
 			i++;
 		}
 	}
@@ -291,9 +291,11 @@ static void _append_dynamic_drivers(driver_list *end)
 	DIR *plugindir;
 	driver_list *plugin;
 	driver_list *driver = end;
+        ao_device *device = ao_global_dummy;
 
 	/* now insert any plugins we find */
 	plugindir = opendir(AO_PLUGIN_PATH);
+        adebug("Loading driver plugins from %s...\n",AO_PLUGIN_PATH);
 	if (plugindir != NULL) {
           while ((plugin_dirent = readdir(plugindir)) != NULL) {
             char fullpath[strlen(AO_PLUGIN_PATH) + 1 + strlen(plugin_dirent->d_name) + 1];
@@ -1107,7 +1109,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
             int count=0;
             device->inter_permute = calloc(device->output_channels,sizeof(int));
 
-            averbose("\n");
+            adebug("\n");
 
             while(count<device->output_channels){
               int m=0,mm;
@@ -1134,12 +1136,12 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
               /* display resulting mapping for now */
               if(device->inter_permute[count]>=0){
-                averbose("input %d (%s)\t -> backend %d (%s)\n",
-                         device->inter_permute[count], mnemonics[mm],
-                         count,mnemonics[m]);
+                adebug("input %d (%s)\t -> backend %d (%s)\n",
+                       device->inter_permute[count], mnemonics[mm],
+                       count,mnemonics[m]);
               }else{
-                averbose("             \t    backend %d (%s)\n",
-                         count,mnemonics[m]);
+                adebug("             \t    backend %d (%s)\n",
+                       count,mnemonics[m]);
               }
               count++;
               op=h;
@@ -1153,8 +1155,8 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                 for(i=0;i<device->output_channels;i++)
                   if(device->inter_permute[i]==j)break;
                 if(i==device->output_channels){
-                  averbose("input %d (%s)\t -> none\n",
-                           j,inch[j]);
+                  adebug("input %d (%s)\t -> none\n",
+                         j,inch[j]);
                   unflag=1;
                 }
               }
