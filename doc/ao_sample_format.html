@@ -9,7 +9,7 @@
 <table border=0 width=100%>
 <tr>
 <td><p class=tiny>libao documentation</p></td>
-<td align=right><p class=tiny>libao version 0.9.0 - 20100124</p></td>
+<td align=right><p class=tiny>libao version 1.0.0 - 20100324</p></td>
 </tr>
 </table>
 
@@ -62,7 +62,7 @@ order of the input channels.  The channel mnemonics are as follows:
 <li>SR - Side Right speaker, located directly to the listener's right side.  The Side Right speaker is also referred to as 'Right Surround Direct' (primarily by Apple) or 'Surround Right' (primarily by Dolby) </li>
 <li>LFE - Low Frequency Effect (subwoofer) channel.  This is channel is usually lowpassed and meant only for bass, though in some recent formats it is a discrete, full-range channel.  Microsoft calls this the 'Low Frequency' channel.
 <li>A1, A2, A3, A4 - 'auxiliary' channels, not mapped to a location.  Intended for driver-specific use.</li>
-<li>U - Unused channel, to be dropped in the driver and not output to any speaker.</li>
+<li>X - Unused/Invalid channel, to be dropped in the driver and not output to any speaker.</li>
 </ul>
 
 <p><i>Note that the 'surround' speakers referred to in other systems
@@ -88,7 +88,7 @@ conflict.  For this reason, libao explicitly refers to speakers as
 channel matrix (there are a few exceptions like Vorbis I, where the
 number of channels always maps to a specific order); the above
 examples cannot be blindly applied to a given file type and number of
-channels.  The mapping must usually be read from the input.
+channels.  The mapping must usually be read or intuited from the input.
 
 </dd>
 </dl>
@@ -102,7 +102,7 @@ channels.  The mapping must usually be read from the input.
 <td align=right><p class=tiny><a href="http://www.xiph.org/">xiph.org</a><br><a href="mailto:monty@xiph.org">monty@xiph.org</a></p></td>
 </tr><tr>
 <td><p class=tiny>libao documentation</p></td>
-<td align=right><p class=tiny>libao version 0.9.0 - 20100124</p></td>
+<td align=right><p class=tiny>libao version 1.0.0 - 20100324</p></td>
 </tr>
 </table>
 

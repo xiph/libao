@@ -56,7 +56,7 @@ static ao_info ao_macosx_info =
 {
 	AO_TYPE_LIVE,
 	"MacOS X AUHAL output",
-	"macosx_auhal",
+	"macosx",
 	"Monty <monty@xiph.org>",
 	"",
 	AO_FMT_NATIVE,
