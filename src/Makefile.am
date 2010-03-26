@@ -13,7 +13,7 @@ else
 wmm=
 endif
 
-libao_la_SOURCES = audio_out.c config.c ao_null.c ao_wav.c ao_au.c ao_raw.c ao_aixs.c ao_private.h $(wmm)
+libao_la_SOURCES = audio_out.c config.c ao_null.c ao_wav.c ao_au.c ao_raw.c ao_aixs.c $(wmm)
 libao_la_LDFLAGS = @LIBAO_LA_LDFLAGS@ -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@
 
 

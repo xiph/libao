@@ -5,4 +5,4 @@ AUTOMAKE_OPTIONS = foreign 1.6
 includedir = $(prefix)/include/ao
 
 include_HEADERS = ao.h plugin.h
-nodist_include_HEADERS = os_types.h ao_private.h
+noinst_HEADERS = os_types.h ao_private.h
