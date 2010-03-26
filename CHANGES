@@ -1,4 +1,20 @@
-0.8.8 - Thu May 24
+1.0.0 - March 25, 2010
+ - AO returns to active development
+ - Added surround channel mapping API and capability
+ - Update and test all drivers on modern installs
+ - New config file options
+ - Driver options may be specifid in config file
+ - Support for MacosX < 1.5 dropped, driver moded to AUHAL
+ - Build in WMM driver rather than using dlopen()
+ - Added Roar Audio driver
+ - Added OpenBSD SNDIO driver
+ - Work around ESD non-4096 byte write bug
+ - Work around aRts server crash bug
+ - Workaround for VIA82xx click/crackle bugs under ALSA
+ - Remove dead/unused drivers (solaris, alasa05, mmsound)
+ - Numerous patches from multiple downstreams
+
+0.8.8 - May 24, 2007
  - New win32 driver
  - Few fixes and changes in autotools and configuration files.
 
