@@ -33,6 +33,7 @@
    audio samples rather than having them pushed at it (which is nice
    when you are wanting to do good buffering of audio).  */
 
+#include <CoreServices/CoreServices.h>
 #include <AudioUnit/AudioUnit.h>
 #include <AudioUnit/AUComponent.h>
 #include <stdio.h>
@@ -71,7 +72,7 @@ static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 typedef struct ao_macosx_internal
 {
   /* Stuff describing the CoreAudio device */
-  AudioComponentInstance       outputAudioUnit;
+  ComponentInstance       outputAudioUnit;
 
   /* Keep track of whether the output stream has actually been
      started/stopped */
@@ -224,8 +225,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
   ao_macosx_internal *internal = (ao_macosx_internal *) device->internal;
   OSStatus result = noErr;
-  AudioComponent comp;
-  AudioComponentDescription desc;
+  Component comp;
+  ComponentDescription desc;
   AudioStreamBasicDescription requestedDesc;
   AURenderCallbackStruct      input;
   UInt32 i_param_size;
@@ -237,14 +238,14 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   desc.componentFlags = 0;
   desc.componentFlagsMask = 0;
 
-  comp = AudioComponentFindNext (NULL, &desc);
+  comp = FindNextComponent (NULL, &desc);
   if (comp == NULL) {
     aerror("Failed to start CoreAudio: AudioComponentFindNext returned NULL");
     return 0;
   }
 
   /* Open & initialize the default output audio unit */
-  result = AudioComponentInstanceNew (comp, &internal->outputAudioUnit);
+  result = OpenAComponent (comp, &internal->outputAudioUnit);
   if (result) {
     aerror("AudioComponentInstanceNew() error => %d\n",(int)result);
     return 0;
@@ -520,9 +521,9 @@ int ao_plugin_close(ao_device *device)
       return 0;
     }
 
-    status = AudioUnitUninitialize(internal->outputAudioUnit);
+    status = CloseComponent(internal->outputAudioUnit);
     if (status) {
-      awarn("AudioUnitUninitialize returned %d\n", (int)status);
+      awarn("CloseComponent returned %d\n", (int)status);
       return 0;
     }
   }else
