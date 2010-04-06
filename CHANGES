@@ -4,7 +4,7 @@
  - Update and test all drivers on modern installs
  - New config file options
  - Driver options may be specifid in config file
- - Support for MacosX < 1.5 dropped, driver moded to AUHAL
+ - Support for MacosX < 10.5 dropped, driver modded to AUHAL
  - Build in WMM driver rather than using dlopen()
  - Added Roar Audio driver
  - Added OpenBSD SNDIO driver
