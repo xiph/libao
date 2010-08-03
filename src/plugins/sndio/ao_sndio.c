@@ -37,7 +37,7 @@ ao_info ao_sndio_info = {
   4
 };
 
-typedef struct ao_alsa_internal
+typedef struct ao_sndio_internal
 {
   struct sio_hdl *hdl;
   char *dev;
@@ -100,10 +100,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   par.bits = format->bits;
   par.rate = format->rate;
   par.pchan = device->output_channels;
-  if (!sio_setpar(hdl, &par))
+  if (!sio_setpar(internal->hdl, &par))
     return 0;
   device->driver_byte_format = AO_FMT_NATIVE;
-  if (!sio_start(hdl))
+  if (!sio_start(internal->hdl))
     return 0;
 
   if(!device->inter_matrix){
