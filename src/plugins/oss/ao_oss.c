@@ -255,7 +255,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 		break;
 	case 2: tmp = 1;
 		break;
-	default:aerror("Unsupported number of channels: %d.",
+	default:aerror("Unsupported number of channels: %d.\n",
                        device->output_channels);
 		goto ERR;
 	}
