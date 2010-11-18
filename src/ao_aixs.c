@@ -49,82 +49,87 @@
  */
 #ifndef AO_AIX_DEFAULT_DEV
 #define AO_AIX_DEFAULT_DEV "/dev/baud0/1"
+#define AO_AIX_DEFAULT_DEV2 "/dev/paud0/1"
+#define AO_AIX_DEFAULT_DEV3 "/dev/acpa0/1"
 #endif
 
 
-static char *ao_aixs_options[] = {"dev","matrix","verbose","quiet","debug"};
+static char *ao_aixs_options[] = {"dev","id","matrix","verbose","quiet","debug"};
 ao_info ao_aixs_info = {
-	AO_TYPE_LIVE,
-	"AIX audio driver output",
-	"aixs",
-	"Stefan Tibus <sjti@gmx.net>",
-	"Outputs to the AIX audio system.",
-	AO_FMT_NATIVE,
-	20,
-	ao_aixs_options,
-	5
+  AO_TYPE_LIVE,
+  "AIX audio driver output",
+  "aixs",
+  "Stefan Tibus <sjti@gmx.net>",
+  "Outputs to the AIX audio system.",
+  AO_FMT_NATIVE,
+  20,
+  ao_aixs_options,
+  6
 };
 
 
 typedef struct ao_aixs_internal {
-	char *dev;
-	int fd;
+  char *dev;
+  int id;
+  int fd;
 } ao_aixs_internal;
 
 
 int ao_aixs_test()
 {
-	int fd;
+  int fd;
 
-	if ( (fd = open(AO_AIX_DEFAULT_DEV, O_WRONLY)) < 0 )
-		return 0; /* Cannot use this plugin with default parameters */
-	else {
-		close(fd);
-		return 1; /* This plugin works in default mode */
-	}
+  fd = open(AO_AIX_DEFAULT_DEV, O_WRONLY);
+  if(fd<0)
+    fd = open(AO_AIX_DEFAULT_DEV2, O_WRONLY);
+  if(fd<0)
+    fd = open(AO_AIX_DEFAULT_DEV3, O_WRONLY);
+  if(fd<0)
+    return 0; /* Cannot use this plugin with default parameters */
+
+  close(fd);
+  return 1; /* This plugin works in default mode */
 }
 
 
 ao_info *ao_aixs_driver_info(void)
 {
-	return &ao_aixs_info;
+  return &ao_aixs_info;
 }
 
 
 int ao_aixs_device_init(ao_device *device)
 {
-	ao_aixs_internal *internal;
+  ao_aixs_internal *internal;
 
-	internal = (ao_aixs_internal *) malloc(sizeof(ao_aixs_internal));
+  internal = (ao_aixs_internal *) calloc(1,sizeof(ao_aixs_internal));
 
-	if (internal == NULL)
-		return 0; /* Could not initialize device memory */
+  if (internal == NULL)
+    return 0; /* Could not initialize device memory */
 
-	internal->dev = strdup(AO_AIX_DEFAULT_DEV);
+  device->internal = internal;
+  device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
 
-	if (internal->dev == NULL) {
-		free(internal);
-		return 0;
-	}
-
-	device->internal = internal;
-        device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
-
-	return 1; /* Memory alloc successful */
+  return 1; /* Memory alloc successful */
 }
 
 int ao_aixs_set_option(ao_device *device, const char *key, const char *value)
 {
-	ao_aixs_internal *internal = (ao_aixs_internal *) device->internal;
+  ao_aixs_internal *internal = (ao_aixs_internal *) device->internal;
 
+  if (!strcmp(key, "dev")) {
+    if(internal->dev)
+      free(internal->dev);
+    internal->dev = strdup(value);
+  }
+  if (!strcmp(key, "id")) {
+    internal->id = atoi(value);
+    if(internal->dev)
+      free(internal->dev);
+    internal->dev = NULL;
+  }
 
-	if (!strcmp(key, "dev")) {
-		/* Free old string in case "dsp" set twice in options */
-		free(internal->dev);
-		internal->dev = strdup(value);
-	}
-
-	return 1;
+  return 1;
 }
 
 
@@ -136,8 +141,26 @@ int ao_aixs_open(ao_device *device, ao_sample_format *format)
 	audio_control control;
 	audio_change change;
 
-	if ( (internal->fd = open(internal->dev, O_WRONLY)) < 0 )
-		return 0;
+        if(!internal->dev){
+          char buffer[80];
+          int fd;
+
+          sprintf(buffer,"/dev/baud%d/1",id);
+          fd = open(buffer, O_WRONLY);
+          if(fd<0){
+            sprintf(buffer,"/dev/paud%d/1",id);
+            fd = open(buffer, O_WRONLY);
+          }
+          if(fd<0){
+            sprintf(buffer,"/dev/acpa%d/1",id);
+            fd = open(buffer, O_WRONLY);
+          }
+          if(fd<0) return 0;
+          internal->fd = fd;
+          internal->dev = strdup(buffer);
+        }else
+          if ( (internal->fd = open(internal->dev, O_WRONLY)) < 0 )
+            return 0;
 
 	init.srate = format->rate;
 	init.bits_per_sample = format->bits;
@@ -202,8 +225,9 @@ int ao_aixs_close(ao_device *device)
 {
 	ao_aixs_internal *internal = (ao_aixs_internal *) device->internal;
 
-	close(internal->fd);
-
+        if(internal->fd)
+          close(internal->fd);
+        internal->fd=-1;
 	return 1;
 }
 
@@ -212,8 +236,10 @@ void ao_aixs_device_clear(ao_device *device)
 {
 	ao_aixs_internal *internal = (ao_aixs_internal *) device->internal;
 
-	free(internal->dev);
+        if(internal->dev)
+          free(internal->dev);
 	free(internal);
+        device->internal = NULL;
 }
 
 ao_functions ao_aixs = {

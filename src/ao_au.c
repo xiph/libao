@@ -235,6 +235,7 @@ static void ao_au_device_clear(ao_device *device)
 	ao_au_internal *internal = (ao_au_internal *) device->internal;
 
 	free(internal);
+        device->internal=NULL;
 }
 
 ao_functions ao_au = {

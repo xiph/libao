@@ -17,12 +17,13 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-static char * ao_sndio_options[] = {
+static char *ao_sndio_options[] = {
   "verbose",
   "quiet",
   "matrix",
   "debug",
-  "dev"
+  "dev",
+  "id"
 };
 
 ao_info ao_sndio_info = {
@@ -34,13 +35,14 @@ ao_info ao_sndio_info = {
   AO_FMT_NATIVE,
   30,
   ao_sndio_options,
-  4
+  6
 };
 
 typedef struct ao_sndio_internal
 {
   struct sio_hdl *hdl;
   char *dev;
+  int id;
 } ao_sndio_internal;
 
 int ao_plugin_test()
@@ -63,6 +65,7 @@ int ao_plugin_device_init(ao_device *device)
 {
   ao_sndio_internal *internal;
   internal = (ao_sndio_internal *) calloc(1,sizeof(*internal));
+  internal->id=-1;
   device->internal = internal;
   device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
   return 1;
@@ -82,6 +85,12 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
         return 0;
     }
   }
+  if (!strcmp(key, "id")) {
+    if(internal->dev)
+      free (internal->dev);
+    internal->dev=NULL;
+    internal->id=atoi(value);
+  }
   return 1;
 }
 
@@ -89,6 +98,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
   ao_sndio_internal *internal = (ao_sndio_internal *) device->internal;
   struct sio_par par;
+
+  if(!internal->dev && internal->id>=0){
+    char buf[80];
+    sprintf(buf,"sun:%d",internal->id);
+    internal->dev = strdup(buf);
+  }
 
   internal->hdl = sio_open(internal->dev, SIO_PLAY, 0);
   if (internal->hdl == NULL)

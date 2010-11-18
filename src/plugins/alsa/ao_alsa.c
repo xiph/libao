@@ -65,6 +65,7 @@ typedef snd_pcm_sframes_t ao_alsa_writei_t(snd_pcm_t *pcm, const void *buffer,
 
 static char *ao_alsa_options[] = {
 	"dev",
+	"id",
 	"buffer_time",
         "period_time",
 	"use_mmap",
@@ -85,7 +86,7 @@ static ao_info ao_alsa_info =
 	AO_FMT_NATIVE,
 	35,
 	ao_alsa_options,
-	8
+	9
 };
 
 
@@ -98,6 +99,7 @@ typedef struct ao_alsa_internal
 	int sample_size;
 	snd_pcm_format_t bitformat;
 	char *dev;
+        int id;
 	ao_alsa_writei_t * writei;
 	snd_pcm_access_t access_mask;
 } ao_alsa_internal;
@@ -143,6 +145,7 @@ int ao_plugin_device_init(ao_device *device)
 	internal->period_time = AO_ALSA_PERIOD_TIME;
 	internal->writei = AO_ALSA_WRITEI;
 	internal->access_mask = AO_ALSA_ACCESS_MASK;
+        internal->id=-1;
 
 	device->internal = internal;
         device->output_matrix = strdup("L,R,BL,BR,C,LFE,SL,SR");
@@ -163,7 +166,12 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 		if (!(internal->dev = strdup(value)))
 			return 0;
 	}
-	else if (!strcmp(key, "buffer_time"))
+	else if (!strcmp(key, "id")){
+                internal->id = atoi(value);
+                if (internal->dev)
+                  free (internal->dev);
+                internal->dev = NULL;
+	}else if (!strcmp(key, "buffer_time"))
 		internal->buffer_time = atoi(value) * 1000;
 	else if (!strcmp(key, "period_time"))
 		internal->period_time = atoi(value);
@@ -412,6 +420,11 @@ static inline int alsa_test_open(ao_device *device,
       device->output_channels=2;
     }
   }
+  if(!strcasecmp(dev,"default") || !strncasecmp(dev,"plug",4)){
+    if(format->bits>16){
+      awarn("ALSA '%s' device may only simulate >16 bit playback\n",dev);
+    }
+  }
 
   /* try to set up hw params */
   err = alsa_set_hwparams(device,format);
@@ -454,38 +467,45 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	/* Open the ALSA device */
         err=0;
         if(!internal->dev){
-          char *tmp=NULL;
-          /* we don't try just 'default' as it's a plug device that
-             will accept any number of channels but usually plays back
-             everything as stereo. */
-          switch(device->output_channels){
-          default:
-          case 8:
-          case 7:
-            err = alsa_test_open(device, tmp="surround71", format);
-            break;
-          case 4:
-          case 3:
-            err = alsa_test_open(device, tmp="surround40", format);
-            if(err==0)break;
-          case 6:
-          case 5:
-            err = alsa_test_open(device, tmp="surround51", format);
-          case 1:
-          case 2:
-            break;
+          if(internal->id<0){
+            char *tmp=NULL;
+            /* we don't try just 'default' as it's a plug device that
+               will accept any number of channels but usually plays back
+               everything as stereo. */
+            switch(device->output_channels){
+            default:
+            case 8:
+            case 7:
+              err = alsa_test_open(device, tmp="surround71", format);
+              break;
+            case 4:
+            case 3:
+              err = alsa_test_open(device, tmp="surround40", format);
+              if(err==0)break;
+            case 6:
+            case 5:
+              err = alsa_test_open(device, tmp="surround51", format);
+              break;
+            case 2:
+              err = alsa_test_open(device, tmp="front", format);
+            case 1:
+              break;
+            }
+
+            if(err){
+              awarn("Unable to open surround playback.  Trying default device...\n");
+              tmp=NULL;
+            }
+
+            if(!tmp)
+              err = alsa_test_open(device, tmp="default", format);
+
+            internal->dev=strdup(tmp);
+          }else{
+            char tmp[80];
+            sprintf(tmp,"hw:%d",internal->id);
+            internal->dev=strdup(tmp);
           }
-
-          if(err){
-            awarn("Unable to open surround playback.  Trying default device...\n");
-            tmp=NULL;
-          }
-
-          if(!tmp)
-            err = alsa_test_open(device, tmp="default", format);
-
-          internal->dev=strdup(tmp);
-
         }else
           err = alsa_test_open(device, internal->dev, format);
 

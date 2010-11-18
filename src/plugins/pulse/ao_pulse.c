@@ -44,6 +44,8 @@
 static char * ao_pulse_options[] = {
     "server",
     "sink",
+    "dev",
+    "id",
     "verbose",
     "quiet",
     "matrix",
@@ -59,7 +61,7 @@ static ao_info ao_pulse_info = {
     AO_FMT_NATIVE,
     50,
     ao_pulse_options,
-    6
+    8
 };
 
 typedef struct ao_pulse_internal {
@@ -157,7 +159,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value) 
     if (!strcmp(key, "server")) {
         free(internal->server);
         internal->server = strdup(value);
-    } else if (!strcmp(key, "sink")) {
+    } else if (!strcmp(key, "sink") || !strcmp(key, "dev") || !strcmp(key, "id")) {
         free(internal->sink);
         internal->sink = strdup(value);
     } else

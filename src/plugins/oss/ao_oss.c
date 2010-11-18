@@ -45,7 +45,7 @@
 #include "ao/plugin.h"
 
 
-static char *ao_oss_options[] = {"dsp","verbose","quiet","matrix","debug"};
+static char *ao_oss_options[] = {"dsp","dev","id","verbose","quiet","matrix","debug"};
 static ao_info ao_oss_info =
 {
 	AO_TYPE_LIVE,
@@ -56,12 +56,13 @@ static ao_info ao_oss_info =
 	AO_FMT_NATIVE,
 	20,
 	ao_oss_options,
-	5
+	7
 };
 
 
 typedef struct ao_oss_internal {
 	char *dev;
+        int id;
 	int fd;
 	int buf_size;
 } ao_oss_internal;
@@ -79,13 +80,20 @@ typedef struct ao_oss_internal {
  * blocking is non-zero, we remove the blocking flag if possible so
  * that the device can be used for actual output.
  */
-int _open_default_oss_device (char **dev_path, int blocking)
+int _open_default_oss_device (char **dev_path, int id, int blocking)
 {
 	int fd;
+        char buf[80];
 
 	/* default: first try the devfs path */
-	if(!(*dev_path = strdup("/dev/sound/dsp")))
-          return -1;
+        if(id>0){
+          sprintf(buf,"/dev/sound/dsp%d",id);
+          if(!(*dev_path = strdup(buf)))
+            return -1;
+        }else{
+          if(!(*dev_path = strdup("/dev/sound/dsp")))
+            return -1;
+        }
 
 #ifdef BROKEN_OSS
 	fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
@@ -98,8 +106,14 @@ int _open_default_oss_device (char **dev_path, int blocking)
 	{
 		/* no? then try the traditional path */
 		free(*dev_path);
-		if(!(*dev_path = strdup("/dev/dsp")))
-                  return -1;
+                if(id>0){
+                  sprintf(buf,"/dev/dsp%d",id);
+                  if(!(*dev_path = strdup(buf)))
+                    return -1;
+                }else{
+                  if(!(*dev_path = strdup("/dev/dsp")))
+                    return -1;
+                }
 #ifdef BROKEN_OSS
 		fd = open(*dev_path, O_WRONLY | O_NONBLOCK);
 #else
@@ -141,7 +155,7 @@ int ao_plugin_test()
 	   driver detection unless the O_NONBLOCK flag is passed to
 	   open().  We cannot use this flag when we actually open the
 	   device for writing because then we will overflow the buffer. */
-	if ( (fd = _open_default_oss_device(&dev_path, 0)) < 0 )
+	if ( (fd = _open_default_oss_device(&dev_path, 0, 0)) < 0 )
 		return 0; /* Cannot use this plugin with default parameters */
 	else {
 		free(dev_path);
@@ -161,12 +175,13 @@ int ao_plugin_device_init(ao_device *device)
 {
 	ao_oss_internal *internal;
 
-	internal = (ao_oss_internal *) malloc(sizeof(ao_oss_internal));
+	internal = (ao_oss_internal *) calloc(1,sizeof(ao_oss_internal));
 
 	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
 
 	internal->dev = NULL;
+        internal->id = -1;
 
 	device->internal = internal;
         device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
@@ -179,11 +194,16 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	ao_oss_internal *internal = (ao_oss_internal *) device->internal;
 
 
-	if (!strcmp(key, "dsp")) {
-		/* Free old string in case "dsp" set twice in options */
-		free(internal->dev);
-		if(!(internal->dev = strdup(value)))
-                  return 1;
+	if (!strcmp(key, "dsp") || !strcmp(key, "dev")) {
+          /* Free old string in case "dsp" set twice in options */
+          free(internal->dev);
+          if(!(internal->dev = strdup(value)))
+            return 0;
+	}
+	if (!strcmp(key, "id")) {
+          free(internal->dev);
+          internal->dev=NULL;
+          internal->id=atoi(value);
 	}
 
 	return 1;
@@ -201,21 +221,21 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	/* Open the device driver */
 
 	if (internal->dev != NULL) {
-		/* open the user-specified path */
-		internal->fd = open(internal->dev, O_WRONLY);
+          /* open the user-specified path */
+          internal->fd = open(internal->dev, O_WRONLY);
 
-		if(internal->fd < 0) {
-                  aerror("open(%s) => %s\n",internal->dev,strerror(errno));
-                  return 0;  /* Cannot open device */
-		}
+          if(internal->fd < 0) {
+            aerror("open(%s) => %s\n",internal->dev,strerror(errno));
+            return 0;  /* Cannot open device */
+          }
 
-	} else {
-		internal->fd = _open_default_oss_device(&internal->dev, 1);
-		if (internal->fd < 0){
-                  aerror("open default => %s\n",strerror(errno));
-                  return 0;  /* Cannot open default device */
-                }
-	}
+        }else{
+          internal->fd = _open_default_oss_device(&internal->dev, internal->id, 1);
+          if (internal->fd < 0){
+            aerror("open default => %s\n",strerror(errno));
+            return 0;  /* Cannot open default device */
+          }
+        }
 
 	/* Now set all of the parameters */
 

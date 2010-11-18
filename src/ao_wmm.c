@@ -627,7 +627,7 @@ void ao_wmm_device_clear(ao_device *device)
     free(internal->bigbuffer); internal->bigbuffer = NULL;
   }
   free(internal);
-
+  device->internal=NULL;
 }
 
 ao_functions ao_wmm = {

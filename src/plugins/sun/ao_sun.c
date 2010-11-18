@@ -60,7 +60,7 @@
 #endif
 
 
-static char *ao_sun_options[] = {"dev","verbose","quiet","matrix","debug"};
+static char *ao_sun_options[] = {"dev","id","verbose","quiet","matrix","debug"};
 ao_info ao_sun_info = {
 	AO_TYPE_LIVE,
 	"Sun audio driver output",
@@ -70,12 +70,13 @@ ao_info ao_sun_info = {
 	AO_FMT_NATIVE,
 	20,
 	ao_sun_options,
-	5
+	6
 };
 
 
 typedef struct ao_sun_internal {
 	char *dev;
+        int id;
 	int fd;
 } ao_sun_internal;
 
@@ -109,7 +110,7 @@ int ao_plugin_device_init(ao_device *device)
 	ao_sun_internal *internal;
         char *dev = NULL;
 
-	internal = (ao_sun_internal *) malloc(sizeof(ao_sun_internal));
+	internal = (ao_sun_internal *) calloc(1,sizeof(ao_sun_internal));
 
 	if (internal == NULL)
 		return 0; /* Could not initialize device memory */
@@ -140,6 +141,12 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 		free(internal->dev);
 		internal->dev = strdup(value);
 	}
+	if (!strcmp(key, "id")) {
+		/* Free old string in case "dsp" set twice in options */
+		free(internal->dev);
+		internal->dev = NULL;
+                internal->id=atoi(value);
+	}
 
 	return 1;
 }
@@ -150,6 +157,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
 
 	audio_info_t info;
+
+        if(internal->dev==NULL){
+          char buf[80];
+          sprintf(buf,"/dev/sound/%d",internal->id);
+          internal->dev=strdup(buf);
+        }
 
 	if ( (internal->fd = open(internal->dev, O_WRONLY)) < 0 )
 		return 0;

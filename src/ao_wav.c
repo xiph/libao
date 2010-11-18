@@ -275,6 +275,7 @@ static void ao_wav_device_clear(ao_device *device)
 	ao_wav_internal *internal = (ao_wav_internal *) device->internal;
 
 	free(internal);
+        device->internal=NULL;
 }
 
 

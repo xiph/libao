@@ -144,6 +144,7 @@ static void ao_raw_device_clear(ao_device *device)
 	ao_raw_internal *internal = (ao_raw_internal *) device->internal;
 
 	free(internal);
+        device->internal=NULL;
 }
 
 
