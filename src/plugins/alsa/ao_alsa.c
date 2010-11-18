@@ -505,6 +505,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
             char tmp[80];
             sprintf(tmp,"hw:%d",internal->id);
             internal->dev=strdup(tmp);
+            err = alsa_test_open(device, internal->dev, format);
           }
         }else
           err = alsa_test_open(device, internal->dev, format);
