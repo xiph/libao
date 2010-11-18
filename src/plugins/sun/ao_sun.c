@@ -197,7 +197,9 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
 
-	close(internal->fd);
+        if(internal->fd>=0)
+          close(internal->fd);
+        internal->fd=-1;
 
 	return 1;
 }
@@ -207,6 +209,8 @@ void ao_plugin_device_clear(ao_device *device)
 {
 	ao_sun_internal *internal = (ao_sun_internal *) device->internal;
 
-	free(internal->dev);
+        if(internal->dev)
+          free(internal->dev);
 	free(internal);
+        device->internal=NULL;
 }

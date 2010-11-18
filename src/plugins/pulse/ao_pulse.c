@@ -247,9 +247,11 @@ int ao_plugin_close(ao_device *device) {
     assert(device && device->internal);
     ao_pulse_internal *internal = (ao_pulse_internal *) device->internal;
 
-    pa_simple_drain(internal->simple, NULL);
-    pa_simple_free(internal->simple);
-    internal->simple = NULL;
+    if(internal->simple){
+      pa_simple_drain(internal->simple, NULL);
+      pa_simple_free(internal->simple);
+      internal->simple = NULL;
+    }
 
     return 1;
 }
@@ -258,8 +260,10 @@ void ao_plugin_device_clear(ao_device *device) {
     assert(device && device->internal);
     ao_pulse_internal *internal = (ao_pulse_internal *) device->internal;
 
-    free(internal->server);
-    free(internal->sink);
+    if(internal->server)
+      free(internal->server);
+    if(internal->sink)
+      free(internal->sink);
     free(internal);
     device->internal = NULL;
 }

@@ -303,4 +303,5 @@ void ao_plugin_device_clear(ao_device *device)
 
   if(internal->host) free(internal->host);
   free(internal);
+  device->internal=NULL;
 }

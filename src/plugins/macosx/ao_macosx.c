@@ -73,6 +73,7 @@ typedef struct ao_macosx_internal
 {
   /* Stuff describing the CoreAudio device */
   ComponentInstance       outputAudioUnit;
+  int                     output_p;
 
   /* Keep track of whether the output stream has actually been
      started/stopped */
@@ -188,7 +189,7 @@ int ao_plugin_device_init(ao_device *device)
 {
   ao_macosx_internal *internal;
 
-  internal = (ao_macosx_internal *) malloc(sizeof(ao_macosx_internal));
+  internal = (ao_macosx_internal *) calloc(1,sizeof(ao_macosx_internal));
 
   if (internal == NULL)	
     return 0; /* Could not initialize device memory */
@@ -250,6 +251,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     aerror("AudioComponentInstanceNew() error => %d\n",(int)result);
     return 0;
   }
+  internal->output_p=1;
 
   /* Request desired format of the audio unit.  Let HAL do all
      conversion since it will probably be doing some internal
@@ -476,56 +478,61 @@ int ao_plugin_close(ao_device *device)
   // start now.
 
   pthread_mutex_lock(&mutex);
-  internal->isStopping = true;
 
-  if(!internal->started && internal->validByteCount){
-    status = AudioOutputUnitStart(internal->outputAudioUnit);
-    adebug("Starting audio output unit\n");
-    if(status){
+  if(internal->output_p){
+    internal->output_p=0;
+    internal->isStopping = true;
+
+    if(!internal->started && internal->validByteCount){
+      status = AudioOutputUnitStart(internal->outputAudioUnit);
+      adebug("Starting audio output unit\n");
+      if(status){
+        pthread_mutex_unlock(&mutex);
+        aerror("Failed to start audio output => %d\n",(int)status);
+        return 0;
+      }
+      internal->started = true;
+    }
+
+    // For some rare cases (using atexit in your program) Coreaudio tears
+    // down the HAL itself, so we do not need to do that here.
+    // We wouldn't get an error if we did, but AO would hang waiting for the 
+    // AU to flush the buffer
+    sizeof_running = sizeof(UInt32);
+    AudioUnitGetProperty(internal->outputAudioUnit, 
+                         kAudioDevicePropertyDeviceIsRunning,
+                         kAudioUnitScope_Input,
+                         0,
+                         &running, 
+                         &sizeof_running);
+
+    if (!running) {
       pthread_mutex_unlock(&mutex);
-      aerror("Failed to start audio output => %d\n",(int)status);
-      return 0;
+      return 1;
     }
-    internal->started = true;
-  }
 
-  // For some rare cases (using atexit in your program) Coreaudio tears
-  // down the HAL itself, so we do not need to do that here.
-  // We wouldn't get an error if we did, but AO would hang waiting for the 
-  // AU to flush the buffer
-  sizeof_running = sizeof(UInt32);
-  AudioUnitGetProperty(internal->outputAudioUnit, 
-		       kAudioDevicePropertyDeviceIsRunning,
-		       kAudioUnitScope_Input,
-		       0,
-		       &running, 
-		       &sizeof_running);
+    // Only stop if we ever got started
+    if (internal->started) {
 
-  if (!running) {
-    pthread_mutex_unlock(&mutex);
-    return 1;
-  }
+      // Wait for any pending data to get flushed
+      while (internal->validByteCount)
+        pthread_cond_wait(&cond, &mutex);
 
-  // Only stop if we ever got started
-  if (internal->started) {
-
-    // Wait for any pending data to get flushed
-    while (internal->validByteCount)
-      pthread_cond_wait(&cond, &mutex);
-
-    pthread_mutex_unlock(&mutex);
+      pthread_mutex_unlock(&mutex);
     
-    status = AudioOutputUnitStop(internal->outputAudioUnit);
-    if (status) {
-      awarn("AudioOutputUnitStop returned %d\n", (int)status);
-      return 0;
-    }
+      status = AudioOutputUnitStop(internal->outputAudioUnit);
+      if (status) {
+        awarn("AudioOutputUnitStop returned %d\n", (int)status);
+        return 0;
+      }
 
-    status = CloseComponent(internal->outputAudioUnit);
-    if (status) {
-      awarn("CloseComponent returned %d\n", (int)status);
-      return 0;
-    }
+      status = CloseComponent(internal->outputAudioUnit);
+      if (status) {
+        awarn("CloseComponent returned %d\n", (int)status);
+        return 0;
+      }
+    }else
+      pthread_mutex_unlock(&mutex);
   }else
     pthread_mutex_unlock(&mutex);
 
@@ -537,7 +544,9 @@ void ao_plugin_device_clear(ao_device *device)
 {
   ao_macosx_internal *internal = (ao_macosx_internal *) device->internal;
 
-  free(internal->buffer);
+  if(internal->buffer)
+    free(internal->buffer);
   free(internal);
+  device->internal=NULL;
 }
 

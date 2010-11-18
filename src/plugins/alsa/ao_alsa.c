@@ -621,7 +621,8 @@ void ao_plugin_device_clear(ao_device *device)
             else
               awarn("ao_plugin_device_clear called with uninitialized ao_device->internal->dev\n");
 
-            free(device->internal);
+            free(internal);
+            device->internal=NULL;
           } else
             awarn("ao_plugin_device_clear called with uninitialized ao_device->internal\n");
 	} else

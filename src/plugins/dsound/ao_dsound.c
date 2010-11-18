@@ -105,4 +105,5 @@ void ao_plugin_device_clear(ao_device *device)
 
   if (device->internal)
 	  free(internal);
+  device->internal=NULL;
 }

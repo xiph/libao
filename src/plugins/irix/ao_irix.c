@@ -222,8 +222,9 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_irix_internal *internal = (ao_irix_internal *) device->internal;
 
-	alClosePort(internal->alport);
-
+        if(internal->alport)
+          alClosePort(internal->alport);
+        internal->alport=NULL;
 	return 1;
 }
 
@@ -231,6 +232,8 @@ void ao_plugin_device_clear(ao_device *device)
 {
 	ao_irix_internal *internal = (ao_irix_internal *) device->internal;
 
-	alFreeConfig(internal->alconfig);
+        if(internal->alconfig)
+          alFreeConfig(internal->alconfig);
 	free(internal);
+        device->internal=NULL;
 }

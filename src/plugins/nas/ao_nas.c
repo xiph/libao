@@ -246,8 +246,10 @@ int ao_plugin_close(ao_device *device)
 {
 	ao_nas_internal *internal = (ao_nas_internal *) device->internal;
 
-	AuStopFlow(internal->aud, internal->flow, 0);
-	AuCloseServer(internal->aud);
+        if(internal->aud){
+          AuStopFlow(internal->aud, internal->flow, 0);
+          AuCloseServer(internal->aud);
+        }
 	return 1;
 }
 
@@ -256,6 +258,8 @@ void ao_plugin_device_clear(ao_device *device)
 {
 	ao_nas_internal *internal = (ao_nas_internal *) device->internal;
 
-	free(internal->host);
+        if(internal->host)
+          free(internal->host);
 	free(internal);
+        device->internal=NULL;
 }

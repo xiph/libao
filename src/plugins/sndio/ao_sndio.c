@@ -131,8 +131,9 @@ int ao_plugin_close(ao_device *device)
   ao_sndio_internal *internal = (ao_sndio_internal *) device->internal;
   struct sio_hdl *hdl = internal->hdl;
 
-  if (!sio_stop(hdl))
-    return 0;
+  if(hdl)
+    if (!sio_stop(hdl))
+      return 0;
   return 1;
 }
 
@@ -141,8 +142,10 @@ void ao_plugin_device_clear(ao_device *device)
   ao_sndio_internal *internal = (ao_sndio_internal *) device->internal;
   struct sio_hdl *hdl = internal->hdl;
 
-  sio_close(hdl);
+  if(hdl)
+    sio_close(hdl);
   if(internal->dev)
     free(internal->dev);
-  internal->dev=NULL;
+  free(internal);
+  device->internal=NULL;
 }

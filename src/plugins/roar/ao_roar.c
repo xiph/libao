@@ -64,6 +64,7 @@ static ao_info ao_roar_info ={
 
 typedef struct ao_roar_internal {
   struct roar_vio_calls svio;
+  int svio_p;
   char * host;
 } ao_roar_internal;
 
@@ -123,7 +124,7 @@ int ao_plugin_open(ao_device * device, ao_sample_format * format) {
   if ( roar_vio_simple_stream(&(internal->svio), format->rate, format->channels, format->bits,
                              ROAR_CODEC_DEFAULT, internal->host, ROAR_DIR_PLAY, "libao client") == -1 )
     return 0;
-
+  internal->svio_p=1;
   device->driver_byte_format = AO_FMT_NATIVE;
 
   if(!device->inter_matrix){ /* It would be set if an app or user force-sets the mapping; don't overwrite! */
@@ -158,7 +159,9 @@ int ao_plugin_play(ao_device * device, const char * output_samples, uint_32 num_
 int ao_plugin_close(ao_device * device) {
   ao_roar_internal * internal = (ao_roar_internal *) device->internal;
 
-  roar_vio_close(&(internal->svio));
+  if(internal->svio_p)
+    roar_vio_close(&(internal->svio));
+  internal->svio_p=0;
 
   return 1;
 }
@@ -171,4 +174,5 @@ void ao_plugin_device_clear(ao_device * device) {
     free(internal->host);
 
   free(internal);
+  device->internal=NULL;
 }
