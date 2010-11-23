@@ -229,7 +229,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
     }
 
 
-    if (!(internal->simple = pa_simple_new(internal->server, fn ? t : "libao", PA_STREAM_PLAYBACK, internal->sink, fn ? t2 : "libao playback stream", &ss, &map, NULL, NULL)))
+    if (!(internal->simple = pa_simple_new(internal->server, fn ? t : "libao", PA_STREAM_PLAYBACK, internal->sink, fn ? t2 : "libao playback stream", &ss, (device->input_map?&map:NULL), NULL, NULL)))
         return 0;
 
     device->driver_byte_format = AO_FMT_NATIVE;
