@@ -98,6 +98,7 @@ typedef struct ao_alsa_internal
 	snd_pcm_uframes_t period_size;
 	int sample_size;
 	snd_pcm_format_t bitformat;
+        char *pad_24_to_32;
 	char *dev;
         int id;
 	ao_alsa_writei_t * writei;
@@ -464,6 +465,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	internal->bitformat = err;
 
+        /* Alsa can only use padded formatting */
+        if(format->bits>16 && format->bits<=24)
+          internal->pad_24_to_32 = calloc(4096,1);
+        else
+          internal->pad_24_to_32 = 0;
+
 	/* Open the ALSA device */
         err=0;
         if(!internal->dev){
@@ -568,44 +575,76 @@ static inline int alsa_error_recovery(ao_alsa_internal *internal, int err, ao_de
 }
 
 
+static int ao_plugin_playi(ao_device *device, const char *output_samples, 
+                           uint_32 num_bytes, int sample_size)
+{
+	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
+       	uint_32 len = num_bytes / sample_size;
+	char *ptr = (char *) output_samples;
+	int err;
+
+        /* the entire buffer might not transfer at once */
+        while (len > 0) {
+                /* try to write the entire buffer at once */
+                err = internal->writei(internal->pcm_handle, ptr, len);
+
+                /* no data transferred or interrupt signal */
+                if (err == -EAGAIN || err == -EINTR) continue;
+
+                if (err < 0) {
+                        /* this might be an error, or an exception */
+                        err = alsa_error_recovery(internal, err, device);
+                        if (err < 0) {
+                                aerror("write error: %s\n",
+                                       snd_strerror(err));
+                                return 0;
+                        }else continue;
+                }
+
+                /* decrement the sample counter */
+                len -= err;
+
+                /* adjust the start pointer */
+                ptr += err * sample_size;
+        }
+
+	return 1;
+}
+
 /* play num_bytes of audio data */
 int ao_plugin_play(ao_device *device, const char *output_samples, 
 		uint_32 num_bytes)
 {
-	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
-       	uint_32 len = num_bytes / internal->sample_size;
-	char *ptr = (char *) output_samples;
-	int err;
+  ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
 
-	/* the entire buffer might not transfer at once */
-	while (len > 0) {
-		/* try to write the entire buffer at once */
-		err = internal->writei(internal->pcm_handle, ptr, len);
+  /* eventually the 24 bit padding should be at a higher layer
+     where we're doing other permutation/swizzling, but for now
+     only ALSA has need of this... */
+  if(internal->pad_24_to_32){
+    /* pad and forward ~ a page at a time; must not hang on fractional frames*/
+    while(num_bytes>=internal->sample_size){
+      char *d = internal->pad_24_to_32;
+      int len4 = 4096/(4*device->output_channels);
+      int len3 = num_bytes/internal->sample_size;
+      int i;
+      if(len4>len3)len4=len3;
+      len4*=device->output_channels;
 
-		/* no data transferred or interrupt signal */
-		if (err == -EAGAIN || err == -EINTR) {
-			continue;
-		}
+      if(ao_is_big_endian())++d;
 
-		if (err < 0) {
-			/* this might be an error, or an exception */
-                  err = alsa_error_recovery(internal, err, device);
-			if (err < 0) {
-				aerror("write error: %s\n",
-                                       snd_strerror(err));
-				return 0;
-			}else /* recovered, continue */
-                          continue;
-		}
+      for(i=0;i<len4;i++){
+        memcpy(d,output_samples,3);
+        d+=4;
+        output_samples+=3;
+      }
 
-		/* decrement the sample counter */
-		len -= err;
-
-		/* adjust the start pointer */
-		ptr += err * internal->sample_size;
-	}
-
-	return 1;
+      if(!ao_plugin_playi(device,internal->pad_24_to_32,len4*4,4*device->output_channels))
+        return 0;
+      num_bytes-=len4*3;
+    }
+    return 1;
+  }else
+    return ao_plugin_playi(device,output_samples,num_bytes,internal->sample_size);
 }
 
 
@@ -620,7 +659,7 @@ int ao_plugin_close(ao_device *device)
               snd_pcm_drain(internal->pcm_handle);
               snd_pcm_close(internal->pcm_handle);
               internal->pcm_handle=NULL;
-            } 
+            }
           } else
             awarn("ao_plugin_close called with uninitialized ao_device->internal\n");
 	} else
@@ -641,7 +680,8 @@ void ao_plugin_device_clear(ao_device *device)
               free (internal->dev);
             else
               awarn("ao_plugin_device_clear called with uninitialized ao_device->internal->dev\n");
-
+            if (internal->pad_24_to_32)
+              free (internal->pad_24_to_32);
             free(internal);
             device->internal=NULL;
           } else
