@@ -33,6 +33,7 @@
    audio samples rather than having them pushed at it (which is nice
    when you are wanting to do good buffering of audio).  */
 
+#include <CoreAudio/CoreAudio.h>
 #include <CoreServices/CoreServices.h>
 #include <AudioUnit/AudioUnit.h>
 #include <AudioUnit/AUComponent.h>
@@ -202,6 +203,16 @@ int ao_plugin_device_init(ao_device *device)
   device->internal = internal;
   device->output_matrix_order = AO_OUTPUT_MATRIX_COLLAPSIBLE;
   device->output_matrix = strdup("L,R,C,LFE,BL,BR,CL,CR,BC,SL,SR");
+
+  CFRunLoopRef theRunLoop = NULL;
+  AudioObjectPropertyAddress theAddress = {
+    kAudioHardwarePropertyRunLoop,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster
+  };
+  AudioObjectSetPropertyData(kAudioObjectSystemObject, &theAddress, 0,
+                             NULL, sizeof(CFRunLoopRef), &theRunLoop);
+
   return 1; /* Memory alloc successful */
 }
 
