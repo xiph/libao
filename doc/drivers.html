@@ -223,7 +223,13 @@ Roar Audio live audio sound driver.
 <p>
 <b>Option keys:</b>
 <ul>
-<li>"host" - Specifies Roar server to use.
+<li>"server" - Specifies Roar server to use.
+<li>"host" - Specifies Roar server to use (legacy synonym for 'server').
+<li>"id" - Selects audio device to use for playback by number.  For a roar server, this is mapped to a given output mixer.
+<li>"dev" - Selects audio device to use for playback by name.  For a roar server, this is a number and thus synonymous with 'id' above.
+<li>"stream_name" - descriptive name for this playback stream (eg, the application name).
+<li>"role" - stream type as enumerated by Roar; see RoarAudio documentation.
+
 </ul>
 <p>
 

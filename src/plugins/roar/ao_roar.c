@@ -33,21 +33,15 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-static char *ao_roar_options[] = {"host","verbose","quiet","matrix","debug"};
+#define DEFAULT_CLIENT_NAME "libao client"
 
-/*
-typedef struct ao_info {
-        int  type; // live output or file output?
-        char *name; // full name of driver
-        char *short_name; // short name of driver
-        char *author; // driver author
-        char *comment; // driver comment
-        int  preferred_byte_format;
-        int  priority;
-        char **options;
-        int  option_count;
-} ao_info;
-*/
+static char *ao_roar_options[] = {
+  "host", "server",
+  "stream_name",
+  "id", "dev",
+  "role"
+  "verbose", "quiet", "matrix", "debug"
+};
 
 static ao_info ao_roar_info ={
   AO_TYPE_LIVE,
@@ -58,21 +52,25 @@ static ao_info ao_roar_info ={
   AO_FMT_NATIVE,
   50,
   ao_roar_options,
-  5
+  sizeof(ao_roar_options)/sizeof(*ao_roar_options)
 };
 
 
 typedef struct ao_roar_internal {
-  struct roar_vio_calls svio;
-  int svio_p;
+  struct roar_connection con;
+  int con_opened;
+  roar_vs_t * vss;
   char * host;
+  char * mixer;
+  char * client_name;
+  int    role;
 } ao_roar_internal;
 
 
 int ao_plugin_test(void) {
   struct roar_connection con;
 
-  if ( roar_simple_connect(&con, NULL, "libao client") == -1 )
+  if ( roar_simple_connect(&con, NULL, DEFAULT_CLIENT_NAME) == -1 )
     return 0;
 
   if (roar_get_standby(&con)) {
@@ -89,6 +87,39 @@ ao_info * ao_plugin_driver_info(void) {
   return &ao_roar_info;
 }
 
+enum errtype {
+ ERROR,
+ WARN,
+ INFO,
+ VERBOSE,
+ DEBUG
+};
+
+#define armsg(et,text) _ao_roar_err_real(device, __LINE__, (et), (text), error)
+static inline void _ao_roar_err_real(ao_device * device, long line, enum errtype errtype, const char * text, int error) {
+ const char * errmsg = roar_vs_strerr(error);
+#define _format "%s: %s"
+#define _format_dbg _format " at line %li"
+
+ switch (errtype) {
+  case ERROR:
+    aerror(_format "\n", text, errmsg, line);
+   break;
+  case WARN:
+    awarn(_format "\n", text, errmsg, line);
+   break;
+  case INFO:
+    ainfo(_format "\n", text, errmsg, line);
+   break;
+  case VERBOSE:
+    averbose(_format_dbg "\n", text, errmsg, line);
+   break;
+  case DEBUG:
+    adebug(_format_dbg "\n", text, errmsg, line);
+   break;
+ }
+}
+
 
 int ao_plugin_device_init(ao_device * device) {
   ao_roar_internal * internal;
@@ -98,7 +129,14 @@ int ao_plugin_device_init(ao_device * device) {
   if (internal == NULL)
     return 0;
 
-  internal->host = NULL;
+  internal->con_opened  = 0;
+
+  internal->vss         = NULL;
+
+  internal->host        = NULL;
+  internal->mixer       = NULL;
+  internal->client_name = strdup(DEFAULT_CLIENT_NAME);
+  internal->role        = ROAR_ROLE_UNKNOWN;
 
   device->internal = internal;
   device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
@@ -109,22 +147,132 @@ int ao_plugin_device_init(ao_device * device) {
 int ao_plugin_set_option(ao_device * device, const char * key, const char * value) {
   ao_roar_internal * internal = (ao_roar_internal *) device->internal;
 
-  if ( strcmp(key, "host") == 0 ) {
+  if ( !strcmp(key, "host") || !strcmp(key, "server") ) {
     if(internal->host) free(internal->host);
     internal->host = strdup(value);
+  } else if ( !strcmp(key, "id") || !strcmp(key, "dev") ) {
+    if(internal->mixer) free(internal->mixer);
+    internal->mixer = strdup(value);
+  } else if ( !strcmp(key, "stream_name") ) {
+    if(internal->client_name) free(internal->client_name);
+    internal->client_name = strdup(value);
+  } else if ( !strcmp(key, "role") ) {
+    internal->role = roar_str2role(value);
   }
 
   return 1;
 }
 
+static int ao_roar_con_open (ao_roar_internal * internal) {
+  if ( internal->con_opened )
+    return 1;
+
+  if ( roar_simple_connect(&(internal->con), internal->host, internal->client_name) == -1 )
+    return 0;
+
+  internal->con_opened = 1;
+
+  return 1;
+}
+
+#if defined(ROAR_FT_FUNC_LIST_FILTERED) && defined(ROAR_VS_CMD_SET_MIXER)
+static int ao_roar_find_mixer (ao_roar_internal * internal) {
+  struct roar_stream stream;
+  char name[80];
+  int id[ROAR_STREAMS_MAX];
+  int num;
+  int i;
+  int ret;
+
+  if ( internal->mixer == NULL )
+    return -1;
+
+  // test if mixer is numeric...
+  ret = atoi(internal->mixer);
+
+  if ( ret > 0 ) {
+    return ret;
+  } else if ( ret == 0 && internal->mixer[0] == '0' ) {
+    return 0;
+  }
+
+  if ( (num = roar_list_filtered(&(internal->con), id, ROAR_STREAMS_MAX, // normal parameters,
+                                 ROAR_CMD_LIST_STREAMS,      // normaly hidden by
+                                                             // roar_list_streams().
+                                 ROAR_CTL_FILTER_DIR,        // extra parameter: filter on /dir/
+                                 ROAR_CTL_CMP_EQ,            // extra parameter: ... that must be equal ...
+                                 ROAR_DIR_MIXING)) == -1 ) { // extra parameter: to this.
+    return -1;
+  }
+
+  for (i = 0; i < num; i++) {
+    if ( roar_stream_new_by_id(&stream, id[i]) == -1 )
+      continue;
+
+    if ( roar_stream_get_name(&(internal->con), &stream, name, sizeof(name)) != 0 )
+      continue;
+
+    if ( !strncasecmp(name, internal->mixer, sizeof(name)) )
+      return id[i];
+  }
+
+  return -1;
+}
+#endif
+
 int ao_plugin_open(ao_device * device, ao_sample_format * format) {
   ao_roar_internal * internal = (ao_roar_internal *) device->internal;
+  struct roar_audio_info info;
   char * map = NULL;
+  int codec = ROAR_CODEC_DEFAULT;
+  int mixer;
+  int error = -1;
 
-  if ( roar_vio_simple_stream(&(internal->svio), format->rate, format->channels, format->bits,
-                             ROAR_CODEC_DEFAULT, internal->host, ROAR_DIR_PLAY, "libao client") == -1 )
+  info.rate     = format->rate;
+  info.channels = format->channels;
+  info.codec    = codec;
+  info.bits     = format->bits;
+
+  if ( !ao_roar_con_open(internal) )
     return 0;
-  internal->svio_p=1;
+
+  internal->vss = roar_vs_new_from_con(&(internal->con), &error);
+
+  if ( internal->vss == NULL ) {
+    armsg(ERROR, "Can not create VS object");
+    return 0;
+  }
+
+#if defined(ROAR_FT_FUNC_LIST_FILTERED) && defined(ROAR_VS_CMD_SET_MIXER)
+  mixer = ao_roar_find_mixer(internal);
+
+  if ( mixer != -1 ) {
+    if ( roar_vs_ctl(internal->vss, ROAR_VS_CMD_SET_MIXER, &mixer, &error) == -1 ) {
+     roar_vs_close(internal->vss, ROAR_VS_FALSE, NULL);
+     internal->vss = NULL;
+     armsg(ERROR, "Can not set mixer");
+     return 0;
+    }
+    armsg(WARN, "Installed version of libroar does not support VS CTL, mixer setting is ignored.");
+  }
+#else
+  if ( internal->mixer != NULL ) {
+    error = ROAR_ERROR_NOTSUP;
+    armsg(WARN, "Installed version of libroar does not support VS CTL, mixer setting is ignored");
+  }
+#endif
+
+  if ( roar_vs_stream(internal->vss, &info, ROAR_DIR_PLAY, &error) == -1 ) {
+    roar_vs_close(internal->vss, ROAR_VS_FALSE, NULL);
+    internal->vss = NULL;
+    armsg(ERROR, "Can not start playback");
+    return 0;
+  }
+
+  if ( internal->role != ROAR_ROLE_UNKNOWN )
+    if ( roar_vs_role(internal->vss, internal->role, &error) == -1 )
+      armsg(WARN, "Can not set stream role");
+
   device->driver_byte_format = AO_FMT_NATIVE;
 
   if(!device->inter_matrix){ /* It would be set if an app or user force-sets the mapping; don't overwrite! */
@@ -147,8 +295,13 @@ int ao_plugin_open(ao_device * device, ao_sample_format * format) {
 
 int ao_plugin_play(ao_device * device, const char * output_samples, uint_32 num_bytes) {
   ao_roar_internal * internal = (ao_roar_internal *) device->internal;
+  ssize_t ret;
 
-  if (roar_vio_write(&(internal->svio), (char*)output_samples, num_bytes) == -1) {
+  // TODO: handle short writes.
+
+  ret = roar_vs_write(internal->vss, output_samples, num_bytes, NULL);
+
+  if ( ret == -1 ) {
     return 0;
   } else {
     return 1;
@@ -159,9 +312,15 @@ int ao_plugin_play(ao_device * device, const char * output_samples, uint_32 num_
 int ao_plugin_close(ao_device * device) {
   ao_roar_internal * internal = (ao_roar_internal *) device->internal;
 
-  if(internal->svio_p)
-    roar_vio_close(&(internal->svio));
-  internal->svio_p=0;
+  if(internal->vss != NULL)
+    roar_vs_close(internal->vss, ROAR_VS_FALSE, NULL);
+
+  internal->vss = NULL;
+
+  if (internal->con_opened)
+   roar_disconnect(&(internal->con));
+
+  internal->con_opened = 0;
 
   return 1;
 }
@@ -172,6 +331,12 @@ void ao_plugin_device_clear(ao_device * device) {
 
   if( internal->host != NULL )
     free(internal->host);
+
+  if( internal->mixer != NULL )
+    free(internal->mixer);
+
+  if( internal->client_name != NULL )
+    free(internal->client_name);
 
   free(internal);
   device->internal=NULL;
