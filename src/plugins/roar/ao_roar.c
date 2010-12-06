@@ -103,13 +103,13 @@ static inline void _ao_roar_err_real(ao_device * device, long line, enum errtype
 
  switch (errtype) {
   case ERROR:
-    aerror(_format "\n", text, errmsg, line);
+    aerror(_format "\n", text, errmsg);
    break;
   case WARN:
-    awarn(_format "\n", text, errmsg, line);
+    awarn(_format "\n", text, errmsg);
    break;
   case INFO:
-    ainfo(_format "\n", text, errmsg, line);
+    ainfo(_format "\n", text, errmsg);
    break;
   case VERBOSE:
     averbose(_format_dbg "\n", text, errmsg, line);
