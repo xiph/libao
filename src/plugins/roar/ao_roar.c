@@ -37,7 +37,7 @@
 
 static char *ao_roar_options[] = {
   "host", "server",
-  "stream_name",
+  "client_name",
   "id", "dev",
   "role"
   "verbose", "quiet", "matrix", "debug"
@@ -153,7 +153,7 @@ int ao_plugin_set_option(ao_device * device, const char * key, const char * valu
   } else if ( !strcmp(key, "id") || !strcmp(key, "dev") ) {
     if(internal->mixer) free(internal->mixer);
     internal->mixer = strdup(value);
-  } else if ( !strcmp(key, "stream_name") ) {
+  } else if ( !strcmp(key, "client_name") ) {
     if(internal->client_name) free(internal->client_name);
     internal->client_name = strdup(value);
   } else if ( !strcmp(key, "role") ) {
