@@ -41,7 +41,8 @@
 #define AO_NAS_BUF_SIZE 4096
 
 static char *ao_nas_options[] = {
-  "host",    /* NAS server. See nas(1) for format. */
+  "server",    /* NAS server. See nas(1) for format. */
+  "host",    /* synonym for server */
   "buf_size", /* Buffer size on server */
   "quiet",
   "verbose",
@@ -116,7 +117,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
 	ao_nas_internal *internal = (ao_nas_internal *) device->internal;
 
-	if (!strcmp(key, "host")) {
+	if (!strcmp(key, "host") || !strcmp(key, "server")) {
           char *tmp = strdup (value);
  	  if (!tmp) return 0;
  	  if (internal->host) free (internal->host);

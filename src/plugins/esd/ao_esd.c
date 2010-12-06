@@ -40,7 +40,7 @@
 
 extern char **environ;
 
-static char *ao_esd_options[] = {"host","matrix","verbose","quiet","debug"};
+static char *ao_esd_options[] = {"server","host","matrix","verbose","quiet","debug"};
 static ao_info ao_esd_info =
 {
 	AO_TYPE_LIVE,
@@ -146,7 +146,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 {
 	ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
-	if (!strcmp(key, "host")) {
+	if (!strcmp(key, "host") || !strcmp(key, "server")) {
 		if(internal->host) free(internal->host);
 		internal->host = strdup(value);
 	}
