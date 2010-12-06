@@ -31,7 +31,7 @@ href="ao_open_file.html">ao_open_file()</a>, or they may be set in the
 <a href="config.html">configuration file</a> as <tt>name=value</tt>
 pairs.
 
-<h2>Options understood by all Drivers</h2>
+<h2>Options Understood by All Drivers</h2>
 <ul>
 
 <li>"debug" - (value not required) Requests driver print detailed
@@ -52,6 +52,29 @@ whatsoever, even in the event of error.
 more detailed information concerning normal operation.
 </ul>
 
+<h2>Standard Driver Options</h2>
+
+These are options that have the same use in each driver, but may not
+be supported by all drivers (due to the option being meaningless or
+unimplemented for a given audio backend).
+
+<ul>
+<li>"id" - Request a specific playback device/sink/output by number.
+In most audio backends, this will correspond to a specific output
+device, but for all devices, this means 'give me the Nth output'.
+<li>"dev" - Request a specific playback device/sink/output by name.
+This name will be in a format determined by the specific driver
+backend (eg, the first hardware device in ALSA format would be 'hw:0',
+and for OSS it would be '/dev/dsp').
+<li>"server" - Daemon-based sound subsystems often support connecting
+to non-default local or remote servers.  The "server" option allows
+specifying the connection for a given driver in a format specific to
+that system.
+<li>"client_name" - specify a descriptive name for the application;
+this is often used by sound backends to display status information
+about which applications are currently making use of playback.
+</ul>
+
 <h2>Live Output Drivers</h2>
 
 <h3>aixs</h3>
@@ -64,11 +87,12 @@ releases and the ACPA also."
 
 <b>Option keys:</b>
 <ul>
-<li>"dev" - The audio device for the sound card.  By default, the
+<li>"dev" - (see 'Standard Driver Options' above).  By default, the
 driver tries "/dev/baud0/1" (device for MCA machines with the Crystal
 chipset).  Other possible devices are "/dev/paud0/1" for PCI machines
 with the Crystal chipset, and "/dev/acpa0/1" for MCA machines with the
 ACPA.
+<li>"id" - (see 'Standard Driver Options' above).
 </ul>
 <p>
 
@@ -86,10 +110,13 @@ API versions are now deprecated).
 <li>"buffer_time" - Override the default hardware buffer size (in
 milliseconds).
 
-<li>"dev" - ALSA device label to use. Examples include "hw:0" for the
-first soundcard and "hw:1" for the second.  The alsa driver normally
-chooses one of "surround71", "surround51", "surround40" or "default"
-automatically depending on number of output channels.
+<li>"dev" - (see 'Standard Driver Options' above). ALSA device label
+to use. Examples include "hw:0" for the first soundcard and "hw:1" for
+the second.  The alsa driver normally chooses one of "surround71",
+"surround51", "surround40", "front", or "default" automatically
+depending on number of output channels.
+
+<li>"id" - (see 'Standard Driver Options' above).
 
 <li>"period_time" - Override the default hardware period size (in
 microseconds).
@@ -132,9 +159,11 @@ networked computers.
 
 <b>Option keys:</b>
 <ul>
-<li>"host" - The hostname where esd is running.  By default sound is
-played on the local host. A port number can be specified after a
-colon, as in "whizbang.com:555".
+<li>"host" - Deprecated synonym for 'server' below.
+
+<li>"server" - (see 'Standard Driver Options' above). The hostname
+where esd is running.  By default sound is played on the local host. A
+port number can be specified after a colon, as in "whizbang.com:555".
 </ul>
 <p>
 
@@ -172,7 +201,9 @@ Network Audio System live output driver.
 <b>Option keys:</b>
 <ul>
 <li>"buf_size" - Set size of audio buffer on server in bytes.
-<li>"host" - Set location of NAS server; See nas(1) for format.
+<li>"host" - Deprecated synonym for 'server' below.
+<li>"server" - (see 'Standard Driver Options' above). Set location of
+NAS server; See nas(1) for format.
 </ul>
 <p>
 
@@ -194,8 +225,10 @@ older Linux and FreeBSD as well as some other UNIX-like systems.
 
 <b>Option keys:</b>
 <ul>
-<li>"dsp" - The dsp device.  By default, the driver tries
+<li>"dev" - (see 'Standard Driver Options' above). By default, the driver tries
 "/dev/sound/dsp", followed by "/dev/dsp".
+<li>"dsp" - Deprecated synonym for "dev".
+<li>"id" - (see 'Standard Driver Options' above).
 </ul>
 <p>
 
@@ -209,8 +242,10 @@ used by the modern Gnome desktop on UNIX-like systems.
 <p>
 <b>Option keys:</b>
 <ul>
+<li>"dev" - (see 'Standard Driver Options' above). This maps to a specific Pulse sink; it may be specified by Pulse sink name, or by number.
+<li>"id" - (see 'Standard Driver Options' above). Maps to a specific pulse sink number.
 <li>"server" - Specifies Pulseaudio server to use.
-<li>"sink" - Specifies Pulseaudio sink to use.
+<li>"sink" - Deprecated synonym for "dev".
 </ul>
 <p>
 
@@ -242,7 +277,8 @@ SNDIO is the modern audio interface used by OpenBSD.
 <p>
 <b>Option keys:</b>
 <ul>
-<li>"dev" - Specifies audio device to use.
+<li>"dev" - (see 'Standard Driver Options' above).
+<li>"id" - (see 'Standard Driver Options' above).
 </ul>
 <p>
 
@@ -256,8 +292,9 @@ Solaris.
 
 <b>Option keys:</b>
 <ul>
-<li>"dev" - The audio device for the sound card.  By default, the
-driver tries "/dev/audio".
+<li>"dev" - (see 'Standard Driver Options' above). By default, the
+driver tries "/dev/sound/0"
+<li>"id" - (see 'Standard Driver Options' above).
 </ul>
 <p>
 
@@ -270,8 +307,8 @@ Windows MMSound output driver for Win98 and later.
 
 <b>Option keys:</b>
 <ul>
-<li>"dev" - Selects audio device to use for playback by device name.
-<li>"id" - Selects audio device to use for playback by device id (card number).
+<li>"dev" - (see 'Standard Driver Options' above).
+<li>"id" - (see 'Standard Driver Options' above).
 </ul>
 <p>
 
