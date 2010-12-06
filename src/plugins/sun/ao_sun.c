@@ -70,7 +70,7 @@ ao_info ao_sun_info = {
 	AO_FMT_NATIVE,
 	20,
 	ao_sun_options,
-	6
+        sizeof(ao_sun_options)/sizeof(*ao_sun_options)
 };
 
 

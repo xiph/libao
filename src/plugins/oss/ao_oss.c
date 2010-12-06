@@ -56,7 +56,7 @@ static ao_info ao_oss_info =
 	AO_FMT_NATIVE,
 	20,
 	ao_oss_options,
-	7
+        sizeof(ao_oss_options)/sizeof(*ao_oss_options)
 };
 
 

@@ -79,7 +79,7 @@ static ao_info ao_au_info =
 	AO_FMT_BIG,
 	0,
 	ao_au_options,
-	4
+        sizeof(ao_au_options)/sizeof(*ao_au_options)
 };
 
 typedef struct ao_au_internal

@@ -59,7 +59,7 @@ static ao_info ao_nas_info =
 	AO_FMT_NATIVE,
 	10,
 	ao_nas_options,
-	6
+        sizeof(ao_nas_options)/sizeof(*ao_nas_options)
 };
 
 

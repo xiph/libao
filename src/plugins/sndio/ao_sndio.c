@@ -35,7 +35,7 @@ ao_info ao_sndio_info = {
   AO_FMT_NATIVE,
   30,
   ao_sndio_options,
-  6
+  sizeof(ao_sndio_options)/sizeof(*ao_sndio_options)
 };
 
 typedef struct ao_sndio_internal

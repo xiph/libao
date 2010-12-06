@@ -86,7 +86,7 @@ static ao_info ao_alsa_info =
 	AO_FMT_NATIVE,
 	35,
 	ao_alsa_options,
-	9
+        sizeof(ao_alsa_options)/sizeof(*ao_alsa_options)
 };
 
 

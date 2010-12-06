@@ -58,7 +58,7 @@ static ao_info ao_arts_info =
 	15,
 #endif
 	ao_arts_options,
-        5
+        sizeof(ao_arts_options)/sizeof(*ao_arts_options)
 };
 
 typedef struct ao_arts_internal

@@ -64,7 +64,7 @@ ao_info ao_aixs_info = {
   AO_FMT_NATIVE,
   20,
   ao_aixs_options,
-  6
+  sizeof(ao_aixs_options)/sizeof(*ao_aixs_options)
 };
 
 

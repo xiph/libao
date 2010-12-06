@@ -101,7 +101,7 @@ static ao_info ao_wav_info =
 	AO_FMT_LITTLE,
 	0,
 	ao_wav_options,
-        4
+        sizeof(ao_wav_options)/sizeof(*ao_wav_options)
 };
 
 typedef struct ao_wav_internal

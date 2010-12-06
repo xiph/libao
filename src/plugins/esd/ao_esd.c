@@ -51,7 +51,7 @@ static ao_info ao_esd_info =
 	AO_FMT_NATIVE,
 	40,
 	ao_esd_options,
-	5
+        sizeof(ao_esd_options)/sizeof(*ao_esd_options)
 };
 
 

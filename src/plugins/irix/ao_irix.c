@@ -61,7 +61,7 @@ static ao_info ao_irix_info =
 	AO_FMT_NATIVE,
 	20,
 	ao_irix_options,
-	4
+        sizeof(ao_irix_options)/sizeof(*ao_irix_options)
 };
 
 int ao_plugin_test(void)

@@ -29,7 +29,7 @@ static ao_info ao_dsound_info =
 	AO_FMT_NATIVE,
 	10,
 	ao_dsound_options,
-	1
+	sizeof(ao_dsound_options)/sizeof(*ao_dsound_options)
 };
 
 

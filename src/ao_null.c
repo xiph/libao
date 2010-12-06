@@ -44,7 +44,7 @@ static ao_info ao_null_info = {
 	AO_FMT_NATIVE,
 	0,
 	ao_null_options,
-	4
+        sizeof(ao_null_options)/sizeof(*ao_null_options)
 };
 
 

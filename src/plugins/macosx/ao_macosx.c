@@ -64,7 +64,7 @@ static ao_info ao_macosx_info =
 	AO_FMT_NATIVE,
 	30,
 	ao_macosx_options,
-	5
+	sizeof(ao_macosx_options)/sizeof(*ao_macosx_options)
 };
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;

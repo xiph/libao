@@ -44,7 +44,7 @@ static ao_info ao_raw_info =
 	AO_FMT_NATIVE,
 	0,
 	ao_raw_options,
-	5
+        sizeof(ao_raw_options)/sizeof(*ao_raw_options)
 };
 
 typedef struct ao_raw_internal
