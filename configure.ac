@@ -448,7 +448,7 @@ AC_MSG_RESULT([
 
   Installation paths:
 
-    libtheora: ................... ${LIBDIR}
+    libao: ....................... ${LIBDIR}
     C header files: .............. ${INCLUDEDIR}/ao
     Documentation: ............... ${DOCDIR}
 
