@@ -41,7 +41,7 @@
 #include <ao/plugin.h>
 
 /* default 500 millisecond buffer */
-#define AO_ALSA_BUFFER_TIME 500000
+#define AO_ALSA_BUFFER_TIME 100000
 
 /* the period time is calculated if not given as an option */
 #define AO_ALSA_PERIOD_TIME 0

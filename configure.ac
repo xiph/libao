@@ -29,6 +29,7 @@ dnl ====================================
 dnl Check for programs
 dnl ====================================
 
+cflags_save="$CFLAGS"
 AC_PROG_CC
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
@@ -48,7 +49,6 @@ dnl ====================================
 dnl Set some general compile options
 dnl ====================================
 
-cflags_save="$CFLAGS"
 if test -z "$GCC"; then
         case $host in
         *-*-irix*)
