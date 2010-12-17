@@ -274,14 +274,6 @@ static inline int alsa_set_hwparams(ao_device *device,
                 "by the hardware, using %u\n", format->rate, rate);
 	}
 
-	/* set the length of the hardware sample buffer in microseconds */
-	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
-			params, &(internal->buffer_time), 0);
-	if (err < 0){
-          adebug("snd_pcm_hw_params_set_buffer_time_near() failed.\n");
-          return err;
-        }
-
 	/* calculate a period time of one half sample time */
 	if ((internal->period_time == 0) && (rate > 0))
 		internal->period_time =
@@ -292,6 +284,14 @@ static inline int alsa_set_hwparams(ao_device *device,
 			params, &(internal->period_time), 0);
 	if (err < 0){
           adebug("snd_pcm_hw_params_set_period_time_near() failed.\n");
+          return err;
+        }
+
+	/* set the length of the hardware sample buffer in microseconds */
+	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
+			params, &(internal->buffer_time), 0);
+	if (err < 0){
+          adebug("snd_pcm_hw_params_set_buffer_time_near() failed.\n");
           return err;
         }
 
