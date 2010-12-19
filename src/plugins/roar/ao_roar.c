@@ -66,12 +66,36 @@ typedef struct ao_roar_internal {
   int    role;
 } ao_roar_internal;
 
+#ifdef ROAR_LIBROAR_CONFIG_WAS_NO_SLP
+static int workarounds_save;
+
+static void disable_slp (void) {
+  struct roar_libroar_config * config = roar_libroar_get_config();
+
+  workarounds_save = config->workaround.workarounds;
+
+  config->workaround.workarounds |= ROAR_LIBROAR_CONFIG_WAS_NO_SLP;
+}
+
+static void reenable_slp (void) {
+  struct roar_libroar_config * config = roar_libroar_get_config();
+
+  config->workaround.workarounds = workarounds_save;
+}
+#else
+#define disable_slp()
+#define reenable_slp()
+#endif
 
 int ao_plugin_test(void) {
   struct roar_connection con;
 
-  if ( roar_simple_connect(&con, NULL, DEFAULT_CLIENT_NAME) == -1 )
+  disable_slp();
+  if ( roar_simple_connect(&con, NULL, DEFAULT_CLIENT_NAME) == -1 ) {
+    reenable_slp();
     return 0;
+  }
+  reenable_slp();
 
   if (roar_get_standby(&con)) {
     roar_disconnect(&con);
@@ -167,8 +191,15 @@ static int ao_roar_con_open (ao_roar_internal * internal) {
   if ( internal->con_opened )
     return 1;
 
-  if ( roar_simple_connect(&(internal->con), internal->host, internal->client_name) == -1 )
+  if ( internal->host == NULL )
+    disable_slp();
+  if ( roar_simple_connect(&(internal->con), internal->host, internal->client_name) == -1 ) {
+    if ( internal->host == NULL )
+      reenable_slp();
     return 0;
+  }
+  if ( internal->host == NULL )
+    reenable_slp();
 
   internal->con_opened = 1;
 

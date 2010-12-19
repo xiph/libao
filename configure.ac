@@ -179,6 +179,24 @@ AC_SUBST(SIZE16)
 AC_SUBST(SIZE32)
 
 dnl ======================================
+dnl Disable default use of SLP in roar 
+dnl until such time as SLP doesn't block
+dnl indefinitely
+dnl ======================================
+
+use_slp="no"
+AC_ARG_ENABLE([roar-default-slp],
+    [AS_HELP_STRING(
+	[--enable-roar-default-slp],
+	[allow Roar driver to use SLP in default search])],
+	[use_slp="$enableval"],[use_slp="no"]
+)
+if test "x$use_slp" != "xyes"; then
+   SLP_DEF="-DROAR_LIBROAR_CONFIG_WAS_NO_SLP"
+fi
+AC_SUBST([SLP_DEF])
+
+dnl ======================================
 dnl Detect possible output devices 
 dnl ======================================
 
@@ -292,7 +310,25 @@ AM_CONDITIONAL(HAVE_SNDIO_AUDIO,test "${have_sndio}" = yes)
 dnl Check for roaraudio
 
 have_roar="no";
-AC_CHECK_HEADERS(roaraudio.h, have_roar=yes)
+AC_CHECK_HEADERS(libroar/config.h, have_roar=yes)
+if test "x$have_roar" = "xyes"; then
+   AC_MSG_CHECKING([if SLP lookup can be disabled in libroar])
+   AC_COMPILE_IFELSE([
+#include <libroar/config.h>
+int main(int a, char **b) {
+#ifdef ROAR_LIBROAR_CONFIG_WAS_NO_SLP
+       return 0;
+#else
+	ROAR_LIBROAR_CONFIG_WAS_NO_SLP required
+#endif
+}
+     ],
+     [AC_MSG_RESULT([yes])],
+     [
+	AC_MSG_RESULT([no])
+   	AC_MSG_RESULT([RoarAudio 0.4beta2 or later required to build Roar support])
+   	have_roar="no"])
+fi
 AM_CONDITIONAL(HAVE_ROAR_AUDIO,test "${have_roar}" = yes)
 
 dnl Check for AIX audio

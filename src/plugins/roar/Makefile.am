@@ -19,6 +19,7 @@ INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(roarltlibs)
 
+libroar_la_CFLAGS = $(CFLAGS) @SLP_DEF@
 libroar_la_LDFLAGS = @PLUGIN_LDFLAGS@
 libroar_la_LIBADD = -lroar
 libroar_la_SOURCES = $(roarsources)
