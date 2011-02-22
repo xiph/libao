@@ -16,7 +16,7 @@ endif
 libao_la_SOURCES = audio_out.c config.c ao_null.c ao_wav.c ao_au.c ao_raw.c ao_aixs.c $(wmm)
 libao_la_LDFLAGS = @LIBAO_LA_LDFLAGS@ -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@
 if HAVE_LD_VERSION_SCRIPT
-  libao_la_LDFLAGS += -Wl,--version-script=ao.vers
+  libao_la_LDFLAGS += -Wl,--version-script=$(top_srcdir)/src/ao.vers
 endif
 
 
@@ -26,4 +26,4 @@ debug:
 profile:
 	$(MAKE) all CFLAGS="@PROFILE@"
 
-EXTRA_DIST = ao_wmm.c
+EXTRA_DIST = ao_wmm.c ao.vers
