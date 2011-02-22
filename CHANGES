@@ -1,3 +1,21 @@
+1.1.0 - February 21, 2011
+ - Add autofoo ld symbol versioning to build system
+ - Update Roar driver to latest API
+ - Fix Roar driver to not block on SLP lookup during probe
+ - Improve/correct latency setup in ALSA (see Trac #1762)
+ - Add missing ctype.h header in build (see Trac #1760)
+ - Move toward more consistent option naming across drivers
+ - Fix Mac OS X AUHAL support to properly handle suspend/wakeup,
+   headphone plug/unplug, other hardware events
+ - Correct ao_example.c source to not pass dangling pointer for 
+   the matrix argument.
+ - Add 24 bit playback to Pulse plugin
+ - Fix 24 bit playback in ALSA plugin
+ - Fix segfaults when closing a driver that did not successfully open.
+ - Fix compilation of sndio plugin
+ - Fix building Mac OS X driver AUHAL compilation for 10.5,
+   restore Mac OS X 10.4 support
+
 1.0.0 - March 25, 2010
  - AO returns to active development
  - Added surround channel mapping API and capability
