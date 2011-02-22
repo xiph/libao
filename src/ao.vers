@@ -1,4 +1,4 @@
-LIBAO4_1.0.0 {
+LIBAO4_1.1.0 {
   global: ao_append_global_option;
           ao_append_option;
           ao_close;
