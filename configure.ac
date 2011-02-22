@@ -117,6 +117,21 @@ case $host in
 esac
 AC_SUBST(LIBAO_LA_LDFLAGS)
 
+dnl ===================================
+dnl Check for symbol versioning support
+dnl ===================================
+
+AC_MSG_CHECKING([if libraries can be versioned])
+GLD=`$LD --help < /dev/null 2>/dev/null | grep version-script`
+if test "$GLD"; then
+    have_ld_version_script=yes
+    AC_MSG_RESULT(yes)
+else
+    have_ld_version_script=no
+    AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL(HAVE_LD_VERSION_SCRIPT, test "$have_ld_version_script" = "yes")
+
 dnl ==============================
 dnl Check for libraries
 dnl ==============================
