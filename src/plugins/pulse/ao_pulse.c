@@ -183,8 +183,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
       ss.format = PA_SAMPLE_U8;
     else if (format->bits == 16)
       ss.format = PA_SAMPLE_S16NE;
+#ifdef PA_SAMPLE_S24NE
     else if (format->bits == 24)
       ss.format = PA_SAMPLE_S24NE;
+#endif
     else
         return 0;
 
