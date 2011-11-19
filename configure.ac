@@ -224,7 +224,7 @@ AC_ARG_ENABLE([wmm],
 	[include WMM output plugin @<:@default=check@:>@])],
 	[],[enable_wmm="check"]
 )
-AS_IF([test "x$enable_wmm" != "xno"],
+AS_IF([AC_LANG_SOURCE([test "x$enable_wmm" != "xno"],
 [AC_CHECK_HEADERS([mmsystem.h],
    [
    AC_MSG_CHECKING([waveOut family functions])
@@ -236,7 +236,7 @@ dnl Can't use AC_SEARCH_LIBS because symbols are decorated
 int main(int na, char ** a) {
     return waveOutOpen(0,0,0,0,0,0);
 }
-],[
+])],[
 have_wmm="yes";
 AC_MSG_RESULT([yes])
 AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
@@ -328,7 +328,7 @@ have_roar="no";
 AC_CHECK_HEADERS(libroar/config.h, have_roar=yes)
 if test "x$have_roar" = "xyes"; then
    AC_MSG_CHECKING([if SLP lookup can be disabled in libroar])
-   AC_COMPILE_IFELSE([
+   AC_COMPILE_IFELSE([AC_LANG_SOURCE([
 #include <libroar/config.h>
 int main(int a, char **b) {
 #ifdef ROAR_LIBROAR_CONFIG_WAS_NO_SLP
@@ -342,7 +342,7 @@ int main(int a, char **b) {
      [
 	AC_MSG_RESULT([no])
    	AC_MSG_RESULT([RoarAudio 0.4beta2 or later required to build Roar support])
-   	have_roar="no"])
+   	have_roar="no"])])
 fi
 AM_CONDITIONAL(HAVE_ROAR_AUDIO,test "${have_roar}" = yes)
 
