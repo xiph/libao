@@ -40,7 +40,7 @@
 
 extern char **environ;
 
-static char *ao_esd_options[] = {"server","host","matrix","verbose","quiet","debug"};
+static char *ao_esd_options[] = {"server","host","matrix","verbose","quiet","debug","client_name"};
 static ao_info ao_esd_info =
 {
 	AO_TYPE_LIVE,
@@ -59,6 +59,7 @@ typedef struct ao_esd_internal
 {
 	int sock;
 	char *host;
+        char *client_name;
         char bugbuffer[4096];
         int bugfill;
         int bits;
@@ -134,6 +135,7 @@ int ao_plugin_device_init(ao_device *device)
 		return 0; /* Could not initialize device memory */
 
 	internal->host = NULL;
+	internal->client_name = NULL;
         internal->sock = -1;
 	device->internal = internal;
         device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
@@ -149,6 +151,9 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
 	if (!strcmp(key, "host") || !strcmp(key, "server")) {
 		if(internal->host) free(internal->host);
 		internal->host = strdup(value);
+	} else if (!strcmp(key, "client_name")) {
+		if(internal->client_name) free(internal->client_name);
+		internal->client_name = strdup(value);
 	}
 
 	return 1;
@@ -189,7 +194,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	internal->sock = esd_play_stream(esd_format, format->rate,
 					 internal->host,
-					 "libao output");
+					 internal->client_name == NULL ?
+                                         "libao output" : internal->client_name);
 	if (internal->sock < 0)
 		return 0; /* Could not contact ESD server */
 
@@ -302,6 +308,7 @@ void ao_plugin_device_clear(ao_device *device)
   ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
   if(internal->host) free(internal->host);
+  if(internal->client_name) free(internal->client_name);
   free(internal);
   device->internal=NULL;
 }
