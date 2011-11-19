@@ -90,12 +90,17 @@ static void reenable_slp (void) {
 int ao_plugin_test(void) {
   struct roar_connection con;
 
+#ifdef ROAR_FT_FUNC_SIMPLE_CONNECT2
+  if ( roar_simple_connect2(&con, NULL, DEFAULT_CLIENT_NAME, ROAR_ENUM_FLAG_NONBLOCK, 0) == -1 )
+    return 0;
+#else
   disable_slp();
   if ( roar_simple_connect(&con, NULL, DEFAULT_CLIENT_NAME) == -1 ) {
     reenable_slp();
     return 0;
   }
   reenable_slp();
+#endif
 
   if (roar_get_standby(&con)) {
     roar_disconnect(&con);
@@ -191,6 +196,10 @@ static int ao_roar_con_open (ao_roar_internal * internal) {
   if ( internal->con_opened )
     return 1;
 
+#ifdef ROAR_FT_FUNC_SIMPLE_CONNECT2
+  if ( roar_simple_connect2(&(internal->con), internal->host, internal->client_name, ROAR_ENUM_FLAG_NONBLOCK, 0) == -1 )
+   return 0;
+#else
   if ( internal->host == NULL )
     disable_slp();
   if ( roar_simple_connect(&(internal->con), internal->host, internal->client_name) == -1 ) {
@@ -200,6 +209,7 @@ static int ao_roar_con_open (ao_roar_internal * internal) {
   }
   if ( internal->host == NULL )
     reenable_slp();
+#endif
 
   internal->con_opened = 1;
 
