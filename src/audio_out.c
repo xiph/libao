@@ -1265,6 +1265,9 @@ void ao_shutdown(void)
 
 	if (!driver_head) return;
 
+	free(info_table);
+	info_table = NULL;
+
 	/* unload and free all the drivers */
 	while (driver) {
 		if (driver->handle) {
