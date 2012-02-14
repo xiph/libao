@@ -1,7 +1,7 @@
 1.1.1 - Not yet released
- - Added missing ao_file_extension() (see Track #1841)
- - Fixed memory leak in ao_shutdown() (see Track #1799)
- - Updated manpage libao.conf.5 (see Track #1822)
+ - Added missing ao_file_extension() (see Trac #1841)
+ - Fixed memory leak in ao_shutdown() (see Trac #1799)
+ - Updated manpage libao.conf.5 (see Trac #1822)
 
 1.1.0 - February 21, 2011
  - Add autofoo ld symbol versioning to build system
