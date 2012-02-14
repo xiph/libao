@@ -12,7 +12,7 @@ ao_driver_id		ok
 ao_default_driver_id	ok
 ao_driver_info		ok
 ao_driver_info_list	ok
-ao_file_extension	wip	Not yet implemented
+ao_file_extension	ok
 
 # Options:
 ao_append_global_option	ok

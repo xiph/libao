@@ -147,6 +147,11 @@ static void ao_raw_device_clear(ao_device *device)
         device->internal=NULL;
 }
 
+const char *ao_raw_file_extension(void)
+{
+	return "raw";
+}
+
 
 ao_functions ao_raw = {
 	ao_raw_test,
@@ -156,5 +161,6 @@ ao_functions ao_raw = {
 	ao_raw_open,
 	ao_raw_play,
 	ao_raw_close,
-	ao_raw_device_clear
+	ao_raw_device_clear,
+	ao_raw_file_extension
 };

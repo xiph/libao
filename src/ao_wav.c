@@ -278,6 +278,11 @@ static void ao_wav_device_clear(ao_device *device)
         device->internal=NULL;
 }
 
+const char *ao_wav_file_extension(void)
+{
+	return "wav";
+}
+
 
 ao_functions ao_wav = {
 	ao_wav_test,
@@ -287,5 +292,6 @@ ao_functions ao_wav = {
 	ao_wav_open,
 	ao_wav_play,
 	ao_wav_close,
-	ao_wav_device_clear
+	ao_wav_device_clear,
+	ao_wav_file_extension
 };

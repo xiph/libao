@@ -4,6 +4,7 @@
  *
  *      Original Copyright (C) Aaron Holtzman - May 1999
  *      Modifications Copyright (C) Stan Seibert - July 2000
+ *      Modifications Copyright (C) Philipp Schafft - February 2012
  *
  *  This file is part of libao, a cross-platform audio output library.  See
  *  README for a history of this source code.
@@ -1475,9 +1476,12 @@ ao_info *ao_driver_info(int driver_id)
 {
 	driver_list *driver;
 
-	if ( (driver = _get_driver(driver_id)) )
-		return driver->functions->driver_info();
-	else
+	if ( (driver = _get_driver(driver_id)) ) {
+		if (driver->functions->driver_info != NULL)
+			return driver->functions->driver_info();
+		else
+			return NULL;
+	} else
 		return NULL;
 }
 
@@ -1488,6 +1492,18 @@ ao_info **ao_driver_info_list(int *count)
 	return info_table;
 }
 
+const char *ao_file_extension(int driver_id)
+{
+	driver_list *driver;
+
+	if ( (driver = _get_driver(driver_id)) ) {
+		if (driver->functions->file_extension != NULL)
+			return driver->functions->file_extension();
+		else
+			return NULL;
+	} else
+		return NULL;
+}
 
 /* -- Miscellaneous -- */
 

@@ -131,7 +131,7 @@ struct ao_functions {
 			   uint_32 num_bytes);
 	int (*close)(ao_device *device);
 	void (*device_clear)(ao_device *device);
-	char* (*file_extension)(void);
+	const char* (*file_extension)(void);
 };
 
 /* --- Functions --- */
