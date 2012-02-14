@@ -1,5 +1,5 @@
 1.1.1 - Not yet released
- - Added missing ao_file_extension() (Closes: #1841)
+ - Added missing ao_file_extension() (see Track #1841)
 
 1.1.0 - February 21, 2011
  - Add autofoo ld symbol versioning to build system
