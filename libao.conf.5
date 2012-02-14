@@ -42,14 +42,24 @@ will be all of the text after the equal sign until (but not including)
 the ending newline.  Beware of extra spaces at the end of the line!
 They will probably be interpreted as part of the option value.
 
-Valid option keys are:
+The following is a list of valid global option keys. Any driver specific option
+may be used as well as those keys.
 .RS
 .IP default_driver
 The short name of the driver libao should use by default.  Valid values
 include (not all are available on every platform): oss, esd, arts, alsa,
-alsa05, nas, irix, and sun.  Note that "sun" is used on many BSD
-systems as well as Solaris.  The "alsa" driver is for the 0.9.x ALSA API,
-whereas the "alsa05" driver is for the 0.5.x API.
+nas, irix, sun, roar and sndio.  Note that "sun" is used on many BSD
+systems as well as Solaris.
+.IP "debug (Value optional/ignored)"
+Sets all the drivers as well as AO itself into debugging output mode.
+Unlike passing the debug option to a driver, debug will also print
+debugging information from driver loading and testing.
+.IP "quiet (Value optional/ignored)"
+Sets all the drivers as well as AO itself into silent mode.
+Errors will return only error codes; neither ao nor the drivers will
+print any output whatsoever to stderr.
+.IP "verbose (Value optional/ignored)"
+Sets all the drivers as well as AO itself into verbose mode.
 .RE
 
 .SH EXAMPLE
