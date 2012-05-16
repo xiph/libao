@@ -616,6 +616,7 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
 		uint_32 num_bytes)
 {
   ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
+  int endianp = ao_is_big_endian();
 
   /* eventually the 24 bit padding should be at a higher layer
      where we're doing other permutation/swizzling, but for now
@@ -630,7 +631,7 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
       if(len4>len3)len4=len3;
       len4*=device->output_channels;
 
-      if(ao_is_big_endian())++d;
+      if(endianp)++d;
 
       for(i=0;i<len4;i++){
         memcpy(d,output_samples,3);
