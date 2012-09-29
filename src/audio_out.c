@@ -924,6 +924,8 @@ static int ao_device_load_options(ao_device *device, ao_option *options){
     }else{
       if (!device->funcs->set_option(device, options->key, options->value)) {
         /* Problem setting options */
+        aerror("Driver %s unable to set option %s=%s\n",
+               info_table[device->driver_id]->short_name, options->key, options->value);
         return AO_EOPENDEVICE;
       }
     }
