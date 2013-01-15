@@ -49,7 +49,8 @@ static char * ao_pulse_options[] = {
     "verbose",
     "quiet",
     "matrix",
-    "debug"
+    "debug",
+    "client_name"
 };
 
 static ao_info ao_pulse_info = {
@@ -66,7 +67,7 @@ static ao_info ao_pulse_info = {
 
 typedef struct ao_pulse_internal {
     struct pa_simple *simple;
-    char *server, *sink;
+    char *server, *sink, *client_name;
 } ao_pulse_internal;
 
 /* Yes, this is very ugly, but required nonetheless... */
@@ -140,6 +141,7 @@ int ao_plugin_device_init(ao_device *device) {
     internal->simple = NULL;
     internal->server = NULL;
     internal->sink = NULL;
+    internal->client_name = NULL;
 
     device->internal = internal;
     device->output_matrix_order = AO_OUTPUT_MATRIX_PERMUTABLE;
@@ -162,6 +164,9 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value) 
     } else if (!strcmp(key, "sink") || !strcmp(key, "dev") || !strcmp(key, "id")) {
         free(internal->sink);
         internal->sink = strdup(value);
+    } else if (!strcmp(key, "client_name")) {
+        free(internal->client_name);
+        internal->client_name = strdup(value);
     } else
         return 0;
 
@@ -198,25 +203,34 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
 
     disable_sigpipe();
 
-    while (1) {
+    if (internal->client_name) {
+        snprintf(t, sizeof(t), "libao[%s]", internal->client_name);
+        snprintf(t2, sizeof(t2), "libao[%s] playback stream", internal->client_name);
+    } else {
+      while (1) {
         p = pa_xmalloc(allocated);
 
         if (!(fn = pa_get_binary_name(p, allocated))) {
-            break;
+          break;
         }
 
         if (fn != p || strlen(p) < allocated - 1) {
-            fn = pa_path_get_filename(fn);
-            snprintf(t, sizeof(t), "libao[%s]", fn);
-            snprintf(t2, sizeof(t2), "libao[%s] playback stream", fn);
-            break;
+          fn = pa_path_get_filename(fn);
+          snprintf(t, sizeof(t), "libao[%s]", fn);
+          snprintf(t2, sizeof(t2), "libao[%s] playback stream", fn);
+          break;
         }
 
         pa_xfree(p);
         allocated *= 2;
+      }
+      pa_xfree(p);
+      p = NULL;
+      if (!fn) {
+        strcpy(t, "libao");
+        strcpy(t2, "libao playback stream");
+      }
     }
-    pa_xfree(p);
-    p = NULL;
 
     if(device->input_map){
       int i;
@@ -232,8 +246,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
       }
     }
 
-
-    if (!(internal->simple = pa_simple_new(internal->server, fn ? t : "libao", PA_STREAM_PLAYBACK, internal->sink, fn ? t2 : "libao playback stream", &ss, (device->input_map?&map:NULL), NULL, NULL)))
+    internal->simple = pa_simple_new(internal->server, t, PA_STREAM_PLAYBACK,
+                                     internal->sink, t2, &ss,
+                                     (device->input_map ? &map : NULL), NULL, NULL);
+    if (!internal->simple)
         return 0;
 
     device->driver_byte_format = AO_FMT_NATIVE;
@@ -270,6 +286,8 @@ void ao_plugin_device_clear(ao_device *device) {
       free(internal->server);
     if(internal->sink)
       free(internal->sink);
+    if(internal->client_name)
+      free(internal->client_name);
     free(internal);
     device->internal = NULL;
 }
