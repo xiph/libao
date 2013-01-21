@@ -40,15 +40,11 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-/* default 25 millisecond buffer */
-#define AO_ALSA_BUFFER_TIME 25000
+/* default 20 millisecond buffer */
+#define AO_ALSA_BUFFER_TIME 20000
 
-/* the period time is calculated if not given as an option */
-#define AO_ALSA_PERIOD_TIME 0
-
-/* number of samples between interrupts
- * supplying a period_time to ao overrides the use of this  */
-#define AO_ALSA_SAMPLE_XFER 256
+/* default 5ms transfer size */
+#define AO_ALSA_PERIOD_TIME 5000
 
 /* set mmap to default if enabled at compile time, otherwise, mmap isn't
    the default */
@@ -105,6 +101,12 @@ typedef struct ao_alsa_internal
         ao_alsa_writei_t * writei;
         snd_pcm_access_t access_mask;
         int static_delay;
+
+        /* Local configuration with handle_underrun workaround set for
+           PulseAudio ALSA plugin. Will be NULL if the PA ALSA plugin is not
+           in use or the workaround is not required. Remove this and the
+           associated code once PulseAudio gets fixed. */
+        snd_config_t *local_config;
 } ao_alsa_internal;
 
 
@@ -217,6 +219,81 @@ static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian, ao_devi
 	return ret;
 }
 
+/* Work around PulseAudio ALSA plugin bug where the PA server forces a
+   higher than requested latency, but the plugin does not update its (and
+   ALSA's) internal state to reflect that, leading to an immediate underrun
+   situation. Inspired by WINE's make_handle_underrun_config.
+   Reference: http://mailman.alsa-project.org/pipermail/alsa-devel/2012-July/053391.html
+   From Mozilla https://github.com/kinetiknz/cubeb/blob/1aa0058d0729eb85505df104cd1ac072432c6d24/src/cubeb_alsa.c
+*/
+static snd_config_t *init_local_config_with_workaround(ao_device *device, char const *name){
+  char pcm_node_name[80];
+  int r;
+  snd_config_t * lconf;
+  snd_config_t * device_node;
+  snd_config_t * type_node;
+  snd_config_t * node;
+  char const * type_string;
+
+  lconf = NULL;
+  snprintf(pcm_node_name,80,"pcm.%s",name);
+
+  if (snd_config == NULL) snd_config_update();
+
+  r = snd_config_copy(&lconf, snd_config);
+  if(r<0){
+    return NULL;
+  }
+
+  r = snd_config_search(lconf, pcm_node_name, &device_node);
+  if (r != 0) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  /* Fetch the PCM node's type, and bail out if it's not the PulseAudio plugin. */
+  r = snd_config_search(device_node, "type", &type_node);
+  if (r != 0) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  r = snd_config_get_string(type_node, &type_string);
+  if (r != 0) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  if (strcmp(type_string, "pulse") != 0) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  /* Don't clobber an explicit existing handle_underrun value, set it only
+     if it doesn't already exist. */
+  r = snd_config_search(device_node, "handle_underrun", &node);
+  if (r != -ENOENT) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  r = snd_config_imake_integer(&node, "handle_underrun", 0);
+  if (r != 0) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  r = snd_config_add(device_node, node);
+  if (r != 0) {
+    snd_config_delete(lconf);
+    return NULL;
+  }
+
+  adebug("PulseAudio ALSA-emulation detected: disabling underrun detection\n");
+  return lconf;
+}
+
+
 /* setup alsa data format and buffer geometry */
 static inline int alsa_set_hwparams(ao_device *device,
                                     ao_sample_format *format)
@@ -276,11 +353,6 @@ static inline int alsa_set_hwparams(ao_device *device,
                 "by the hardware, using %u\n", format->rate, rate);
 	}
 
-	/* calculate a period time of one half sample time */
-	if ((internal->period_time == 0) && (rate > 0))
-          internal->period_time =
-            1000000 * AO_ALSA_SAMPLE_XFER / rate;
-
 	/* set the time per hardware sample transfer */
 	err = snd_pcm_hw_params_set_period_time_near(internal->pcm_handle,
 			params, &(internal->period_time), 0);
@@ -320,7 +392,8 @@ static inline int alsa_set_hwparams(ao_device *device,
 static inline int alsa_set_swparams(ao_device *device)
 {
 	ao_alsa_internal *internal  = (ao_alsa_internal *) device->internal;
-	snd_pcm_sw_params_t   *params;
+	snd_pcm_sw_params_t *params;
+        snd_pcm_uframes_t boundary;
 	int err;
 
 	/* allocate the software parameter structure */
@@ -333,12 +406,13 @@ static inline int alsa_set_swparams(ao_device *device)
           return err;
         }
 
+#if 0 /* the below causes more trouble than it cures */
 	/* allow transfers to start when there is one period */
 	err = snd_pcm_sw_params_set_start_threshold(internal->pcm_handle,
                                                     params, internal->period_size);
 	if (err < 0){
           adebug("snd_pcm_sw_params_set_start_threshold() failed.\n");
-          return err;
+          //return err;
         }
 
 	/* require a minimum of one full transfer in the buffer */
@@ -346,8 +420,9 @@ static inline int alsa_set_swparams(ao_device *device)
                                               internal->period_size);
 	if (err < 0){
           adebug("snd_pcm_sw_params_set_avail_min() failed.\n");
-          return err;
+          //return err;
         }
+#endif
 
 	/* do not align transfers; this is obsolete/deprecated in ALSA
            1.x where the transfer alignemnt is always 1 (except for
@@ -357,25 +432,25 @@ static inline int alsa_set_swparams(ao_device *device)
 	err = snd_pcm_sw_params_set_xfer_align(internal->pcm_handle, params, 1);
 	if (err < 0){
           adebug("snd_pcm_sw_params_set_xfer_align() failed.\n");
-          return err;
+          //return err;
         }
 
-        /* force a work-ahead silence buffer; this is a fix, again for
-           VIA 82xx, where non-MMIO transfers will buffer into
-           period-size transfers, but the last transfer is usually
-           undersized and playback falls off the end of the submitted
-           data. */
-        {
-          snd_pcm_uframes_t boundary;
-          err = snd_pcm_sw_params_get_boundary(params,&boundary);
-          if (err < 0){
-            adebug("snd_pcm_sw_params_get_boundary() failed.\n");
-            return err;
-          }
+
+        /* get the boundary size */
+        err = snd_pcm_sw_params_get_boundary(params,&boundary);
+	if (err < 0){
+          adebug("snd_pcm_sw_params_get_boundary() failed.\n");
+        }else{
+
+          /* force a work-ahead silence buffer; this is a fix, again for
+             VIA 82xx, where non-MMIO transfers will buffer into
+             period-size transfers, but the last transfer is usually
+             undersized and playback falls off the end of the submitted
+             data. */
           err = snd_pcm_sw_params_set_silence_size(internal->pcm_handle, params, boundary);
           if (err < 0){
             adebug("snd_pcm_sw_params_set_silence_size() failed.\n");
-            return err;
+            //return err;
           }
         }
 
@@ -405,11 +480,19 @@ static inline int alsa_test_open(ao_device *device,
 
   adebug("Trying to open ALSA device '%s'\n",dev);
 
-  err = snd_pcm_open(&(internal->pcm_handle), dev,
-                     SND_PCM_STREAM_PLAYBACK, 0);
+  internal->local_config = init_local_config_with_workaround(device,dev);
+  if(internal->local_config)
+    err = snd_pcm_open_lconf(&(internal->pcm_handle), dev,
+                             SND_PCM_STREAM_PLAYBACK, 0, internal->local_config);
+  else
+    err = snd_pcm_open(&(internal->pcm_handle), dev,
+                       SND_PCM_STREAM_PLAYBACK, 0);
 
   if(err){
     adebug("Unable to open ALSA device '%s'\n",dev);
+    if(internal->local_config)
+      snd_config_delete(internal->local_config);
+    internal->local_config=NULL;
     return err;
   }
 
@@ -434,6 +517,9 @@ static inline int alsa_test_open(ao_device *device,
   if(err<0){
     adebug("Unable to open ALSA device '%s'\n",dev);
     snd_pcm_close(internal->pcm_handle);
+    if(internal->local_config)
+      snd_config_delete(internal->local_config);
+    internal->local_config=NULL;
     internal->pcm_handle = NULL;
     return err;
   }
@@ -443,6 +529,9 @@ static inline int alsa_test_open(ao_device *device,
   if(err<0){
     adebug("Unable to open ALSA device '%s'\n",dev);
     snd_pcm_close(internal->pcm_handle);
+    if(internal->local_config)
+      snd_config_delete(internal->local_config);
+    internal->local_config=NULL;
     internal->pcm_handle = NULL;
     return err;
   }
@@ -693,6 +782,9 @@ int ao_plugin_close(ao_device *device)
                 }
               }
               snd_pcm_close(internal->pcm_handle);
+              if(internal->local_config)
+                snd_config_delete(internal->local_config);
+              internal->local_config=NULL;
               internal->pcm_handle=NULL;
             }
           } else
