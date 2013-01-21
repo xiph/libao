@@ -92,17 +92,19 @@ static ao_info ao_alsa_info =
 
 typedef struct ao_alsa_internal
 {
-	snd_pcm_t *pcm_handle;
-	unsigned int buffer_time;
-	unsigned int period_time;
-	snd_pcm_uframes_t period_size;
-	int sample_size;
-	snd_pcm_format_t bitformat;
+        snd_pcm_t *pcm_handle;
+        unsigned int buffer_time;
+        unsigned int period_time;
+        snd_pcm_uframes_t period_size;
+        int sample_size;
+        unsigned int sample_rate;
+        snd_pcm_format_t bitformat;
         char *pad_24_to_32;
-	char *dev;
+        char *dev;
         int id;
-	ao_alsa_writei_t * writei;
-	snd_pcm_access_t access_mask;
+        ao_alsa_writei_t * writei;
+        snd_pcm_access_t access_mask;
+        int static_delay;
 } ao_alsa_internal;
 
 
@@ -222,7 +224,7 @@ static inline int alsa_set_hwparams(ao_device *device,
 	ao_alsa_internal *internal  = (ao_alsa_internal *) device->internal;
 	snd_pcm_hw_params_t   *params;
 	int err;
-	unsigned int rate = format->rate;
+	unsigned int rate = internal->sample_rate = format->rate;
 
 	/* allocate the hardware parameter structure */
 	snd_pcm_hw_params_alloca(&params);
@@ -276,8 +278,8 @@ static inline int alsa_set_hwparams(ao_device *device,
 
 	/* calculate a period time of one half sample time */
 	if ((internal->period_time == 0) && (rate > 0))
-		internal->period_time =
-			1000000 * AO_ALSA_SAMPLE_XFER / rate;
+          internal->period_time =
+            1000000 * AO_ALSA_SAMPLE_XFER / rate;
 
 	/* set the time per hardware sample transfer */
 	err = snd_pcm_hw_params_set_period_time_near(internal->pcm_handle,
@@ -333,7 +335,7 @@ static inline int alsa_set_swparams(ao_device *device)
 
 	/* allow transfers to start when there is one period */
 	err = snd_pcm_sw_params_set_start_threshold(internal->pcm_handle,
-			params, internal->period_size);
+                                                    params, internal->period_size);
 	if (err < 0){
           adebug("snd_pcm_sw_params_set_start_threshold() failed.\n");
           return err;
@@ -341,7 +343,7 @@ static inline int alsa_set_swparams(ao_device *device)
 
 	/* require a minimum of one full transfer in the buffer */
 	err = snd_pcm_sw_params_set_avail_min(internal->pcm_handle, params,
-			internal->period_size);
+                                              internal->period_size);
 	if (err < 0){
           adebug("snd_pcm_sw_params_set_avail_min() failed.\n");
           return err;
@@ -524,6 +526,14 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 	}
 
         adebug("Using ALSA device '%s'\n",internal->dev);
+        {
+          snd_pcm_sframes_t sframes;
+          if(snd_pcm_delay (internal->pcm_handle, &sframes)){
+            internal->static_delay=0;
+          }else{
+            internal->static_delay=sframes;
+          }
+        }
 
 	/* alsa's endinness will be the same as the application's */
 	if (format->bits > 8)
@@ -657,7 +667,31 @@ int ao_plugin_close(ao_device *device)
 	if (device) {
           if ((internal = (ao_alsa_internal *) device->internal)) {
             if (internal->pcm_handle) {
-              snd_pcm_drain(internal->pcm_handle);
+
+              /* this is a PulseAudio ALSA emulation bug workaround;
+                 snd_pcm_drain always takes about 2 seconds, even if
+                 there's nothing to drain.  Rather than wait for no
+                 reason, determine the current playback depth, wait
+                 that long, then kill the stream.  Remove this code
+                 once Pulse gets fixed. */
+
+              snd_pcm_sframes_t sframes;
+              if(snd_pcm_delay (internal->pcm_handle, &sframes)){
+                snd_pcm_drain(internal->pcm_handle);
+              }else{
+                double s = (double)(sframes - internal->static_delay)/internal->sample_rate;
+                if(s>0){
+                  struct timespec sleep,wake;
+                  sleep.tv_sec = (int)s;
+                  sleep.tv_nsec = (s-sleep.tv_sec)*1000000000;
+                  while(nanosleep(&sleep,&wake)<0){
+                    if(errno==EINTR)
+                      sleep=wake;
+                    else
+                      break;
+                  }
+                }
+              }
               snd_pcm_close(internal->pcm_handle);
               internal->pcm_handle=NULL;
             }
