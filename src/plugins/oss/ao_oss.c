@@ -44,8 +44,8 @@
 #include "ao/ao.h"
 #include "ao/plugin.h"
 
-/* default 25 millisecond buffer */
-#define AO_OSS_BUFFER_TIME 25000
+/* default 20 millisecond buffer */
+#define AO_OSS_BUFFER_TIME 20000
 
 static char *ao_oss_options[] = {"dsp","dev","id","buffer_time","verbose","quiet","matrix","debug"};
 static ao_info ao_oss_info =
