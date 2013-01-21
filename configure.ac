@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([libao],[1.1.0],[monty@xiph.org])
+AC_INIT([libao],[1.2.0],[monty@xiph.org])
 AM_INIT_AUTOMAKE([gnu 1.6])
 
 AM_MAINTAINER_MODE
@@ -9,9 +9,9 @@ dnl $$$ben: Is that neccessary ? And why ?
 AM_DISABLE_STATIC
 
 dnl Library versioning
-LIB_CURRENT=4
+LIB_CURRENT=5
 LIB_REVISION=0
-LIB_AGE=0
+LIB_AGE=1
 AC_SUBST(LIB_CURRENT)
 AC_SUBST(LIB_REVISION)
 AC_SUBST(LIB_AGE)

@@ -189,7 +189,7 @@ and later (10.4 and earlier uses an earlier, incompatable interface).
 <b>Option keys:</b>
 <ul>
 <li>"buffer_time" - Set the hardware buffer size to the equivalent of
-value milliseconds.
+value in milliseconds.
 </ul>
 <p>
 
@@ -226,6 +226,8 @@ older Linux and FreeBSD as well as some other UNIX-like systems.
 
 <b>Option keys:</b>
 <ul>
+<li>"buffer_time" - Override the default hardware buffer size (in
+milliseconds).
 <li>"dev" - (see 'Standard Driver Options' above). By default, the driver tries
 "/dev/sound/dsp", followed by "/dev/dsp".
 <li>"dsp" - Deprecated synonym for "dev".

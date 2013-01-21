@@ -44,8 +44,10 @@
 #include "ao/ao.h"
 #include "ao/plugin.h"
 
+/* default 25 millisecond buffer */
+#define AO_OSS_BUFFER_TIME 25000
 
-static char *ao_oss_options[] = {"dsp","dev","id","verbose","quiet","matrix","debug"};
+static char *ao_oss_options[] = {"dsp","dev","id","buffer_time","verbose","quiet","matrix","debug"};
 static ao_info ao_oss_info =
 {
 	AO_TYPE_LIVE,
@@ -65,6 +67,7 @@ typedef struct ao_oss_internal {
         int id;
 	int fd;
 	int buf_size;
+	unsigned int buffer_time;
 } ao_oss_internal;
 
 
@@ -182,6 +185,7 @@ int ao_plugin_device_init(ao_device *device)
 
 	internal->dev = NULL;
         internal->id = -1;
+        internal->buffer_time = AO_OSS_BUFFER_TIME;
 
 	device->internal = internal;
         device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;
@@ -205,10 +209,21 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
           internal->dev=NULL;
           internal->id=atoi(value);
 	}
+	if (!strcmp(key, "buffer_time"))
+          internal->buffer_time = atoi(value) * 1000;
 
 	return 1;
 }
 
+static int ilog(long x){
+  int ret=-1;
+
+  while(x>0){
+    x>>=1;
+    ret++;
+  }
+  return ret;
+}
 
 /*
  * open the audio device for writing to
@@ -234,6 +249,20 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           if (internal->fd < 0){
             aerror("open default => %s\n",strerror(errno));
             return 0;  /* Cannot open default device */
+          }
+        }
+
+        /* try to lower the DSP delay; this ioctl may fail gracefully */
+        {
+
+          long bytesperframe=(format->bits+7)/8*device->output_channels*format->rate*(internal->buffer_time/1000000.);
+          int fraglog=ilog(bytesperframe);
+          int fragment=0x00040000|fraglog,fragcheck;
+
+          fragcheck=fragment;
+          int ret=ioctl(internal->fd,SNDCTL_DSP_SETFRAGMENT,&fragment);
+          if(ret || fragcheck!=fragment){
+            fprintf(stderr,"Could not set DSP fragment size; continuing.\n");
           }
         }
 
