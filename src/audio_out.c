@@ -1198,6 +1198,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
 
 	if ( (device->bytewidth>1 &&
               device->client_byte_format != device->driver_byte_format) ||
+             device->input_channels != device->output_channels ||
              device->inter_permute){
 
           result = _realloc_swap_buffer(device, DEF_SWAP_BUF_SIZE);

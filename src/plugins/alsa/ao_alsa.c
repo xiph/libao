@@ -504,22 +504,6 @@ static inline int alsa_test_open(ao_device *device,
     return err;
   }
 
-  /* this is a hack and fragile if the exact device detection code
-     flow changes!  Nevertheless, this is a useful warning for users.
-     Never fail silently if we can help it! */
-  if(!strcasecmp(dev,"default")){
-    /* default device */
-    if(device->output_channels>2){
-      awarn("ALSA 'default' device plays only channels 0,1.\n");
-      device->output_channels=2;
-    }
-  }
-  if(!strcasecmp(dev,"default") || !strncasecmp(dev,"plug",4)){
-    if(format->bits>16){
-      awarn("ALSA '%s' device may only simulate >16 bit playback\n",dev);
-    }
-  }
-
   /* try to set up hw params */
   err = alsa_set_hwparams(device,format);
   if(err<0){
@@ -542,6 +526,21 @@ static inline int alsa_test_open(ao_device *device,
     internal->local_config=NULL;
     internal->pcm_handle = NULL;
     return err;
+  }
+
+  /* this is a hack and fragile if the exact device detection code
+     flow changes!  Nevertheless, this is a useful warning for users.
+     Never fail silently if we can help it! */
+  if(!strcasecmp(dev,"default")){
+    /* default device */
+    if(device->output_channels>2){
+      awarn("ALSA 'default' device plays only channels 0,1.\n");
+    }
+  }
+  if(!strcasecmp(dev,"default") || !strncasecmp(dev,"plug",4)){
+    if(format->bits>16){
+      awarn("ALSA '%s' device may only simulate >16 bit playback\n",dev);
+    }
   }
 
   /* success! */
