@@ -43,8 +43,8 @@
 /* default 20 millisecond buffer */
 #define AO_ALSA_BUFFER_TIME 20000
 
-/* default 5ms transfer size */
-#define AO_ALSA_PERIOD_TIME 5000
+/* default we be calculated to be 1/4 of the buffer time */
+#define AO_ALSA_PERIOD_TIME 0
 
 /* set mmap to default if enabled at compile time, otherwise, mmap isn't
    the default */
@@ -353,19 +353,22 @@ static inline int alsa_set_hwparams(ao_device *device,
                 "by the hardware, using %u\n", format->rate, rate);
 	}
 
-	/* set the time per hardware sample transfer */
-	err = snd_pcm_hw_params_set_period_time_near(internal->pcm_handle,
-			params, &(internal->period_time), 0);
-	if (err < 0){
-          adebug("snd_pcm_hw_params_set_period_time_near() failed.\n");
-          return err;
-        }
-
 	/* set the length of the hardware sample buffer in microseconds */
 	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
 			params, &(internal->buffer_time), 0);
 	if (err < 0){
           adebug("snd_pcm_hw_params_set_buffer_time_near() failed.\n");
+          return err;
+        }
+
+	/* set the time per hardware sample transfer */
+        if(internal->period_time==0)
+          internal->period_time=internal->buffer_time/4;
+
+	err = snd_pcm_hw_params_set_period_time_near(internal->pcm_handle,
+			params, &(internal->period_time), 0);
+	if (err < 0){
+          adebug("snd_pcm_hw_params_set_period_time_near() failed.\n");
           return err;
         }
 
@@ -773,7 +776,6 @@ int ao_plugin_close(ao_device *device)
                   /* something went wrong; fall back */
                   snd_pcm_drain(internal->pcm_handle);
                 }else{
-                  fprintf(stderr,"s=%f(%d)",s,(int)sframes);
                   if(s>0){
                     struct timespec sleep,wake;
                     sleep.tv_sec = (int)s;

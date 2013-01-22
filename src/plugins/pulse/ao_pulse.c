@@ -40,6 +40,8 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
+#define AO_PULSE_BUFFER_TIME 20000
+
 /* Unfortunately libao doesn't allow "const" for these structures... */
 static char * ao_pulse_options[] = {
     "server",
@@ -51,6 +53,7 @@ static char * ao_pulse_options[] = {
     "matrix",
     "debug",
     "client_name"
+    "buffer_time"
 };
 
 static ao_info ao_pulse_info = {
@@ -68,6 +71,8 @@ static ao_info ao_pulse_info = {
 typedef struct ao_pulse_internal {
     struct pa_simple *simple;
     char *server, *sink, *client_name;
+    pa_usec_t static_delay;
+    pa_usec_t buffer_time;
 } ao_pulse_internal;
 
 /* Yes, this is very ugly, but required nonetheless... */
@@ -142,6 +147,7 @@ int ao_plugin_device_init(ao_device *device) {
     internal->server = NULL;
     internal->sink = NULL;
     internal->client_name = NULL;
+    internal->buffer_time = AO_PULSE_BUFFER_TIME;
 
     device->internal = internal;
     device->output_matrix_order = AO_OUTPUT_MATRIX_PERMUTABLE;
@@ -167,6 +173,8 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value) 
     } else if (!strcmp(key, "client_name")) {
         free(internal->client_name);
         internal->client_name = strdup(value);
+    }else if (!strcmp(key, "buffer_time")){
+      internal->buffer_time = atoi(value) * 1000;
     } else
         return 0;
 
@@ -178,6 +186,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
     ao_pulse_internal *internal;
     struct pa_sample_spec ss;
     struct pa_channel_map map;
+    struct pa_buffer_attr battr;
     size_t allocated = 128;
 
     assert(device && device->internal && format);
@@ -246,13 +255,24 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
       }
     }
 
+    /* buffering attributes */
+    battr.prebuf = battr.minreq = battr.fragsize = -1;
+
+    battr.tlength = (int)(internal->buffer_time * format->rate) / 1000000 *
+      ((format->bits+7)/8) + device->output_channels;
+    battr.minreq = battr.tlength/4;
+    battr.maxlength = battr.tlength+battr.minreq;
+
     internal->simple = pa_simple_new(internal->server, t, PA_STREAM_PLAYBACK,
                                      internal->sink, t2, &ss,
-                                     (device->input_map ? &map : NULL), NULL, NULL);
+                                     (device->input_map ? &map : NULL), &battr, NULL);
     if (!internal->simple)
         return 0;
 
     device->driver_byte_format = AO_FMT_NATIVE;
+
+    internal->static_delay = pa_simple_get_latency(internal->simple, NULL);
+    if(internal->static_delay<0) internal->static_delay = 0;
 
     return 1;
 }
@@ -270,7 +290,32 @@ int ao_plugin_close(ao_device *device) {
     ao_pulse_internal *internal = (ao_pulse_internal *) device->internal;
 
     if(internal->simple){
-      pa_simple_drain(internal->simple, NULL);
+
+      /* this is a PulseAudio ALSA bug workaround;
+         pa_simple_drain() always takes about 2 seconds, even if
+         there's nothing to drain.  Rather than wait for no
+         reason, determine the current playback depth, wait
+         that long, then kill the stream.  Remove this code
+         once Pulse gets fixed. */
+
+      pa_usec_t us = pa_simple_get_latency(internal->simple, NULL);
+      if(us<0 || us>1000000){
+        pa_simple_drain(internal->simple, NULL);
+      }else{
+        us -= internal->static_delay;
+        if(us>0){
+          struct timespec sleep,wake;
+          sleep.tv_sec = (int)(us/1000000);
+          sleep.tv_nsec = (us-sleep.tv_sec*1000000)*1000;
+          while(nanosleep(&sleep,&wake)<0){
+            if(errno==EINTR)
+              sleep=wake;
+            else
+              break;
+          }
+        }
+      }
+
       pa_simple_free(internal->simple);
       internal->simple = NULL;
     }

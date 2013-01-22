@@ -19,9 +19,8 @@ INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(pulseltlibs)
 
-libpulse_la_LDFLAGS= @PLUGIN_LDFLAGS@
-libpulse_la_SOURCES=$(pulsesources)
-libpulse_la_LIBADD=$(AM_LIBADD) $(PULSE_LIBS)
-libpulse_la_CFLAGS=$(AM_CFLAGS) $(PULSE_CFLAGS)
+libpulse_la_LDFLAGS = @PLUGIN_LDFLAGS@
+libpulse_la_LIBADD = @PULSE_LIBS@
+libpulse_la_SOURCES = $(pulsesources)
 
 EXTRA_DIST = ao_pulse.c

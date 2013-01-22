@@ -452,9 +452,8 @@ have_pulse="no";
 if test "x$BUILD_PULSE" = "xyes" ; then
     PKG_CHECK_MODULES(PULSE, [ libpulse-simple >= 0.9 ],
 	[have_pulse=yes],[have_pulse=no])
-    AC_SUBST(PULSE_LIBS)
-    AC_SUBST(PULSE_CFLAGS)
 fi
+AC_SUBST(PULSE_LIBS)
 
 AM_CONDITIONAL(HAVE_PULSE,test "x$have_pulse" = xyes)
 
