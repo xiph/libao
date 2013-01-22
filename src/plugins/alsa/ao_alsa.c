@@ -769,15 +769,21 @@ int ao_plugin_close(ao_device *device)
                 snd_pcm_drain(internal->pcm_handle);
               }else{
                 double s = (double)(sframes - internal->static_delay)/internal->sample_rate;
-                if(s>0){
-                  struct timespec sleep,wake;
-                  sleep.tv_sec = (int)s;
-                  sleep.tv_nsec = (s-sleep.tv_sec)*1000000000;
-                  while(nanosleep(&sleep,&wake)<0){
-                    if(errno==EINTR)
-                      sleep=wake;
-                    else
-                      break;
+                if(s>1){
+                  /* something went wrong; fall back */
+                  snd_pcm_drain(internal->pcm_handle);
+                }else{
+                  fprintf(stderr,"s=%f(%d)",s,(int)sframes);
+                  if(s>0){
+                    struct timespec sleep,wake;
+                    sleep.tv_sec = (int)s;
+                    sleep.tv_nsec = (s-sleep.tv_sec)*1000000000;
+                    while(nanosleep(&sleep,&wake)<0){
+                      if(errno==EINTR)
+                        sleep=wake;
+                      else
+                        break;
+                    }
                   }
                 }
               }
