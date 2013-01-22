@@ -353,14 +353,6 @@ static inline int alsa_set_hwparams(ao_device *device,
                 "by the hardware, using %u\n", format->rate, rate);
 	}
 
-	/* set the length of the hardware sample buffer in microseconds */
-	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
-			params, &(internal->buffer_time), 0);
-	if (err < 0){
-          adebug("snd_pcm_hw_params_set_buffer_time_near() failed.\n");
-          return err;
-        }
-
 	/* set the time per hardware sample transfer */
         if(internal->period_time==0)
           internal->period_time=internal->buffer_time/4;
@@ -369,6 +361,19 @@ static inline int alsa_set_hwparams(ao_device *device,
 			params, &(internal->period_time), 0);
 	if (err < 0){
           adebug("snd_pcm_hw_params_set_period_time_near() failed.\n");
+          return err;
+        }
+
+	/* set the length of the hardware sample buffer in microseconds */
+        /* some plug devices have very high minimum periods; don't
+           allow a buffer size small enough that it's ~ guaranteed to
+           skip */
+        if(internal->buffer_time<internal->period_time*3)
+          internal->buffer_time=internal->period_time*3;
+	err = snd_pcm_hw_params_set_buffer_time_near(internal->pcm_handle,
+			params, &(internal->buffer_time), 0);
+	if (err < 0){
+          adebug("snd_pcm_hw_params_set_buffer_time_near() failed.\n");
           return err;
         }
 
