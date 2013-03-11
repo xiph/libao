@@ -241,7 +241,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   ComponentDescription desc;
   AudioStreamBasicDescription requestedDesc;
   AURenderCallbackStruct      input;
-  UInt32 i_param_size;
+  UInt32 i_param_size, requestedEndian;
 
   /* Locate the default output audio unit */
   desc.componentType = kAudioUnitType_Output;
@@ -280,6 +280,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
       requestedDesc.mFormatFlags |= kAudioFormatFlagIsBigEndian;
     break;
   }
+  requestedEndian = requestedDesc.mFormatFlags & kAudioFormatFlagIsBigEndian;
   if (format->bits > 8)
     requestedDesc.mFormatFlags |= kAudioFormatFlagIsSignedInteger;
 
@@ -337,7 +338,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
     return 0;
   }
   if((requestedDesc.mFormatFlags & kAudioFormatFlagsNativeEndian) !=
-     kAudioFormatFlagsNativeEndian){
+     requestedEndian){
     aerror("Could not configure output endianness\n");
     return 0;
   }
