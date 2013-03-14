@@ -95,7 +95,8 @@ typedef struct ao_alsa_internal
         int sample_size;
         unsigned int sample_rate;
         snd_pcm_format_t bitformat;
-        char *pad_24_to_32;
+        char *padbuffer;
+        int   padoutw;
         char *dev;
         int id;
         ao_alsa_writei_t * writei;
@@ -204,7 +205,7 @@ static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian, ao_devi
 	int ret;
 
 	switch (bitwidth) {
-	case 8  : ret = SND_PCM_FORMAT_S8;
+	case 8  : ret = SND_PCM_FORMAT_U8;
 		  break;
 	case 16 : ret = SND_PCM_FORMAT_S16;
 		  break;
@@ -326,8 +327,38 @@ static inline int alsa_set_hwparams(ao_device *device,
 	err = snd_pcm_hw_params_set_format(internal->pcm_handle,
 			params, internal->bitformat);
 	if (err < 0){
-          adebug("snd_pcm_hw_params_set_format() failed.\n");
-          return err;
+
+          /* the device may support a greater bit-depth than the one
+             requested. */
+          switch(internal->bitformat){
+          case SND_PCM_FORMAT_U8:
+            if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
+                                              params, SND_PCM_FORMAT_S16)){
+              adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
+              adebug("snd_pcm_hw_params_set_format() using 16 bit playback instead.\n");
+              format->bits = 16;
+              break;
+            }
+          case SND_PCM_FORMAT_S16:
+            if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
+                                              params, SND_PCM_FORMAT_S24)){
+              adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
+              adebug("snd_pcm_hw_params_set_format() using 24 bit playback instead.\n");
+              format->bits = 24;
+              break;
+            }
+          case SND_PCM_FORMAT_S24:
+            if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
+                                              params, SND_PCM_FORMAT_S32)){
+              adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
+              adebug("snd_pcm_hw_params_set_format() using 32 bit playback instead.\n");
+              format->bits = 32;
+              break;
+            }
+          case SND_PCM_FORMAT_S32:
+            adebug("snd_pcm_hw_params_set_format() failed.\n");
+            return err;
+          }
         }
 
 	/* set the number of channels */
@@ -337,9 +368,6 @@ static inline int alsa_set_hwparams(ao_device *device,
           adebug("snd_pcm_hw_params_set_channels() failed.\n");
           return err;
         }
-
-	/* save the sample size in bytes for posterity */
-	internal->sample_size = format->bits * device->output_channels / 8;
 
 	/* set the sample rate */
 	err = snd_pcm_hw_params_set_rate_near(internal->pcm_handle,
@@ -551,7 +579,7 @@ static inline int alsa_test_open(ao_device *device,
 int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
 	ao_alsa_internal *internal  = (ao_alsa_internal *) device->internal;
-	int err;
+	int err,prebits;
 
 	/* Get the ALSA bitformat first to make sure it's valid */
 	err = alsa_get_sample_bitformat(format->bits,
@@ -563,11 +591,15 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	internal->bitformat = err;
 
-        /* Alsa can only use padded formatting */
-        if(format->bits>16 && format->bits<=24)
-          internal->pad_24_to_32 = calloc(4096,1);
-        else
-          internal->pad_24_to_32 = 0;
+        /* Alsa can only use padded 24 bit formatting */
+        if(format->bits>16 && format->bits<=24){
+          internal->padbuffer = calloc(4096,1);
+          internal->padoutw = 32;
+        }else{
+          internal->padbuffer = 0;
+          internal->padoutw = 0;
+        }
+        prebits = format->bits;
 
 	/* Open the ALSA device */
         err=0;
@@ -621,6 +653,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           return 0;
 	}
 
+        if(prebits != format->bits){
+          internal->padbuffer = calloc(4096,1);
+          internal->padoutw = (format->bits+7)/8;
+          format->bits=prebits;
+        }
+
         adebug("Using ALSA device '%s'\n",internal->dev);
         {
           snd_pcm_sframes_t sframes;
@@ -630,6 +668,9 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
             internal->static_delay=sframes;
           }
         }
+
+	/* save the sample size in bytes for posterity */
+	internal->sample_size = format->bits * device->output_channels / 8;
 
 	/* alsa's endinness will be the same as the application's */
 	if (format->bits > 8)
@@ -724,30 +765,50 @@ int ao_plugin_play(ao_device *device, const char *output_samples,
   ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
   int endianp = ao_is_big_endian();
 
-  /* eventually the 24 bit padding should be at a higher layer
-     where we're doing other permutation/swizzling, but for now
-     only ALSA has need of this... */
-  if(internal->pad_24_to_32){
-    /* pad and forward ~ a page at a time; must not hang on fractional frames*/
-    while(num_bytes>=internal->sample_size){
-      char *d = internal->pad_24_to_32;
-      int len4 = 4096/(4*device->output_channels);
-      int len3 = num_bytes/internal->sample_size;
-      int i;
-      if(len4>len3)len4=len3;
-      len4*=device->output_channels;
+  /* the bit padding should be at a higher layer where we're doing
+     other permutation/swizzling, but for now only ALSA has need of
+     this, and moving it up will require a plugin API change */
 
-      if(endianp)++d;
+  if(internal->padbuffer){
+    /* pad and forward ~ a page at a time; must not hang on fractional frames */
+    int ibytewidth = internal->sample_size / device->output_channels;
+    int obytewidth = internal->padoutw;
+    int istride = internal->sample_size;
+    int ostride = obytewidth*device->output_channels;
 
-      for(i=0;i<len4;i++){
-        memcpy(d,output_samples,3);
-        d+=4;
-        output_samples+=3;
+    while(num_bytes >= internal->sample_size){
+      int oframes = 4096/(obytewidth*device->output_channels);
+      int iframes = num_bytes/internal->sample_size;
+      int frames = oframes<iframes ? oframes : iframes;
+      int obytes = frames * obytewidth * device->output_channels;
+      int ibytes = frames * ibytewidth * device->output_channels;
+      int i,j;
+
+      /* copy */
+      for(j=0;j<ibytewidth;j++){
+        const char *s = output_samples + j;
+        char *d = internal->padbuffer + (endianp ? j : obytewidth-ibytewidth+j);
+        for(i=0;i<frames*device->output_channels;i++){
+          *d = *s;
+          s+=ibytewidth;
+          d+=obytewidth;
+        }
       }
 
-      if(!ao_plugin_playi(device,internal->pad_24_to_32,len4*4,4*device->output_channels))
+      /* pad */
+      for(;j<obytewidth;j++){
+        char *d = internal->padbuffer + (endianp ? j : j-ibytewidth);
+        for(i=0;i<frames*device->output_channels;i++){
+          *d = 0;
+          d+=obytewidth;
+        }
+      }
+
+      if(!ao_plugin_playi(device,internal->padbuffer,obytes,obytewidth*device->output_channels))
         return 0;
-      num_bytes-=len4*3;
+
+      num_bytes-=frames*internal->sample_size;
+      output_samples+=frames*internal->sample_size;
     }
     return 1;
   }else
@@ -819,8 +880,8 @@ void ao_plugin_device_clear(ao_device *device)
               free (internal->dev);
             else
               awarn("ao_plugin_device_clear called with uninitialized ao_device->internal->dev\n");
-            if (internal->pad_24_to_32)
-              free (internal->pad_24_to_32);
+            if (internal->padbuffer)
+              free (internal->padbuffer);
             free(internal);
             device->internal=NULL;
           } else
