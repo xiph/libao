@@ -52,7 +52,7 @@
 #define true  1
 #define false 0
 
-static char *ao_macosx_options[] = {"matrix","verbose","quiet","debug","buffer_time"};
+static char *ao_macosx_options[] = {"matrix","verbose","quiet","debug","buffer_time","dev"};
 
 static ao_info ao_macosx_info =
 {
@@ -73,8 +73,9 @@ static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 typedef struct ao_macosx_internal
 {
   /* Stuff describing the CoreAudio device */
-  ComponentInstance       outputAudioUnit;
-  int                     output_p;
+  AudioDeviceID                outputDevice;
+  ComponentInstance            outputAudioUnit;
+  int                          output_p;
 
   /* Keep track of whether the output stream has actually been
      started/stopped */
@@ -117,7 +118,7 @@ static OSStatus audioCallback (void *inRefCon,
 
   if(ioData->mNumberBuffers != 1){
     aerror("Unexpected number of buffers (%d)\n",
-	   ioData->mNumberBuffers);
+	   (int)ioData->mNumberBuffers);
     return 0;
   }
 
@@ -174,7 +175,7 @@ static OSStatus audioCallback (void *inRefCon,
 
 int ao_plugin_test()
 {
-  /* This plugin will only build on a 10.6 or later Mac (Darwin 9+);
+  /* This plugin will only build on a 10.4 or later Mac (Darwin 8+);
      if it built, default AUHAL is available. */
   return 1; /* This plugin works in default mode */
 
@@ -204,16 +205,177 @@ int ao_plugin_device_init(ao_device *device)
   device->output_matrix_order = AO_OUTPUT_MATRIX_COLLAPSIBLE;
   device->output_matrix = strdup("L,R,C,LFE,BL,BR,CL,CR,BC,SL,SR");
 
-  CFRunLoopRef theRunLoop = NULL;
-  AudioObjectPropertyAddress theAddress = {
-    kAudioHardwarePropertyRunLoop,
-    kAudioObjectPropertyScopeGlobal,
-    kAudioObjectPropertyElementMaster
-  };
-  AudioObjectSetPropertyData(kAudioObjectSystemObject, &theAddress, 0,
-                             NULL, sizeof(CFRunLoopRef), &theRunLoop);
-
   return 1; /* Memory alloc successful */
+}
+
+static void lowercasestr(char *str)
+{
+  while (*str) {
+    if ('A' <= *str && *str <= 'Z')
+      *str += 'a' - 'A';
+    ++str;
+  }
+}
+
+static char *cfstringdupe(CFStringRef cfstr)
+{
+  CFIndex maxlen;
+  char *cstr;
+
+  if (!cfstr)
+    return NULL;
+  maxlen = 1+CFStringGetMaximumSizeForEncoding(CFStringGetLength(cfstr),kCFStringEncodingUTF8);
+  cstr = (char *) malloc(maxlen);
+  if (!cstr)
+    return NULL;
+  if (!CFStringGetCString(cfstr, cstr, maxlen, kCFStringEncodingUTF8)) {
+    free(cstr);
+    return NULL;
+  }
+  return cstr;
+}
+
+static int isAudioOutputDevice(AudioDeviceID aid)
+{
+  if (aid != kAudioObjectUnknown) {
+    AudioObjectPropertyAddress theAddress = {
+      kAudioDevicePropertyDeviceCanBeDefaultDevice,
+      kAudioDevicePropertyScopeOutput,
+      kAudioObjectPropertyElementMaster
+    };
+    UInt32 val;
+    UInt32 size = sizeof(val);
+    OSStatus err;
+
+    err = AudioObjectGetPropertyData(aid, &theAddress, 0, NULL, &size, &val);
+    if (!err && val)
+      return 1;
+  }
+  return 0;
+}
+
+static AudioDeviceID findAudioOutputDevice(const char *name)
+{
+  OSStatus err;
+  AudioDeviceID aid;
+
+  /* First see if it's a valid device UID */
+  {
+    CFStringRef namestr;
+    AudioValueTranslation avt = {&namestr, sizeof(namestr), &aid, sizeof(aid)};
+    UInt32 size = sizeof(avt);
+
+    namestr = CFStringCreateWithCStringNoCopy(NULL, name, kCFStringEncodingUTF8,
+                                              kCFAllocatorNull);
+    if (!namestr)
+      return kAudioObjectUnknown;
+    err = AudioHardwareGetProperty(kAudioHardwarePropertyDeviceForUID, &size, &avt);
+    CFRelease(namestr);
+    if (!err && aid != kAudioObjectUnknown)
+      return isAudioOutputDevice(aid) ? aid : kAudioObjectUnknown;
+  }
+
+  /* otherwise fall back to a device name search */
+  {
+    AudioDeviceID *devices;
+    UInt32 size;
+    size_t count, i, match, matches;
+    char *lcname = strdup(name);
+
+    if (!lcname)
+      return kAudioObjectUnknown; /* no memory */
+    lowercasestr(lcname);
+    err = AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &size, NULL);
+    if (err) {
+      free(lcname);
+      return kAudioObjectUnknown;
+    }
+    devices = (AudioDeviceID *) malloc(size);
+    if (!devices) {
+      free(lcname);
+      return kAudioObjectUnknown; /* no memory */
+    }
+    err = AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &size, devices);
+    if (err) {
+      free(lcname);
+      free(devices);
+      return kAudioObjectUnknown; /* no device list */
+    }
+    count = size / sizeof(AudioDeviceID);
+    match = 0;
+    matches = 0;
+    for (i = 0; i < count; ++i) {
+      AudioObjectPropertyAddress theAddress = {
+        kAudioObjectPropertyName,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMaster
+      };
+      CFStringRef devstr;
+      UInt32 srcnum;
+      UInt32 size = sizeof(devstr);
+      char *devname;
+      char *srcname = NULL;
+
+      if (!isAudioOutputDevice(devices[i]))
+        continue;
+      err = AudioObjectGetPropertyData(devices[i], &theAddress, 0, NULL, &size, &devstr);
+      if (err || devstr == NULL)
+        continue;
+      devname = cfstringdupe(devstr);
+      CFRelease(devstr);
+      if (!devname)
+        continue;
+      lowercasestr(devname);
+      if (!strcmp(lcname,devname)) {
+        /* exact match always wins */
+        match = i;
+        matches = 1;
+        free(devname);
+        break;
+      }
+      /* Check the source name too */
+      size = sizeof(srcnum);
+      err = AudioDeviceGetProperty(devices[i], 0, FALSE, kAudioDevicePropertyDataSource,
+                                   &size, &srcnum);
+      if (!err) {
+        CFStringRef srcstr;
+        AudioValueTranslation avt = {&srcnum, sizeof(srcnum), &srcstr, sizeof(srcstr)};
+        size = sizeof(avt);
+        err = AudioDeviceGetProperty(devices[i], 0, FALSE,
+                                     kAudioDevicePropertyDataSourceNameForIDCFString,
+                                     &size, &avt);
+        if (!err && srcstr) {
+          srcname = cfstringdupe(srcstr);
+          CFRelease(srcstr);
+          if (srcname)
+            lowercasestr(srcname);
+        }
+      }
+      if (srcname && !strcmp(lcname,srcname)) {
+        /* exact match always wins */
+        match = i;
+        matches = 1;
+        free(srcname);
+        free(devname);
+        break;
+      }
+      /* tally partial matches */
+      if (strstr(devname,lcname) || (srcname && strstr(srcname,lcname))) {
+        match = i;
+        ++matches;
+      }
+      free(devname);
+      if (srcname)
+        free(srcname);
+    }
+    if (matches == 1)
+      aid = devices[match];
+    else
+      aid = kAudioObjectUnknown;
+    free(lcname);
+    free(devices);
+    return aid;
+  }
 }
 
 int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
@@ -228,6 +390,15 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value)
       buffer = 100;
     }
     internal->buffer_time = buffer;
+  } else if (!strcmp(key,"dev")) {
+    if (!value || !value[0]) {
+      /* permit switching back to default device with empty string */
+      internal->outputDevice = kAudioObjectUnknown;
+    } else {
+      internal->outputDevice = findAudioOutputDevice(value);
+      if (internal->outputDevice == kAudioObjectUnknown)
+        return 0;
+    }
   }
 
   return 1;
@@ -261,6 +432,20 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   if (result) {
     aerror("AudioComponentInstanceNew() error => %d\n",(int)result);
     return 0;
+  }
+  /* Set the desired output device if not default */
+  if (internal->outputDevice != kAudioObjectUnknown) {
+    result = AudioUnitSetProperty (internal->outputAudioUnit,
+                                   kAudioOutputUnitProperty_CurrentDevice,
+                                   kAudioUnitScope_Global,
+                                   0,
+                                   &internal->outputDevice,
+                                   sizeof(internal->outputDevice));
+    if (result) {
+      aerror("AudioComponentSetDevice() error => %d\n",(int)result);
+      CloseComponent(internal->outputAudioUnit);
+      return 0;
+    }
   }
   internal->output_p=1;
 
