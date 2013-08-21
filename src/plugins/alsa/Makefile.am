@@ -20,7 +20,7 @@ libdir = $(plugindir)
 lib_LTLIBRARIES = $(alsaltlibs)
 
 libalsa_la_LDFLAGS = @PLUGIN_LDFLAGS@
-libalsa_la_LIBADD = @ALSA_LIBS@
+libalsa_la_LIBADD = @ALSA_LIBS@ ../../libao.la
 libalsa_la_SOURCES = $(alsasources)
 
 EXTRA_DIST = ao_alsa.c

@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = plugins
+SUBDIRS = . plugins
 
 INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include -I$(top_srcdir)/include/ao -DAO_PLUGIN_PATH=\"@plugindir@\"
 
