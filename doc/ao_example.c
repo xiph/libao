@@ -18,11 +18,12 @@
  *
  * Compilation command line (for Linux systems):
  *
- *     gcc -lao -ldl -lm -o ao_example ao_example.c
+ *     gcc -o ao_example ao_example.c -lao -ldl -lm
  *
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <ao/ao.h>
 #include <math.h>
 
