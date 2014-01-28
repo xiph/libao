@@ -1,3 +1,6 @@
+1.2.1 - unreleased snapshot
+ - no changes yet
+
 1.2.0 - January 27, 2014
  - Added missing ao_file_extension() (see Trac #1841)
  - Fixed memory leak in ao_shutdown() (see Trac #1799)
