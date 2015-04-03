@@ -209,7 +209,7 @@ static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian, ao_devi
 		  break;
 	case 16 : ret = SND_PCM_FORMAT_S16;
 		  break;
-	case 24 : ret = SND_PCM_FORMAT_S24;
+	case 24 : ret = bigendian?SND_PCM_FORMAT_S24_3BE:SND_PCM_FORMAT_S24_3LE;
 		  break;
 	case 32 : ret = SND_PCM_FORMAT_S32;
 		  break;
@@ -348,6 +348,11 @@ static inline int alsa_set_hwparams(ao_device *device,
               break;
             }
           case SND_PCM_FORMAT_S24:
+            /* there are packed and unpacked '24 bit' formats, try the unpacked */
+            if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
+                                              params, SND_PCM_FORMAT_S24)){
+              break;
+            }
             if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
                                               params, SND_PCM_FORMAT_S32)){
               adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
