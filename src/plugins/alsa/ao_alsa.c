@@ -209,7 +209,7 @@ static inline int alsa_get_sample_bitformat(int bitwidth, int bigendian, ao_devi
 		  break;
 	case 16 : ret = SND_PCM_FORMAT_S16;
 		  break;
-	case 24 : ret = bigendian?SND_PCM_FORMAT_S24_3BE:SND_PCM_FORMAT_S24_3LE;
+	case 24 : ret = SND_PCM_FORMAT_S24;
 		  break;
 	case 32 : ret = SND_PCM_FORMAT_S32;
 		  break;
@@ -337,6 +337,7 @@ static inline int alsa_set_hwparams(ao_device *device,
               adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
               adebug("snd_pcm_hw_params_set_format() using 16 bit playback instead.\n");
               format->bits = 16;
+              internal->bitformat=SND_PCM_FORMAT_S16;
               break;
             }
           case SND_PCM_FORMAT_S16:
@@ -345,12 +346,22 @@ static inline int alsa_set_hwparams(ao_device *device,
               adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
               adebug("snd_pcm_hw_params_set_format() using 24 bit playback instead.\n");
               format->bits = 24;
+              internal->bitformat=SND_PCM_FORMAT_S24;
               break;
             }
           case SND_PCM_FORMAT_S24:
-            /* there are packed and unpacked '24 bit' formats, try the unpacked */
+            /* There are packed and unpacked '24 bit' formats. Try the packed. */
+            /* Alsa requires explicit endianness assignment, so try both */
             if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
-                                              params, SND_PCM_FORMAT_S24)){
+                                              params, SND_PCM_FORMAT_S24_3LE)){
+              device->driver_byte_format = AO_FMT_LITTLE;
+              internal->bitformat=SND_PCM_FORMAT_S24_3LE;
+              break;
+            }
+            if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
+                                              params, SND_PCM_FORMAT_S24_3BE)){
+              device->driver_byte_format = AO_FMT_BIG;
+              internal->bitformat=SND_PCM_FORMAT_S24_3BE;
               break;
             }
             if (!snd_pcm_hw_params_set_format(internal->pcm_handle,
@@ -358,6 +369,7 @@ static inline int alsa_set_hwparams(ao_device *device,
               adebug("snd_pcm_hw_params_set_format() unable to open %d bit playback.\n",format->bits);
               adebug("snd_pcm_hw_params_set_format() using 32 bit playback instead.\n");
               format->bits = 32;
+              internal->bitformat=SND_PCM_FORMAT_S32;
               break;
             }
           case SND_PCM_FORMAT_S32:
@@ -596,14 +608,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	internal->bitformat = err;
 
-        /* Alsa can only use padded 24 bit formatting */
-        if(format->bits>16 && format->bits<=24){
-          internal->padbuffer = calloc(4096,1);
-          internal->padoutw = 32;
-        }else{
-          internal->padbuffer = 0;
-          internal->padoutw = 0;
-        }
+	/* alsa's endianness will (nearly always) be the same as the application's */
+	if (format->bits > 8)
+		device->driver_byte_format = device->client_byte_format;
+
         prebits = format->bits;
 
 	/* Open the ALSA device */
@@ -658,7 +666,12 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
           return 0;
 	}
 
-        if(prebits != format->bits){
+        internal->padbuffer = 0;
+        internal->padoutw = 0;
+        if(internal->bitformat == SND_PCM_FORMAT_S24){
+          internal->padbuffer = calloc(4096,1);
+          internal->padoutw = 32;
+        }else if(prebits != format->bits){
           internal->padbuffer = calloc(4096,1);
           internal->padoutw = (format->bits+7)/8;
           format->bits=prebits;
@@ -676,10 +689,6 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 	/* save the sample size in bytes for posterity */
 	internal->sample_size = format->bits * device->output_channels / 8;
-
-	/* alsa's endinness will be the same as the application's */
-	if (format->bits > 8)
-		device->driver_byte_format = device->client_byte_format;
 
         if(strcasecmp(internal->dev,"default")){
           if(strncasecmp(internal->dev,"surround",8)){
