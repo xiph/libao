@@ -258,6 +258,7 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
 {
   OSStatus err;
   AudioDeviceID aid;
+  AudioObjectPropertyAddress propertyAddress;
 
   /* First see if it's a valid device UID */
   {
@@ -269,7 +270,10 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
                                               kCFAllocatorNull);
     if (!namestr)
       return kAudioObjectUnknown;
-    err = AudioHardwareGetProperty(kAudioHardwarePropertyDeviceForUID, &size, &avt);
+    propertyAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
+    propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
+    propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+    err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &size, &avt);
     CFRelease(namestr);
     if (!err && aid != kAudioObjectUnknown)
       return isAudioOutputDevice(aid) ? aid : kAudioObjectUnknown;
@@ -408,8 +412,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 {
   ao_macosx_internal *internal = (ao_macosx_internal *) device->internal;
   OSStatus result = noErr;
-  Component comp;
-  ComponentDescription desc;
+  AudioComponent comp;
+  AudioComponentDescription desc;
   AudioStreamBasicDescription requestedDesc;
   AURenderCallbackStruct      input;
   UInt32 i_param_size, requestedEndian;
@@ -421,14 +425,14 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   desc.componentFlags = 0;
   desc.componentFlagsMask = 0;
 
-  comp = FindNextComponent (NULL, &desc);
+  comp = AudioComponentFindNext (NULL, &desc);
   if (comp == NULL) {
     aerror("Failed to start CoreAudio: AudioComponentFindNext returned NULL");
     return 0;
   }
 
   /* Open & initialize the default output audio unit */
-  result = OpenAComponent (comp, &internal->outputAudioUnit);
+  result = AudioComponentInstanceNew (comp, &internal->outputAudioUnit);
   if (result) {
     aerror("AudioComponentInstanceNew() error => %d\n",(int)result);
     return 0;
@@ -443,7 +447,7 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
                                    sizeof(internal->outputDevice));
     if (result) {
       aerror("AudioComponentSetDevice() error => %d\n",(int)result);
-      CloseComponent(internal->outputAudioUnit);
+      AudioComponentInstanceDispose(internal->outputAudioUnit);
       return 0;
     }
   }
@@ -723,9 +727,9 @@ int ao_plugin_close(ao_device *device)
         return 0;
       }
 
-      status = CloseComponent(internal->outputAudioUnit);
+      status = AudioComponentInstanceDispose(internal->outputAudioUnit);
       if (status) {
-        awarn("CloseComponent returned %d\n", (int)status);
+        awarn("AudioComponentInstanceDispose returned %d\n", (int)status);
         return 0;
       }
     }else
