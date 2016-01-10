@@ -259,6 +259,9 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
   OSStatus err;
   AudioDeviceID aid;
   AudioObjectPropertyAddress propertyAddress;
+  propertyAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
+  propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
+  propertyAddress.mElement = kAudioObjectPropertyElementMaster;
 
   /* First see if it's a valid device UID */
   {
@@ -270,9 +273,6 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
                                               kCFAllocatorNull);
     if (!namestr)
       return kAudioObjectUnknown;
-    propertyAddress.mSelector = kAudioHardwarePropertyDefaultInputDevice;
-    propertyAddress.mScope = kAudioObjectPropertyScopeGlobal;
-    propertyAddress.mElement = kAudioObjectPropertyElementMaster;
     err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &size, &avt);
     CFRelease(namestr);
     if (!err && aid != kAudioObjectUnknown)
@@ -289,7 +289,7 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
     if (!lcname)
       return kAudioObjectUnknown; /* no memory */
     lowercasestr(lcname);
-    err = AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &size, NULL);
+    err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &size, devices);
     if (err) {
       free(lcname);
       return kAudioObjectUnknown;
@@ -299,7 +299,7 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
       free(lcname);
       return kAudioObjectUnknown; /* no memory */
     }
-    err = AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &size, devices);
+    err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &size, devices);
     if (err) {
       free(lcname);
       free(devices);
@@ -339,15 +339,13 @@ static AudioDeviceID findAudioOutputDevice(const char *name)
       }
       /* Check the source name too */
       size = sizeof(srcnum);
-      err = AudioDeviceGetProperty(devices[i], 0, FALSE, kAudioDevicePropertyDataSource,
-                                   &size, &srcnum);
+      AudioObjectPropertyAddress address = { kAudioDevicePropertyVolumeScalar, kAudioDevicePropertyScopeInput, 0 };
+      err = AudioObjectGetPropertyData(devices[i], &address, 0, NULL, &size, &srcnum);
       if (!err) {
         CFStringRef srcstr;
         AudioValueTranslation avt = {&srcnum, sizeof(srcnum), &srcstr, sizeof(srcstr)};
         size = sizeof(avt);
-        err = AudioDeviceGetProperty(devices[i], 0, FALSE,
-                                     kAudioDevicePropertyDataSourceNameForIDCFString,
-                                     &size, &avt);
+        err = AudioObjectGetPropertyData(devices[i], &address, 0, NULL, &size, &avt);
         if (!err && srcstr) {
           srcname = cfstringdupe(srcstr);
           CFRelease(srcstr);
