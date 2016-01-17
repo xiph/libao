@@ -662,9 +662,8 @@ static char *_sanitize_matrix(int maxchannels, char *matrix, ao_device *device){
         /* unrecognized channel mnemonic */
         {
           int i;
-          aerror("Unrecognized channel name \"");
-          for(i=0;i<t-p;i++)fputc(p[i],stderr);
-          fprintf(stderr,"\" in channel matrix \"%s\"\n",matrix);
+          aerror("Unrecognized channel name \"%.*s\" in channel matrix \"%s\"\n",
+              t-p, p, matrix);
         }
         free(ret);
         return NULL;
