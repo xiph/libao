@@ -224,13 +224,13 @@ AC_ARG_ENABLE([wmm],
 	[include WMM output plugin @<:@default=check@:>@])],
 	[],[enable_wmm="check"]
 )
-AS_IF([AC_LANG_SOURCE([test "x$enable_wmm" != "xno"],
+AS_IF([test "x$enable_wmm" != "xno"],
 [AC_CHECK_HEADERS([mmsystem.h],
    [
    AC_MSG_CHECKING([waveOut family functions])
    waveout_old_LIBS="$LIBS"; LIBS="$LIBS -lwinmm"
 dnl Can't use AC_SEARCH_LIBS because symbols are decorated
-   AC_LINK_IFELSE([
+   AC_LINK_IFELSE([AC_LANG_SOURCE([
 #include <windows.h>
 #include <mmsystem.h>
 int main(int na, char ** a) {
