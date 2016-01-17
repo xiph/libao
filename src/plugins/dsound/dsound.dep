@@ -1,8 +1,0 @@
-# Microsoft Developer Studio Generated Dependency File, included by dsound.mak
-
-.\ao_dsound.c : \
-	"..\..\..\..\..\..\..\program files\microsoft visual studio\vc98\include\basetsd.h"\
-	"..\..\..\include\ao\ao.h"\
-	"..\..\..\include\ao\plugin.h"\
-	"..\..\..\win32\include\os_types.h"\
-	
