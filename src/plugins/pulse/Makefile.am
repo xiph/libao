@@ -14,7 +14,7 @@ pulsesources =
 
 endif
 
-INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
+INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include @PULSE_CFLAGS@
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(pulseltlibs)
