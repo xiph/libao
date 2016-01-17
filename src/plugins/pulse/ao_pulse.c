@@ -175,8 +175,7 @@ int ao_plugin_set_option(ao_device *device, const char *key, const char *value) 
         internal->client_name = strdup(value);
     }else if (!strcmp(key, "buffer_time")){
       internal->buffer_time = atoi(value) * 1000;
-    } else
-        return 0;
+    }
 
     return 1;
 }
