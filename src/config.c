@@ -61,29 +61,25 @@ static int ao_read_config_file(ao_config *config, const char *config_file)
 		return 0; /* Can't open file */
 
 	while (fgets(line, LINE_LEN, fp)) {
-		/* All options are key=value */
+		/* All options are key=value, comments start with '#' */
+		char *key=trim(line);
+		if (key && *key && *key != '#') {
+			char *val = strchr(key,'=');
+			if (val) {
+				*val = '\0';
+				val++;
+			}
 
-		if (strncmp(line, "default_driver=", 15) == 0) {
-			free(config->default_driver);
-			end = strlen(line);
-			if (line[end-1] == '\n')
-				line[end-1] = 0; /* Remove trailing newline */
-
-			config->default_driver = strdup(line+15);
-		}else{
-                        /* entries in the config file that don't parse as
-                           directives to AO at large are treated as driver
-                           options */
-                        char *key=trim(line);
-                        if(key && *key){
-                          char *val=strchr(key,'=');
-                          if(val){
-                            *val='\0';
-                            val++;
-                          }
-                          ao_append_global_option(key,val);
-                        }
-                }
+			if (!strcmp(key, "default_driver")) {
+				free(config->default_driver);
+				config->default_driver = strdup(val?val:"");
+			} else {
+				/* entries in the config file that don't parse as
+				   directives to AO at large are treated as driver
+				   options */
+				ao_append_global_option(key,val);
+			}
+		}
 	}
 
 	fclose(fp);
