@@ -15,3 +15,6 @@ LIBAO4_1.1.0 {
           ao_shutdown;
   local:  *;
 };
+LIBAO4_1.2.0 {
+  global: ao_file_extension;
+};
