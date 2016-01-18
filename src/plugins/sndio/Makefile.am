@@ -14,7 +14,7 @@ sndiosources =
 
 endif
 
-INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(top_builddir)/include/ao -I$(top_srcdir)/include
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(sndioltlibs)

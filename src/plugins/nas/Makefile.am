@@ -16,7 +16,7 @@ nassources =
 
 endif
 
-INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include @NAS_CFLAGS@
+AM_CPPFLAGS = -I$(top_builddir)/include/ao -I$(top_srcdir)/include @NAS_CFLAGS@
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(nasltlibs)

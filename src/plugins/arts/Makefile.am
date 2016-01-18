@@ -14,7 +14,7 @@ artssources =
 
 endif
 
-INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include @ARTS_CFLAGS@
+AM_CPPFLAGS = -I$(top_builddir)/include/ao -I$(top_srcdir)/include @ARTS_CFLAGS@
 
 libdir = $(plugindir)
 lib_LTLIBRARIES = $(artsltlibs)

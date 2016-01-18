@@ -3,7 +3,10 @@
 AUTOMAKE_OPTIONS = foreign
 SUBDIRS = . plugins
 
-INCLUDES = -I$(top_builddir)/include/ao -I$(top_srcdir)/include -I$(top_srcdir)/include/ao -DAO_PLUGIN_PATH=\"@plugindir@\"
+AM_CPPFLAGS = -I$(top_builddir)/include/ao \
+	      -I$(top_srcdir)/include \
+	      -I$(top_srcdir)/include/ao \
+	      -DAO_PLUGIN_PATH=\"@plugindir@\"
 
 lib_LTLIBRARIES = libao.la
 
