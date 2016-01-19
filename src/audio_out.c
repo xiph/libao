@@ -770,7 +770,7 @@ static void _free_map(char **m){
 static unsigned int _matrix_to_channelmask(int ch, char *matrix, char *premap, int **mout){
   unsigned int ret=0;
   char *p=matrix;
-  int *perm=(*mout=malloc(ch*sizeof(*mout)));
+  int *perm=(*mout=malloc(ch*sizeof(*perm)));
   int i;
   char **map = _tokenize_matrix(premap);
 
