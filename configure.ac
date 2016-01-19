@@ -8,6 +8,8 @@ AM_MAINTAINER_MODE
 dnl $$$ben: Is that neccessary ? And why ?
 AM_DISABLE_STATIC
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 dnl Library versioning
 LIB_CURRENT=5
 LIB_REVISION=1
