@@ -73,28 +73,14 @@ if test -z "$GCC"; then
                 PROFILE="-g -p" ;;
         esac
 else
-
+        DEBUG="-g -Wall -fsigned-char"
+        CFLAGS="-fsigned-char"
+        PROFILE="-g -pg -fsigned-char"
         case $host in
-        *-*-linux*)
-                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D_REENTRANT -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-O20 -ffast-math -D_REENTRANT -fsigned-char"
-                PROFILE="-pg -g -O20 -ffast-math -D_REENTRANT -fsigned-char";;
-        sparc-sun-*)
-                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char"
-                PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char" ;;
         *-darwin*)
-                PLUGIN_LDFLAGS="-module -avoid-version"
-               	DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-D__NO_MATH_INLINES -fsigned-char"
-                PROFILE="-g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
+                PLUGIN_LDFLAGS="-module -avoid-version" ;;
      	*)
-                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
-                PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version" ;;
         esac
 fi
 CFLAGS="$CFLAGS $cflags_save -DAO_BUILDING_LIBAO"
