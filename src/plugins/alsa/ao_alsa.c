@@ -737,10 +737,10 @@ static inline int alsa_error_recovery(ao_alsa_internal *internal, int err, ao_de
 
 
 static int ao_plugin_playi(ao_device *device, const char *output_samples, 
-                           uint_32 num_bytes, int sample_size)
+                           uint32_t num_bytes, int sample_size)
 {
 	ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
-       	uint_32 len = num_bytes / sample_size;
+       	uint32_t len = num_bytes / sample_size;
 	char *ptr = (char *) output_samples;
 	int err;
 
@@ -774,7 +774,7 @@ static int ao_plugin_playi(ao_device *device, const char *output_samples,
 
 /* play num_bytes of audio data */
 int ao_plugin_play(ao_device *device, const char *output_samples, 
-		uint_32 num_bytes)
+		uint32_t num_bytes)
 {
   ao_alsa_internal *internal = (ao_alsa_internal *) device->internal;
   int endianp = ao_is_big_endian();

@@ -204,9 +204,9 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
 
 /* Play the sampled audio data to the already opened device. */
 int ao_plugin_play(ao_device *device, const char *output_samples,
-		uint_32 num_bytes)
+		uint32_t num_bytes)
 {
-	uint_32 num_frames;
+	uint32_t num_frames;
 	ao_irix_internal *internal = (ao_irix_internal *) device->internal;
 
 	num_frames = num_bytes;

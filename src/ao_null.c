@@ -109,7 +109,7 @@ static int ao_null_open(ao_device *device, ao_sample_format *format)
 
 
 static int ao_null_play(ao_device *device, const char *output_samples,
-			uint_32 num_bytes)
+			uint32_t num_bytes)
 {
 	ao_null_internal *internal = (ao_null_internal *)device->internal;
 

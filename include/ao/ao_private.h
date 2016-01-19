@@ -128,7 +128,7 @@ struct ao_functions {
 			  const char *value);
 	int (*open)(ao_device *device, ao_sample_format *format);
 	int (*play)(ao_device *device, const char *output_samples,
-			   uint_32 num_bytes);
+			   uint32_t num_bytes);
 	int (*close)(ao_device *device);
 	void (*device_clear)(ao_device *device);
 	const char* (*file_extension)(void);

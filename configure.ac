@@ -152,35 +152,6 @@ esac
 AC_DEFINE_UNQUOTED(DLOPEN_FLAG, $DLOPEN_FLAG)
 AC_DEFINE_UNQUOTED(SHARED_LIB_EXT, "$SHARED_LIB_EXT")
 
-dnl ==============================
-dnl Checks for types
-dnl ==============================
-
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(long)
-
-case 2 in
-        $ac_cv_sizeof_short) SIZE16="short";;
-        $ac_cv_sizeof_int) SIZE16="int";;
-esac
-
-case 4 in
-        $ac_cv_sizeof_short) SIZE32="short";;
-        $ac_cv_sizeof_int) SIZE32="int";;
-        $ac_cv_sizeof_long) SIZE32="long";;
-esac
-
-if test -z "$SIZE16"; then
-        AC_MSG_ERROR(No 16 bit type found on this platform!)
-fi
-if test -z "$SIZE32"; then
-        AC_MSG_ERROR(No 32 bit type found on this platform!)
-fi
-
-AC_SUBST(SIZE16)
-AC_SUBST(SIZE32)
-
 dnl ======================================
 dnl Disable default use of SLP in roar 
 dnl until such time as SLP doesn't block
@@ -452,7 +423,7 @@ dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc])
+AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc])
 
 AS_AC_EXPAND(LIBDIR, ${libdir})
 AS_AC_EXPAND(INCLUDEDIR, ${includedir})

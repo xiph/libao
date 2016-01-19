@@ -39,7 +39,7 @@
 #include <ao/ao.h>
 #include <ao/plugin.h>
 
-#define AUDIO_FILE_MAGIC ((uint_32)0x2e736e64)  /* ".snd" */
+#define AUDIO_FILE_MAGIC ((uint32_t)0x2e736e64)  /* ".snd" */
 
 #define AUDIO_UNKNOWN_SIZE (~0) /* (unsigned) -1 */
 
@@ -51,7 +51,7 @@
 
 #define DEFAULT_SWAP_BUFFER_SIZE 2048
 
-/* Write a uint_32 in big-endian order. */
+/* Write a uint32_t in big-endian order. */
 #define WRITE_U32(buf, x) \
 	*(buf) = (unsigned char)(((x)>>24)&0xff);\
 	*((buf)+1) = (unsigned char)(((x)>>16)&0xff);\
@@ -59,12 +59,12 @@
 	*((buf)+3) = (unsigned char)((x)&0xff);
 
 typedef struct Audio_filehdr {
-	uint_32 magic; /* magic number */
-	uint_32 hdr_size; /* offset of the data */
-	uint_32 data_size; /* length of data (optional) */
-	uint_32 encoding; /* data format code */
-	uint_32 sample_rate; /* samples per second */
-	uint_32 channels; /* number of interleaved channels */
+	uint32_t magic; /* magic number */
+	uint32_t hdr_size; /* offset of the data */
+	uint32_t data_size; /* length of data (optional) */
+	uint32_t encoding; /* data format code */
+	uint32_t sample_rate; /* samples per second */
+	uint32_t channels; /* number of interleaved channels */
 	char info[4]; /* optional text information */
 } Audio_filehdr;
 
@@ -185,7 +185,7 @@ static int ao_au_open(ao_device *device, ao_sample_format *format)
  * play the sample to the already opened file descriptor
  */
 static int ao_au_play(ao_device *device, const char *output_samples,
-		       uint_32 num_bytes)
+		       uint32_t num_bytes)
 {
 	if (fwrite(output_samples, sizeof(char), num_bytes,
 		   device->file) < num_bytes)

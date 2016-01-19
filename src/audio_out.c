@@ -607,9 +607,9 @@ static void _buffer_permute(char *target,int och,int bytewidth,int ochannels,int
 /* Swap and copy the byte order of samples from the source buffer to
    the target buffer. */
 static void _swap_samples(char *target_buffer, char* source_buffer,
-			  uint_32 num_bytes)
+			  uint32_t num_bytes)
 {
-	uint_32 i;
+	uint32_t i;
 
 	for (i = 0; i < num_bytes; i += 2) {
 		target_buffer[i] = source_buffer[i+1];
@@ -1380,7 +1380,7 @@ ao_device *ao_open_file (int driver_id, const char *filename, int overwrite,
 }
 
 
-int ao_play(ao_device *device, char* output_samples, uint_32 num_bytes)
+int ao_play(ao_device *device, char* output_samples, uint32_t num_bytes)
 {
 	char *playback_buffer;
 
@@ -1515,6 +1515,6 @@ const char *ao_file_extension(int driver_id)
 /* Stolen from Vorbis' lib/vorbisfile.c */
 int ao_is_big_endian(void)
 {
-	static uint_16 pattern = 0xbabe;
+	static uint16_t pattern = 0xbabe;
 	return 0[(volatile unsigned char *)&pattern] == 0xba;
 }

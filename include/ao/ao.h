@@ -35,7 +35,7 @@ extern "C"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "os_types.h"
+#include <stdint.h>
 
 /* --- Constants ---*/
 
@@ -118,7 +118,7 @@ ao_device*       ao_open_file(int driver_id,
 
 int                   ao_play(ao_device *device,
                               char *output_samples,
-                              uint_32 num_bytes);
+                              uint32_t num_bytes);
 int                  ao_close(ao_device *device);
 
 /* driver information */
