@@ -419,6 +419,19 @@ AM_CONDITIONAL(HAVE_PULSE,test "x$have_pulse" = xyes)
 dnl Orphaned driver.  We'll probably dump it soon.
 AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
 
+dnl Build documentation
+docs_enabled=yes
+AC_ARG_ENABLE([docs], [AS_HELP_STRING([--disable-docs],
+[skip docs during build]) ], [ docs_enabled=$enableval ], [])
+
+AC_CHECK_PROG([HAS_SPHINX_BUILD], [sphinx-build], [yes])
+if test x${docs_enabled} = xyes; then
+	if test x${HAS_SPHINX_BUILD} = xyes; then
+		build_html=yes
+	fi
+fi
+AM_CONDITIONAL(BUILD_HTML, [test x$build_html = xyes])
+
 dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 

@@ -1,46 +1,27 @@
-## Process this with automake to create Makefile.in
-
-AUTOMAKE_OPTIONS = foreign
-
 docdir = $(datadir)/doc/$(PACKAGE)-$(VERSION)
+src_files=\
+	build/api.rst \
+	build/plugins.rst \
+	build/config.rst \
+	build/drivers.rst \
+	build/index.rst
+if BUILD_HTML
+html_files= \
+	search.html \
+	config.html \
+	index.html \
+	plugins.html \
+	genindex.html \
+	api.html \
+	drivers.html
+else
+html_files=
+endif
 
-# We list all of these as opposed to using a wildcard so that
-# building outside the source directory works.
-doc_DATA =  ao_append_option.html \
-            ao_close.html \
-            ao_default_driver_id.html \
-            ao_device.html \
-            ao_driver_id.html \
-            ao_driver_info.html \
-            ao_driver_info_list.html \
-            ao_file_extension.html \
-            ao_free_options.html \
-            ao_info.html \
-            ao_initialize.html \
-            ao_is_big_endian.html \
-            ao_open_file.html \
-            ao_open_live.html \
-            ao_option.html \
-            ao_play.html \
-            ao_plugin_close.html \
-            ao_plugin_device_clear.html \
-            ao_plugin_device_init.html \
-            ao_plugin_driver_info.html \
-            ao_plugin_file_extension.html \
-            ao_plugin_open.html \
-            ao_plugin_play.html \
-            ao_plugin_set_option.html \
-            ao_plugin_test.html \
-            ao_sample_format.html \
-            ao_shutdown.html \
-            config.html \
-            drivers.html \
-            index.html \
-            libao-api.html \
-            overview.html \
-            plugin-api.html \
-            plugin-overview.html \
-            ao_example.c \
-            style.css
+$(html_files) .sphinx-cache: $(src_files)
+	sphinx-build -b html -d .sphinx-cache $(top_srcdir)/doc/build .
 
-EXTRA_DIST = $(doc_DATA)
+doc_DATA=$(html_files) $(wildcard _static/*) $(src_files)
+# distribute pre-built docs
+EXTRA_DIST=$(doc_DATA)
+
