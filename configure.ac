@@ -73,28 +73,14 @@ if test -z "$GCC"; then
                 PROFILE="-g -p" ;;
         esac
 else
-
+        DEBUG="-g -Wall -fsigned-char"
+        CFLAGS="-fsigned-char"
+        PROFILE="-g -pg -fsigned-char"
         case $host in
-        *-*-linux*)
-                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D_REENTRANT -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-O20 -ffast-math -D_REENTRANT -fsigned-char"
-                PROFILE="-pg -g -O20 -ffast-math -D_REENTRANT -fsigned-char";;
-        sparc-sun-*)
-                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-O20 -ffast-math -D__NO_MATH_INLINES -fsigned-char"
-                PROFILE="-pg -g -O20 -D__NO_MATH_INLINES -fsigned-char" ;;
         *-darwin*)
-                PLUGIN_LDFLAGS="-module -avoid-version"
-               	DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-D__NO_MATH_INLINES -fsigned-char"
-                PROFILE="-g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
+                PLUGIN_LDFLAGS="-module -avoid-version" ;;
      	*)
-                PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
-                DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
-                CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
-                PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
+                PLUGIN_LDFLAGS="-export-dynamic -avoid-version" ;;
         esac
 fi
 CFLAGS="$CFLAGS $cflags_save -DAO_BUILDING_LIBAO"
@@ -165,35 +151,6 @@ case $host in
 esac
 AC_DEFINE_UNQUOTED(DLOPEN_FLAG, $DLOPEN_FLAG)
 AC_DEFINE_UNQUOTED(SHARED_LIB_EXT, "$SHARED_LIB_EXT")
-
-dnl ==============================
-dnl Checks for types
-dnl ==============================
-
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(long)
-
-case 2 in
-        $ac_cv_sizeof_short) SIZE16="short";;
-        $ac_cv_sizeof_int) SIZE16="int";;
-esac
-
-case 4 in
-        $ac_cv_sizeof_short) SIZE32="short";;
-        $ac_cv_sizeof_int) SIZE32="int";;
-        $ac_cv_sizeof_long) SIZE32="long";;
-esac
-
-if test -z "$SIZE16"; then
-        AC_MSG_ERROR(No 16 bit type found on this platform!)
-fi
-if test -z "$SIZE32"; then
-        AC_MSG_ERROR(No 32 bit type found on this platform!)
-fi
-
-AC_SUBST(SIZE16)
-AC_SUBST(SIZE32)
 
 dnl ======================================
 dnl Disable default use of SLP in roar 
@@ -462,11 +419,24 @@ AM_CONDITIONAL(HAVE_PULSE,test "x$have_pulse" = xyes)
 dnl Orphaned driver.  We'll probably dump it soon.
 AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
 
+dnl Build documentation
+docs_enabled=yes
+AC_ARG_ENABLE([docs], [AS_HELP_STRING([--disable-docs],
+[skip docs during build]) ], [ docs_enabled=$enableval ], [])
+
+AC_CHECK_PROG([HAS_SPHINX_BUILD], [sphinx-build], [yes])
+if test x${docs_enabled} = xyes; then
+	if test x${HAS_SPHINX_BUILD} = xyes; then
+		build_html=yes
+	fi
+fi
+AM_CONDITIONAL(BUILD_HTML, [test x$build_html = xyes])
+
 dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc])
+AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc])
 
 AS_AC_EXPAND(LIBDIR, ${libdir})
 AS_AC_EXPAND(INCLUDEDIR, ${includedir})

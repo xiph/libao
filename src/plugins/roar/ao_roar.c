@@ -334,7 +334,7 @@ int ao_plugin_open(ao_device * device, ao_sample_format * format) {
   return 1;
 }
 
-int ao_plugin_play(ao_device * device, const char * output_samples, uint_32 num_bytes) {
+int ao_plugin_play(ao_device * device, const char * output_samples, uint32_t num_bytes) {
   ao_roar_internal * internal = (ao_roar_internal *) device->internal;
   ssize_t ret;
 

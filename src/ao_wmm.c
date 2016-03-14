@@ -548,7 +548,7 @@ static int _ao_get_free_block(ao_device * device)
  * play the sample to the already opened file descriptor
  */
 int ao_wmm_play(ao_device *device,
-                const char *output_samples, uint_32 num_bytes)
+                const char *output_samples, uint32_t num_bytes)
 {
   int ret = 1;
   ao_wmm_internal *internal = (ao_wmm_internal *) device->internal;

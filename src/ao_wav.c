@@ -220,7 +220,7 @@ static int ao_wav_open(ao_device *device, ao_sample_format *format)
  * play the sample to the already opened file descriptor
  */
 static int ao_wav_play(ao_device *device, const char *output_samples,
-			uint_32 num_bytes)
+			uint32_t num_bytes)
 {
 	if (fwrite(output_samples, sizeof(char), num_bytes,
 		   device->file) < num_bytes)

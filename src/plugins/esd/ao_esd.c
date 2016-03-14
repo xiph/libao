@@ -239,7 +239,7 @@ int write4096(int fd, const char *output_samples){
 }
 
 int ao_plugin_play(ao_device *device, const char* output_samples,
-                   uint_32 num_bytes)
+                   uint32_t num_bytes)
 {
   ao_esd_internal *internal = (ao_esd_internal *) device->internal;
 
