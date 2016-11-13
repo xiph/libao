@@ -1,8 +1,0 @@
-debian/libao.conf	etc/
-debian/tmp/usr/lib/ao/plugins-2/libalsa09.so
-debian/tmp/usr/lib/ao/plugins-2/libarts.so
-debian/tmp/usr/lib/ao/plugins-2/libesd.so
-debian/tmp/usr/lib/ao/plugins-2/libnas.so
-debian/tmp/usr/lib/ao/plugins-2/liboss.so
-debian/tmp/usr/lib/ao/plugins-2/libpulse.so
-debian/tmp/usr/lib/libao.so.*
