@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = . plugins
+SUBDIRS = plugins
 
 AM_CPPFLAGS = -I$(top_builddir)/include/ao \
 	      -I$(top_srcdir)/include \
