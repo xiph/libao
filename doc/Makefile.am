@@ -44,3 +44,17 @@ doc_DATA =  ao_append_option.html \
             style.css
 
 EXTRA_DIST = $(doc_DATA)
+
+update-doc-version:
+	@YEAR=$$(date +%Y); DAY=$$(date +%Y%m%d);					\
+	for f in $(srcdir)/*.html; do							\
+		sed -e "s/2010-[0-9]\{4\} Monty/2010-$$YEAR Monty/g"			\
+		    -e "s/libao version [0-9. -]\+/libao version $(VERSION) - $$DAY/g"	\
+			< $$f > $$f.tmp;						\
+		if diff -q $$f $$f.tmp > /dev/null; then				\
+			rm $$f.tmp;							\
+		else									\
+			mv $$f.tmp $$f;							\
+		fi;									\
+	done;
+
