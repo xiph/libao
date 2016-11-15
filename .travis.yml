@@ -3,3 +3,6 @@ script:
   - ./autogen.sh
   - ./configure
   - make distcheck
+os:
+  - linux
+  - osx
