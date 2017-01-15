@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 #include <limits.h>
 
 #include <pulse/pulseaudio.h>
