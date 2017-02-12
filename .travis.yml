@@ -1,4 +1,8 @@
 language: c
+addons:
+  apt:
+    packages:
+      libpulse-dev
 script:
   - ./autogen.sh
   - ./configure
