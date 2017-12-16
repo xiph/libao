@@ -251,7 +251,7 @@ int main(int na, char ** a) {
     GUID foo = KSDATAFORMAT_SUBTYPE_PCM;
     return 0;
 }])],[
-AC_MSG_ERROR([bla])
+AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
 AC_MSG_RESULT([no])],[
   LIBS="$LIBS -lksuser"
   AC_LINK_IFELSE([AC_LANG_SOURCE([
@@ -261,7 +261,9 @@ AC_MSG_RESULT([no])],[
 int main(int na, char ** a) {
     GUID foo = KSDATAFORMAT_SUBTYPE_PCM;
     return 0;
-}])],[AC_MSG_RESULT([yes])],[
+}])],[
+AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
+AC_MSG_RESULT([yes])],[
     AC_MSG_WARN([ksmedia compilation failed, WinMM compilation disabled])
     have_wmm="no"])])
 CFLAGS="$old_ksuser_CFLAGS"
