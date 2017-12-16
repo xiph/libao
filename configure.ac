@@ -241,7 +241,30 @@ int main(int na, char ** a) {
 ])],[
 have_wmm="yes";
 AC_MSG_RESULT([yes])
-AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
+AC_MSG_CHECKING([if -lksuser is required])
+old_ksuser_CFLAGS="$CFLAGS"; CFLAGS=""
+AC_LINK_IFELSE([AC_LANG_SOURCE([
+#include <windows.h>
+#include <ksmedia.h>
+
+int main(int na, char ** a) {
+    GUID foo = KSDATAFORMAT_SUBTYPE_PCM;
+    return 0;
+}])],[
+AC_MSG_ERROR([bla])
+AC_MSG_RESULT([no])],[
+  LIBS="$LIBS -lksuser"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([
+#include <windows.h>
+#include <ksmedia.h>
+
+int main(int na, char ** a) {
+    GUID foo = KSDATAFORMAT_SUBTYPE_PCM;
+    return 0;
+}])],[AC_MSG_RESULT([yes])],[
+    AC_MSG_WARN([ksmedia compilation failed, WinMM compilation disabled])
+    have_wmm="no"])])
+CFLAGS="$old_ksuser_CFLAGS"
 ],[
 AC_MSG_RESULT([no])
 LIBS="$waveout_old_LIBS"
