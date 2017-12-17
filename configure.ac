@@ -265,6 +265,7 @@ int main(int na, char ** a) {
 AC_DEFINE([HAVE_WMM],[1],[Support Windows MultiMedia])
 AC_MSG_RESULT([yes])],[
     AC_MSG_WARN([ksmedia compilation failed, WinMM compilation disabled])
+    LIBS="$waveout_old_LIBS"
     have_wmm="no"])])
 CFLAGS="$old_ksuser_CFLAGS"
 ],[
