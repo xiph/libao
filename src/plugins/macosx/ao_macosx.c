@@ -594,11 +594,11 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format)
   internal->firstValidByteOffset = 0;
   internal->validByteCount = 0;
   internal->buffer = malloc(internal->bufferByteCount);
-  memset(internal->buffer, 0, internal->bufferByteCount);
   if (!internal->buffer) {
     aerror("Unable to allocate queue buffer.\n");
     return 0;
   }
+  memset(internal->buffer, 0, internal->bufferByteCount);
 
   /* limited to stereo for now */
   //if(!device->output_matrix)

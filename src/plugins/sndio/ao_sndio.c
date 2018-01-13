@@ -67,6 +67,9 @@ int ao_plugin_device_init(ao_device *device)
 {
   ao_sndio_internal *internal;
   internal = (ao_sndio_internal *) calloc(1,sizeof(*internal));
+  if (internal == NULL)
+    return 0;
+
   internal->id=-1;
   device->internal = internal;
   device->output_matrix_order = AO_OUTPUT_MATRIX_FIXED;

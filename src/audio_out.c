@@ -634,6 +634,10 @@ static char *_sanitize_matrix(int maxchannels, char *matrix, ao_device *device){
     char *ret = calloc(strlen(matrix)+1,1); /* can only get smaller */
     char *p=matrix;
     int count=0;
+
+    if(!ret)
+      return NULL;
+
     while(count<maxchannels){
       char *h,*t;
       int m=0;
@@ -706,6 +710,15 @@ static int _find_channel(int needle, char *haystack){
   return -1;
 }
 
+static void _free_map(char **m){
+  char **in=m;
+  while(m && *m){
+    free(*m);
+    m++;
+  }
+  if(in)free(in);
+}
+
 static char **_tokenize_matrix(char *matrix){
   char **ret=NULL;
   char *p=matrix;
@@ -730,6 +743,8 @@ static char **_tokenize_matrix(char *matrix){
   }
 
   ret = calloc(count+1,sizeof(*ret));
+  if(!ret)
+    return NULL;
 
   p=matrix;
   count=0;
@@ -748,6 +763,10 @@ static char **_tokenize_matrix(char *matrix){
     while(t>p && isspace(*(t-1)))t--;
 
     ret[count] = calloc(t-p+1,1);
+    if(!ret[count]){
+      _free_map(ret);
+      return NULL;
+    }
     memcpy(ret[count],p,t-p);
     count++;
     if(!*h)break;
@@ -755,16 +774,6 @@ static char **_tokenize_matrix(char *matrix){
   }
 
   return ret;
-
-}
-
-static void _free_map(char **m){
-  char **in=m;
-  while(m && *m){
-    free(*m);
-    m++;
-  }
-  if(in)free(in);
 }
 
 static unsigned int _matrix_to_channelmask(int ch, char *matrix, char *premap, int **mout){
@@ -772,7 +781,14 @@ static unsigned int _matrix_to_channelmask(int ch, char *matrix, char *premap, i
   char *p=matrix;
   int *perm=(*mout=malloc(ch*sizeof(*mout)));
   int i;
-  char **map = _tokenize_matrix(premap);
+  char **map;
+
+  if(!perm)
+    return 0;
+
+  map = _tokenize_matrix(premap);
+  if(!map)
+    return 0;
 
   for(i=0;i<ch;i++) perm[i] = -1;
   i=0;
@@ -809,6 +825,9 @@ static char *_channelmask_to_matrix(unsigned int mask, char *premap){
   int count=0;
   char buffer[257]={0};
   char **map = _tokenize_matrix(premap);
+
+  if(!map)
+    return NULL;
 
   while(map[m]){
     if(mask & (1<<m)){
@@ -848,6 +867,9 @@ static char *_matrix_intersect(char *matrix,char *premap){
   char buffer[257]={0};
   int count=0;
   char **map = _tokenize_matrix(premap);
+
+  if(!map)
+    return NULL;
 
   while(1){
     char *h=p;
@@ -1039,7 +1061,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                                                          device->output_matrix,
                                                          &device->input_map);
               int channels = _channelmask_bits(mask);
-              if(channels<0){
+              if(channels<=0){
                 aerror("Unable to map any channels from input matrix to output");
                 errno = AO_EBADFORMAT;
                 goto error;
@@ -1060,7 +1082,7 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                                                          device->output_matrix,
                                                          &device->input_map);
               int channels = _channelmask_bits(mask);
-              if(channels<0){
+              if(channels<=0){
                 aerror("Unable to map any channels from input matrix to output");
                 errno = AO_EBADFORMAT;
                 goto error;
@@ -1111,6 +1133,10 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
             int count=0;
             device->inter_permute = calloc(device->output_channels,sizeof(int));
 
+            if (!device->inter_permute) {
+              errno = AO_EFAIL;
+              goto error;
+            }
             adebug("\n");
 
             while(count<device->output_channels){
@@ -1157,8 +1183,10 @@ static ao_device* _open_device(int driver_id, ao_sample_format *format,
                 for(i=0;i<device->output_channels;i++)
                   if(device->inter_permute[i]==j)break;
                 if(i==device->output_channels){
-                  adebug("input %d (%s)\t -> none\n",
-                         j,inch[j]);
+                  if(inch){
+                    adebug("input %d (%s)\t -> none\n",
+                           j,inch[j]);
+                  }
                   unflag=1;
                 }
               }
