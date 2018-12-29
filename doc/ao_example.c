@@ -83,5 +83,7 @@ int main(int argc, char **argv)
 
 	ao_shutdown();
 
+	free(buffer);
+
   return (0);
 }
