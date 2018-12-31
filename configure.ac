@@ -32,13 +32,15 @@ dnl Check for programs
 dnl ====================================
 
 cflags_save="$CFLAGS"
+cppflags_save="$CPPFLAGS"
 AC_PROG_CC
+AC_PROG_CXX
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AM_PROG_LIBTOOL
 
 dnl ====================================
-dnl Check dlopen 
+dnl Check dlopen
 dnl ====================================
 
 dnl Currently use this to disable plugin support dlfcn.h
@@ -70,6 +72,7 @@ if test -z "$GCC"; then
                 PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g"
                 CFLAGS="-O"
+                CPPFLAGS="-O"
                 PROFILE="-g -p" ;;
         esac
 else
@@ -94,10 +97,12 @@ else
                 PLUGIN_LDFLAGS="-export-dynamic -avoid-version"
                 DEBUG="-g -Wall -D__NO_MATH_INLINES -fsigned-char"
                 CFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
+                CPPFLAGS="-O20 -D__NO_MATH_INLINES -fsigned-char"
                 PROFILE="-O20 -g -pg -D__NO_MATH_INLINES -fsigned-char" ;;
         esac
 fi
 CFLAGS="$CFLAGS $cflags_save -DAO_BUILDING_LIBAO"
+CPPFLAGS="$CPPFLAGS $cppflags_save -DAO_BUILDING_LIBAO"
 DEBUG="$DEBUG $cflags_save -DAO_BUILDING_LIBAO"
 PROFILE="$PROFILE $cflags_save -DAO_BUILDING_LIBAO"
 
@@ -113,7 +118,7 @@ case $host in
     *-mingw*|*-cygwin*)
 	LIBAO_LA_LDFLAGS="-no-undefined"
 	;;
-    *)	
+    *)
 	LIBAO_LA_LDFLAGS=""
 	;;
 esac
@@ -153,7 +158,7 @@ case $host in
     *hpux*)
 	DLOPEN_FLAG='(RTLD_LAZY)'
 	SHARED_LIB_EXT='.sl'
-	;;    
+	;;
     *openbsd* | *netbsd* | *solaris2.7 | *darwin*)
 	DLOPEN_FLAG='(RTLD_LAZY)'
 	SHARED_LIB_EXT='.so'
@@ -196,7 +201,7 @@ AC_SUBST(SIZE16)
 AC_SUBST(SIZE32)
 
 dnl ======================================
-dnl Disable default use of SLP in roar 
+dnl Disable default use of SLP in roar
 dnl until such time as SLP doesn't block
 dnl indefinitely
 dnl ======================================
@@ -214,7 +219,7 @@ fi
 AC_SUBST([SLP_DEF])
 
 dnl ======================================
-dnl Detect possible output devices 
+dnl Detect possible output devices
 dnl ======================================
 
 dnl Check for WMM
@@ -311,7 +316,7 @@ if test "x$enable_broken_oss" = "xyes"; then
    AC_DEFINE(BROKEN_OSS)
    AC_MSG_WARN(Broken OSS API workaround enabled.  See README for details.)
 fi
-   
+
 dnl Check for Sun audio
 
 have_sun="no";
@@ -426,7 +431,7 @@ if test "$BUILD_NAS" = "yes"; then
    AC_PATH_XTRA
    AC_CHECK_LIB(Xau, XauFileName, have_nas=yes, have_nas=no, $X_LIBS)
    AC_CHECK_LIB(audio, AuOpenServer, dummy="no-op", have_nas=no, -lXau $X_LIBS)
-   
+
    ac_save_CPPFLAGS="$CPPFLAGS"
    CPPFLAGS="$CPPFLAGS $X_CFLAGS"
    AC_CHECK_HEADER(audio/audiolib.h, dummy="no-op", have_nas=no)
@@ -459,6 +464,12 @@ AC_SUBST(PULSE_LIBS)
 
 AM_CONDITIONAL(HAVE_PULSE,test "x$have_pulse" = xyes)
 
+dnl Check for Haiku audio
+
+have_haiku="no";
+AC_CHECK_HEADERS(MediaDefs.h, have_haiku=yes)
+AM_CONDITIONAL(HAVE_HAIKU,test "${have_haiku}" = yes)
+
 dnl Orphaned driver.  We'll probably dump it soon.
 AM_CONDITIONAL(HAVE_SOLARIS,test "x$have_solaris" = xyes)
 
@@ -466,7 +477,7 @@ dnl Plugins get special LDFLAGS
 AC_SUBST(PLUGIN_LDFLAGS)
 
 
-AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile ao.pc])
+AC_OUTPUT([Makefile src/Makefile doc/Makefile include/Makefile include/ao/Makefile include/ao/os_types.h src/plugins/Makefile src/plugins/esd/Makefile src/plugins/oss/Makefile src/plugins/alsa/Makefile src/plugins/sun/Makefile src/plugins/irix/Makefile src/plugins/arts/Makefile src/plugins/macosx/Makefile src/plugins/nas/Makefile src/plugins/pulse/Makefile src/plugins/sndio/Makefile src/plugins/roar/Makefile src/plugins/haiku/Makefile ao.pc])
 
 AS_AC_EXPAND(LIBDIR, ${libdir})
 AS_AC_EXPAND(INCLUDEDIR, ${includedir})
@@ -487,6 +498,7 @@ AC_MSG_RESULT([
     ALSA live output: ............ ${have_alsa}
     ARTS live output: ............ ${have_arts}
     ESD live output: ............. ${have_esd}
+    HAIKU live output: ........... ${have_haiku}
     IRIX live output: ............ ${have_irix}
     MACOSX live output: .......... ${have_macosx}
     NAS live output: ............. ${have_nas}
