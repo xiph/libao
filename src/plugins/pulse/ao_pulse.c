@@ -258,8 +258,8 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
     /* buffering attributes */
     battr.prebuf = battr.minreq = battr.fragsize = -1;
 
-    battr.tlength = (int)(internal->buffer_time * format->rate) / 1000000 *
-      ((format->bits+7)/8) * device->output_channels;
+    battr.tlength = internal->buffer_time * format->rate / 1000000 *
+      (format->bits / 8) * device->output_channels;
     battr.minreq = battr.tlength/4;
     battr.maxlength = battr.tlength+battr.minreq;
 
