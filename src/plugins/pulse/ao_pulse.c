@@ -256,12 +256,10 @@ int ao_plugin_open(ao_device *device, ao_sample_format *format) {
     }
 
     /* buffering attributes */
-    battr.prebuf = battr.minreq = battr.fragsize = -1;
+    battr.prebuf = battr.minreq = battr.fragsize = battr.maxlength = -1;
 
     battr.tlength = internal->buffer_time * format->rate / 1000000 *
       (format->bits / 8) * device->output_channels;
-    battr.minreq = battr.tlength/4;
-    battr.maxlength = battr.tlength+battr.minreq;
 
     internal->simple = pa_simple_new(internal->server, t, PA_STREAM_PLAYBACK,
                                      internal->sink, t2, &ss,
