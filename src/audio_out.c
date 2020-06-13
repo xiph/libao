@@ -295,13 +295,18 @@ static void _append_dynamic_drivers(driver_list *end)
         ao_device *device = ao_global_dummy;
 
 	/* now insert any plugins we find */
-	plugindir = opendir(AO_PLUGIN_PATH);
-        adebug("Loading driver plugins from %s...\n",AO_PLUGIN_PATH);
-	if (plugindir != NULL) {
+        const char* pluginpath = AO_PLUGIN_PATH;
+        char* env = getenv( "AO_PLUGIN_PATH" );
+        if ( env ) {
+            pluginpath = env;
+        }
+        plugindir = opendir(pluginpath);
+        adebug("Loading driver plugins from %s...\n",pluginpath);
+        if (plugindir != NULL) {
           while ((plugin_dirent = readdir(plugindir)) != NULL) {
-            char fullpath[strlen(AO_PLUGIN_PATH) + 1 + strlen(plugin_dirent->d_name) + 1];
+            char fullpath[strlen(pluginpath) + 1 + strlen(plugin_dirent->d_name) + 1];
             snprintf(fullpath, sizeof(fullpath), "%s/%s",
-                     AO_PLUGIN_PATH, plugin_dirent->d_name);
+                     pluginpath, plugin_dirent->d_name);
             if (!stat(fullpath, &statbuf) &&
                 S_ISREG(statbuf.st_mode) &&
                 (ext = strrchr(plugin_dirent->d_name, '.')) != NULL) {
