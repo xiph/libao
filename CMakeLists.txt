@@ -1,5 +1,5 @@
-project(libao)
 cmake_minimum_required(VERSION 3.20)
+project(libao)
 
 set(SRC
     src/ao_aixs.c
@@ -15,7 +15,8 @@ endif()
 configure_file(include/ao/os_types.h.in include/os_types.h)
 
 add_library(ao ${SRC})
-
+set_property(TARGET ao PROPERTY C_STANDARD 17)
+set_property(TARGET ao PROPERTY CPP_STANDARD 17)
 target_include_directories(ao
     PUBLIC
         include
@@ -26,3 +27,7 @@ target_include_directories(ao
 target_compile_definitions(ao
     PRIVATE
         AO_BUILDING_LIBAO)
+
+if(WIN32)
+    target_compile_definitions(ao PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
