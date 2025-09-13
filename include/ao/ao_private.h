@@ -138,13 +138,13 @@ struct ao_functions {
 
 void ao_read_config_files (ao_config *config);
 
-#define adebug(format, args...) {\
+#define adebug(format, ...) {\
     if(!device || device->verbose==2){                                  \
       if(strcmp(format,"\n")){                                          \
         if(device && device->funcs->driver_info()->short_name){         \
-          fprintf(stderr,"ao_%s debug: " format,device->funcs->driver_info()->short_name,## args); \
+          fprintf(stderr,"ao_%s debug: " format,device->funcs->driver_info()->short_name,## __VA_ARGS__); \
         }else{                                                          \
-          fprintf(stderr,"debug: " format,## args);                     \
+          fprintf(stderr,"debug: " format,## __VA_ARGS__);                     \
         }                                                               \
       }else{                                                            \
         fprintf(stderr,"\n");                                           \
@@ -152,13 +152,13 @@ void ao_read_config_files (ao_config *config);
     }                                                                   \
   }
 
-#define averbose(format, args...) {\
+#define averbose(format, ...) {\
     if(!device || device->verbose>0){                                   \
       if(strcmp(format,"\n")){                                          \
         if(device && device->funcs->driver_info()->short_name){         \
-          fprintf(stderr,"ao_%s info: " format,device->funcs->driver_info()->short_name,## args); \
+          fprintf(stderr,"ao_%s info: " format,device->funcs->driver_info()->short_name,## __VA_ARGS__); \
         }else{                                                          \
-          fprintf(stderr,"info: " format,## args);                      \
+          fprintf(stderr,"info: " format,## __VA_ARGS__);                      \
         }                                                               \
       }else{                                                            \
         fprintf(stderr,"\n");                                           \
@@ -166,13 +166,13 @@ void ao_read_config_files (ao_config *config);
     }                                                                   \
   }
 
-#define ainfo(format, args...) {\
+#define ainfo(format, ...) {\
     if(!device || device->verbose>=0){                                  \
       if(strcmp(format,"\n")){                                          \
         if(device && device->funcs->driver_info()->short_name){         \
-          fprintf(stderr,"ao_%s info: " format,device->funcs->driver_info()->short_name,## args); \
+          fprintf(stderr,"ao_%s info: " format,device->funcs->driver_info()->short_name,## __VA_ARGS__); \
         }else{                                                          \
-          fprintf(stderr,"info: " format,## args);                      \
+          fprintf(stderr,"info: " format,## __VA_ARGS__);                      \
         }                                                               \
       }else{                                                            \
         fprintf(stderr,"\n");                                           \
@@ -180,13 +180,13 @@ void ao_read_config_files (ao_config *config);
     }                                                                   \
   }
 
-#define awarn(format, args...) {\
+#define awarn(format, ...) {\
     if(!device || device->verbose>=0){                                  \
       if(strcmp(format,"\n")){                                          \
         if(device && device->funcs->driver_info()->short_name){         \
-          fprintf(stderr,"ao_%s WARNING: " format,device->funcs->driver_info()->short_name,## args); \
+          fprintf(stderr,"ao_%s WARNING: " format,device->funcs->driver_info()->short_name,## __VA_ARGS__); \
         }else{                                                          \
-          fprintf(stderr,"WARNING: " format,## args);                   \
+          fprintf(stderr,"WARNING: " format,## __VA_ARGS__);                   \
         }                                                               \
       }else{                                                            \
         fprintf(stderr,"\n");                                           \
@@ -194,13 +194,13 @@ void ao_read_config_files (ao_config *config);
     }                                                                   \
   }
 
-#define aerror(format, args...) {                                       \
+#define aerror(format, ...) {                                       \
     if(!device || device->verbose>=0){                                  \
       if(strcmp(format,"\n")){                                          \
         if(device && device->funcs->driver_info()->short_name){         \
-          fprintf(stderr,"ao_%s ERROR: " format,device->funcs->driver_info()->short_name,## args); \
+          fprintf(stderr,"ao_%s ERROR: " format,device->funcs->driver_info()->short_name,## __VA_ARGS__); \
         }else{                                                          \
-          fprintf(stderr,"ERROR: " format,## args);                     \
+          fprintf(stderr,"ERROR: " format,## __VA_ARGS__);                     \
         }                                                               \
       }else{                                                            \
         fprintf(stderr,"\n");                                           \

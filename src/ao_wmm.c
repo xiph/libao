@@ -33,6 +33,7 @@
 #include <windows.h>
 #include <mmreg.h>
 #include <mmsystem.h>
+#include <ks.h>
 #include <ksmedia.h>
 
 #include <stdlib.h>
